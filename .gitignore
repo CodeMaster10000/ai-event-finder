@@ -1,0 +1,14 @@
+.venv
+.idea
+.vs
+instance
+.flaskenv
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore log files
+*.log
