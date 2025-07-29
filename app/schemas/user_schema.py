@@ -1,10 +1,8 @@
 from marshmallow import Schema, fields, validate, EXCLUDE, pre_load
-
+from app.util.user_util import (
+    PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, NAME_MAX_LENGTH, SURNAME_MAX_LENGTH, EMAIL_MAX_LENGTH)
 # Constants for validation lengths
-PASSWORD_MIN_LENGTH = 8
-PASSWORD_MAX_LENGTH = 80
-NAME_MAX_LENGTH = 50
-SURNAME_MAX_LENGTH = 50
+
 
 class CreateUserSchema(Schema):
     """
@@ -76,7 +74,8 @@ class CreateUserSchema(Schema):
         error_messages={
             "required": "Email is required.",
             "invalid": "Must be a valid email address."
-        }
+        },
+        validate=validate.Length(min=1, max=EMAIL_MAX_LENGTH)
     )
 
     """
