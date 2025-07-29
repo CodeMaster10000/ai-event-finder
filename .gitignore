@@ -5,7 +5,6 @@ instance
 .flaskenv
 .env
 poetry.lock
-
 # Ignore Python cache files
 __pycache__/
 *.pyc
