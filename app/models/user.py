@@ -1,4 +1,5 @@
 from app.extensions import db
+from app.util.user_util import NAME_MAX_LENGTH,SURNAME_MAX_LENGTH,EMAIL_MAX_LENGTH,PASSWORD_MAX_LENGTH
 
 class User(db.Model):
     """
@@ -12,10 +13,10 @@ class User(db.Model):
         password (str): The password of the user. Max 80 characters.
     """
     id=db.Column(db.Integer, primary_key=True)
-    name=db.Column(db.String(50), nullable=False)
-    surname=db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(80), nullable=False, unique=True)
-    password=db.Column(db.String(80), nullable=False)
+    name=db.Column(db.String(NAME_MAX_LENGTH), nullable=False)
+    surname=db.Column(db.String(SURNAME_MAX_LENGTH), nullable=False)
+    email = db.Column(db.String(EMAIL_MAX_LENGTH), nullable=False, unique=True)
+    password=db.Column(db.String(PASSWORD_MAX_LENGTH), nullable=False)
 
     def __repr__(self):
         """
