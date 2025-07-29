@@ -119,17 +119,17 @@ class UserSchema(Schema):
 
     id = fields.Int(
         dump_only=True,
-        description="Unique identifier for the user"
+        metadata={"description":"Unique identifier for the user"}
     )
     name = fields.Str(
         dump_only=True,
-        description="User's first name"
+        metadata={"description": "User's first name"}
     )
     surname = fields.Str(
         dump_only=True,
-        description="User's surname"
+        metadata={"description":"User's surname"}
     )
     email = fields.Email(
         dump_only=True,
-        description="User's email address"
+        metadata={"description":"User's email address"}
     )
