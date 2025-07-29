@@ -10,13 +10,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "${HOST_DB_PORT}:${DB_PORT}"
 
   web:
     build: .
     command: python run.py
     ports:
-      - "5000:5000"
+      - "${HOST_APP_PORT}:${APP_PORT}"
     depends_on:
       - db
     environment:
