@@ -24,3 +24,11 @@ authentication, dependency injection and AI support.
 - **OpenAI** SDK for cloud embeddings and chat  
 - **sentence-transformers** 4.1.0, **transformers** 4.52.3 & **torch** 2.7.0 for local embeddings  
 - **Ollama** CLI for local LLM completions
+
+##Example for env. file
+FLASK_ENV=development
+DB_USER=postgres
+DB_PASSWORD=ana123
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=postgres
