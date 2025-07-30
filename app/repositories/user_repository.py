@@ -1,71 +1,98 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional, List
 
 from app.models.user import User
 
 
-# Assuming a User model is defined elsewhere in your application
-# from your_app.models import User
-
-class UserRepository(ABC):
+class AbstractUserRepository(ABC):
     """
-    Abstract repository interface for managing User entities.
+    Interface for User repository operations.
     """
 
-    @abstractmethod
-    def create_user(self, user: 'User') -> 'User':
+    def __init__(self, session):
         """
-        Add a new user to the repository.
+        Initialize the repository with a database session.
 
-        :param user: The user entity to create.
-        :return: The created user with any repository-assigned fields populated.
+        :param session: The database session or connection.
         """
-        pass
+        self.session = session
 
     @abstractmethod
-    def update_user(self, user: 'User') -> 'User':
+    def get_by_id(self, user_id: int) -> Optional[User]:
         """
-        Update an existing user in the repository.
+        Retrieve a user by its unique identifier.
 
-        :param user: The user entity with updated values.
-        :return: The updated user entity.
+        :param user_id: The primary key of the user.
+        :return: The User instance if found, otherwise None.
         """
-        pass
-
-    @abstractmethod
-    def delete_user(self, user_id: int) -> None:
-        """
-        Remove a user from the repository by their unique identifier.
-
-        :param user_id: The unique ID of the user to delete.
-        """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    def get_user(self, user_id: int) -> Optional['User']:
+    def get_by_email(self, email: str) -> Optional[User]:
         """
-        Retrieve a user by their unique identifier.
+        Retrieve a user by their email address.
 
-        :param user_id: The unique ID of the user to retrieve.
-        :return: The user entity if found, otherwise None.
+        :param email: The user's email.
+        :return: The User instance if found, otherwise None.
         """
-        pass
-
-    @abstractmethod
-    def get_all_users(self) -> List['User']:
-        """
-        Retrieve all users from the repository.
-
-        :return: A list of all user entities.
-        """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    def get_user_by_name(self, name: str) -> List['User']:
+    def get_by_name(self, name: str) -> Optional[User]:
         """
-        Find users by their name.
+        Retrieve a user by their name.
 
-        :param name: The name or partial name to search for.
-        :return: A list of users matching the given name.
+        :param name: The user's name.
+        :return: The User instance if found, otherwise None.
         """
-        pass
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_all(self) -> List[User]:
+        """
+        Retrieve all users in the system.
+
+        :return: A list of all User instances.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def save(self, user: User) -> User:
+        """
+        Persist a new user or update an existing one.
+
+        :param user: The User instance to save.
+        :return: The saved User instance (with any DB-generated fields populated).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_by_id(self, user_id: int) -> None:
+        """
+        Delete a user given their unique identifier.
+
+        :param user_id: The primary key of the user to delete.
+        :raises UserNotFound: If no user exists with the given ID.
+        :raises AppException: If the deletion fails at the database level.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def exists_by_id(self, user_id: int) -> bool:
+        """
+        Check whether a user exists by their ID.
+
+        :param user_id: The primary key to check.
+        :return: True if a user with that ID exists, False otherwise.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def exists_by_name(self, name: str) -> bool:
+        """
+        Check whether a user exists by their name.
+
+        :param name: The user's name to check.
+        :return: True if a user with that name exists, False otherwise.
+        """
+        raise NotImplementedError
