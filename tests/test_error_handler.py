@@ -10,6 +10,7 @@ from app.error_handler.exceptions import (
 from app.error_handler.global_error_handler import register_error_handlers
 
 @pytest.fixture
+# Create a minimal Flask app with the global error handlers registered
 def app():
     app = Flask(__name__)
     register_error_handlers(app)
@@ -34,9 +35,11 @@ def app():
     return app
 
 @pytest.fixture
+# Provide the Flask test client for sending requests
 def client(app):
     return app.test_client()
 
+# Ensure UserNotFoundException triggers a 404 with the correct error code and message
 def test_user_not_found_handler(client):
     resp = client.get("/notfound/42")
     assert resp.status_code == 404
@@ -47,6 +50,7 @@ def test_user_not_found_handler(client):
         }
     }
 
+# Verify DuplicateEmailException returns a 409 and proper payload
 def test_duplicate_email_handler(client):
     resp = client.get("/duplicate-email")
     assert resp.status_code == 409
@@ -57,6 +61,7 @@ def test_duplicate_email_handler(client):
         }
     }
 
+# Confirm UserSaveException yields a 500 and includes generic save error text
 def test_user_save_exception_handler(client):
     resp = client.get("/save-error")
     assert resp.status_code == 500
@@ -64,6 +69,7 @@ def test_user_save_exception_handler(client):
     assert payload["code"] == "USER_SAVE_ERROR"
     assert "Unable to save user due to an internal error." in payload["message"]
 
+# Confirm UserDeleteException yields a 500 and includes generic delete error text
 def test_user_delete_exception_handler(client):
     resp = client.get("/delete-error")
     assert resp.status_code == 500
