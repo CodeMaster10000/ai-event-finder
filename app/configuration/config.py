@@ -13,3 +13,4 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+print("✅ Using DB user:", os.getenv("DB_USER"))

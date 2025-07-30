@@ -25,7 +25,7 @@ authentication, dependency injection and AI support.
 - **sentence-transformers** 4.1.0, **transformers** 4.52.3 & **torch** 2.7.0 for local embeddings  
 - **Ollama** CLI for local LLM completions
 
-##Example for env. file
+## Example for env. File
 FLASK_ENV=development
 DB_USER=postgres
 DB_PASSWORD=postgres
