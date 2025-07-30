@@ -3,10 +3,10 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.repositories.user_repository import AbstractUserRepository
+from app.repositories.user_repository import UserRepository
 
 
-class UserRepository(AbstractUserRepository):
+class UserRepositoryImpl(UserRepository):
     def __init__(self, session: Session):
         super().__init__(session)
         self.session = session
