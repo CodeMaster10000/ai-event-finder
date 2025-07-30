@@ -5,7 +5,7 @@ from app.configuration.config import Config
 from app.container import Container
 # from app.routes.user_route import user_ns
 from app.extensions import db
-from app.services import user_service
+from app.services import user_service_impl
 
 # Function to set up REST API and Swagger API
 def create_api(app: Flask):
