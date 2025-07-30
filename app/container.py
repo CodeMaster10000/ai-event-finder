@@ -1,5 +1,8 @@
 from dependency_injector import containers, providers
 from app.extensions import db
+from app.repositories.user_repository import UserRepository
+
+
 # from app.services.user_service import UserService
 
 
@@ -10,6 +13,10 @@ class Container(containers.DeclarativeContainer):
     db_session = providers.Singleton(lambda: db.session)
 
     # Repositories
+    user_repository = providers.Factory(
+        UserRepository
+    )
+
     # Services
 
     # Define a factory for the UserService
