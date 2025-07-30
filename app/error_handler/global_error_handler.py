@@ -26,6 +26,9 @@ def register_error_handlers(app):
         """
         404: User lookup by ID, name, or email failed.
         """
+        # log the fact that someone tried to look up a non‑existent user
+        app.logger.error("UserNotFoundException: %s", exception)
+
         response = {
             "error": {
                 "code": "USER_NOT_FOUND",
@@ -39,6 +42,9 @@ def register_error_handlers(app):
         """
         409: Attempt to create or update a user with an existing email.
         """
+        # log that a duplicate email was detected
+        app.logger.error("DuplicateEmailException: %s", exception)
+
         response = {
             "error": {
                 "code": "DUPLICATE_EMAIL",

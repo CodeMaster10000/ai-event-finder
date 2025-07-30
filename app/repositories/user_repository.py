@@ -4,7 +4,7 @@ from typing import Optional, List
 from app.models.user import User
 
 
-class AbstractUserRepository(ABC):
+class UserRepository(ABC):
     """
     Interface for User repository operations.
     """
