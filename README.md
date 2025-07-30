@@ -28,10 +28,10 @@ authentication, dependency injection and AI support.
 ##Example for env. file
 FLASK_ENV=development
 DB_USER=postgres
-DB_PASSWORD=ana123
+DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5432
-HOST_DB_PORT=5433
+HOST_DB_PORT=5432
 APP_PORT=5000
 HOST_APP_PORT=5000
-DB_NAME=postgres
+DB_NAME=event_database
