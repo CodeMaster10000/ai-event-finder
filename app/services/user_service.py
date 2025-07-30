@@ -30,6 +30,11 @@ class AbstractUserService(ABC):
         pass
 
     @abstractmethod
+    def update(self, user: User) -> User:
+        """Update an existing user's data."""
+        pass
+
+    @abstractmethod
     def delete_by_id(self, user_id: int) -> None:
         """Delete a user by their ID. Raise an error if not found."""
         pass
