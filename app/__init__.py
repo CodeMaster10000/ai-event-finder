@@ -1,11 +1,15 @@
 from flask import Flask
+from flask_migrate import Migrate
 from flask_restx import Api
 
 from app.configuration.config import Config
 from app.container import Container
-# from app.routes.user_route import user_ns
 from app.extensions import db
+from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
+from app.services import user_service
 from app.services import user_service_impl
+
+migrate = Migrate()
 
 # Function to set up REST API and Swagger API
 def create_api(app: Flask):
@@ -26,7 +30,7 @@ def create_app():
 
     # Initialize extensions
     db.init_app(app)
-
+    migrate.init_app(app, db)
     # Dependency injection
     container = Container()
     container.init_resources()

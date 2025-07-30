@@ -25,13 +25,13 @@ authentication, dependency injection and AI support.
 - **sentence-transformers** 4.1.0, **transformers** 4.52.3 & **torch** 2.7.0 for local embeddings  
 - **Ollama** CLI for local LLM completions
 
-##Example for env. file
+## Example for env. File
 FLASK_ENV=development
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5432
-HOST_DB_PORT=5433
+HOST_DB_PORT=5432
 APP_PORT=5000
 HOST_APP_PORT=5000
 DB_NAME=event_database
