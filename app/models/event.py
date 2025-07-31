@@ -25,11 +25,12 @@ class Event(db.Model):
         guests (List[User]): Users invited to the event.
         category (str):    Category of the event. Max 50 characters.
     """
+    __tablename__ = 'events'
 
     id           = db.Column(db.Integer,   primary_key=True)
     title        = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
     datetime     = db.Column(db.DateTime,   nullable=False)
-    description  = db.Column(db.Text(DESCRIPTION_MAX_LENGTH),       nullable=True)
+    description  = db.Column(db.String(DESCRIPTION_MAX_LENGTH),       nullable=True)
 
     # ONE TO MANY
     organizer_id = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=False)
