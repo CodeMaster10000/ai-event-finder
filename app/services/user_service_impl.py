@@ -1,7 +1,7 @@
 from typing import List, Optional
 from app.models.user import User
-from app.repositories.user_repository import AbstractUserRepository
-from app.services.user_service import AbstractUserService
+from app.repositories.user_repository import UserRepository
+from app.services.user_service import UserService
 from app.error_handler.exceptions import (
     UserNotFoundException,
     DuplicateEmailException,
@@ -10,8 +10,8 @@ from app.error_handler.exceptions import (
 )
 
 
-class UserServiceImpl(AbstractUserService):
-    def __init__(self, user_repository: AbstractUserRepository):
+class UserServiceImpl(UserService):
+    def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
 
     def get_by_id(self, user_id: int) -> Optional[User]:

@@ -15,7 +15,7 @@ from app.routes.user_route import (
     ExistsByNameResource
 )
 from app.routes.user_route import user_schema, users_schema
-from app.services.user_service import AbstractUserService
+from app.services.user_service import UserService
 
 
 @pytest.fixture
@@ -30,8 +30,8 @@ def app():
 
 @pytest.fixture
 def user_service_mock():
-    """A mock of the AbstractUserService."""
-    return MagicMock(spec=AbstractUserService)
+    """A mock of the UserService."""
+    return MagicMock(spec=UserService)
 
 def test_get_all_users_empty(app, user_service_mock):
     # Service returns empty list

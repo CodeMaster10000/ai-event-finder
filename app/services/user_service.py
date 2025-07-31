@@ -3,7 +3,7 @@ from typing import List, Optional
 from app.models.user import User
 
 
-class AbstractUserService(ABC):
+class UserService(ABC):
     @abstractmethod
     def get_by_id(self, user_id: int) -> Optional[User]:
         """Retrieve a user by their unique ID."""
@@ -47,12 +47,4 @@ class AbstractUserService(ABC):
     @abstractmethod
     def exists_by_name(self, name: str) -> bool:
         """Check whether a user exists by their name."""
-        pass
-
-    @abstractmethod
-    def exists_by_id(self, user_id: int) -> bool:
-        pass
-
-    @abstractmethod
-    def exists_by_name(self, name: str) -> bool:
         pass

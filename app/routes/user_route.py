@@ -2,7 +2,7 @@ from flask_restx import Namespace, Resource
 from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 from app.container import Container
-from app.services.user_service import AbstractUserService
+from app.services.user_service import UserService
 from app.schemas.user_schema import CreateUserSchema, UserSchema
 from marshmallow import ValidationError
 from app.models.user import User
@@ -19,14 +19,14 @@ users_schema = UserSchema(many=True)
 class UserBaseResource(Resource):
     @inject
     def get(self,
-            user_service: AbstractUserService = Provide[Container.user_service]):
+            user_service: UserService = Provide[Container.user_service]):
         """Get all users"""
         users = user_service.get_all()
         return users_schema.dump(users), 200
 
     @inject
     def post(self,
-             user_service: AbstractUserService = Provide[Container.user_service]):
+             user_service: UserService = Provide[Container.user_service]):
         """Create or update a user"""
         json_data = request.get_json()
         if not json_data:
@@ -46,7 +46,7 @@ class UserByIdResource(Resource):
     @inject
     def get(self,
             user_id: int,
-            user_service: AbstractUserService = Provide[Container.user_service]):
+            user_service: UserService = Provide[Container.user_service]):
         """Get a user by ID"""
         user = user_service.get_by_id(user_id)
         if not user:
@@ -56,7 +56,7 @@ class UserByIdResource(Resource):
     @inject
     def delete(self,
                user_id: int,
-               user_service: AbstractUserService = Provide[Container.user_service]):
+               user_service: UserService = Provide[Container.user_service]):
         """Delete a user by ID"""
         user = user_service.get_by_id(user_id)
         if not user:
@@ -69,7 +69,7 @@ class UserByEmailResource(Resource):
     @inject
     def get(self,
             email: str,
-            user_service: AbstractUserService = Provide[Container.user_service]):
+            user_service: UserService = Provide[Container.user_service]):
         """Get a user by email"""
         user = user_service.get_by_email(email)
         if not user:
@@ -81,7 +81,7 @@ class UsersByNameResource(Resource):
     @inject
     def get(self,
             name: str,
-            user_service: AbstractUserService = Provide[Container.user_service]):
+            user_service: UserService = Provide[Container.user_service]):
         """Get a user by name"""
         user = user_service.get_by_name(name)
         if not user:
@@ -93,8 +93,8 @@ class ExistsByIdResource(Resource):
     @inject
     def get(self,
             user_id: int,
-            user_service: AbstractUserService = Provide[Container.user_service]):
-        """Check existence of a user by ID"""
+            user_service: UserService = Provide[Container.user_service]):
+        """Check the existence of a user by ID"""
         exists = user_service.exists_by_id(user_id)
         return {'exists': exists}, 200
 
@@ -103,7 +103,7 @@ class ExistsByNameResource(Resource):
     @inject
     def get(self,
             name: str,
-            user_service: AbstractUserService = Provide[Container.user_service]):
-        """Check existence of users by name"""
+            user_service: UserService = Provide[Container.user_service]):
+        """Check the existence of users by name"""
         exists = user_service.exists_by_name(name)
         return {'exists': exists}, 200
