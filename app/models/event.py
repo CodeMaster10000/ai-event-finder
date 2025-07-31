@@ -1,5 +1,4 @@
 from app.extensions import db
-from app.models.user import User
 from app.util.event_util import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
 
 
