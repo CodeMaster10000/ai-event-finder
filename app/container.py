@@ -1,9 +1,10 @@
 from dependency_injector import containers, providers
 from app.extensions import db
 from app.repositories.user_repository import UserRepository
+from app.repositories.user_repository_impl import UserRepositoryImpl
 from app.services.user_service_impl import UserServiceImpl
 
-# Define a container class using DeclarativeContainer base class
+
 class Container(containers.DeclarativeContainer):
     # Automatically wire dependencies into your routes and services modules
     wiring_config = containers.WiringConfiguration(
@@ -17,13 +18,12 @@ class Container(containers.DeclarativeContainer):
     # user_repository = providers.Factory(UserRepository, session=db_session)
     # Repositories
     user_repository = providers.Singleton(
-        UserRepository
+        UserRepositoryImpl, session=db_session
     )
 
     # Services
 
     # Service provider
     user_service = providers.Singleton(
-        UserServiceImpl,
-        user_repository=user_repository  # inject the repo into the service
+        UserServiceImpl, user_repository=user_repository
     )
