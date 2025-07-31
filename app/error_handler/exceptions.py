@@ -4,11 +4,7 @@ class UserNotFoundException(Exception):
     You must pass exactly one of the following: user_id, name, email!
     """
 
-    def __init__(self, *,
-        user_id : int | None = None,
-        name: str | None = None,
-        email: str | None = None,
-                 ):
+    def __init__(self, message:str ):
         """
         One of the following: user_id, name, email must be explicitly passed
         when raising the exception.
@@ -22,20 +18,7 @@ class UserNotFoundException(Exception):
             We use the identifiers dictionary and provided list to make sure that 
             only one identifier was passed when raising the exception.
         """
-        identifiers ={
-            "id":user_id,
-            "name":name,
-            "email":email
-        }
-        provided = [(k,v) for k,v in identifiers.items() if v is not None]
-        if len(provided) != 1:
-            raise ValueError(
-                "UserNotFoundException requires exactly one of "
-                "user_id, name, or email"
-            )
 
-        field, value = provided[0]
-        message = f"User with {field}={value} not found."
         super().__init__(message)
 
 class DuplicateEmailException(Exception):
