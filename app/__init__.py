@@ -8,6 +8,7 @@ from app.extensions import db
 from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
 from flask_migrate import upgrade as flask_migrate_upgrade
 
+from app.routes.user_route import user_ns
 from app.services import user_service
 from app.services import user_service_impl
 
@@ -22,7 +23,7 @@ def create_api(app: Flask):
         description="REST API",
         doc="/swagger/"  # optional: where Swagger UI lives
     )
-    #api.add_namespace(user_ns, path="/users")
+    api.add_namespace(user_ns, path="/users")
 
 
 # Main app factory function for Flask to create the app instance
