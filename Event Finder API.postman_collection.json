@@ -1,0 +1,550 @@
+{
+	"info": {
+		"_postman_id": "0bb97f31-5e00-4df9-86f3-5540e59463ad",
+		"name": "Event Finder API",
+		"description": "REST API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47227093",
+		"_collection_link": "https://georgi-kamchevski-5f77f3a7-467475.postman.co/workspace/Georgi-Kamchevski's-Workspace~d1e506a5-4814-47f9-83aa-953f97d6933d/collection/47227093-0bb97f31-5e00-4df9-86f3-5540e59463ad?action=share&source=collection_link&creator=47227093"
+	},
+	"item": [
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "email",
+					"item": [
+						{
+							"name": "{email}",
+							"item": [
+								{
+									"name": "Get a user by email",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/users/email/:email",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"users",
+												"email",
+												":email"
+											],
+											"variable": [
+												{
+													"key": "email",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/users/email/:email",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"email",
+														":email"
+													],
+													"variable": [
+														{
+															"key": "email"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "exists",
+					"item": [
+						{
+							"name": "id",
+							"item": [
+								{
+									"name": "{user_id}",
+									"item": [
+										{
+											"name": "Check the existence of a user by ID",
+											"request": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/users/exists/id/:user_id",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"exists",
+														"id",
+														":user_id"
+													],
+													"variable": [
+														{
+															"key": "user_id",
+															"value": "2383",
+															"description": "(Required) "
+														}
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{baseUrl}}/users/exists/id/:user_id",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"users",
+																"exists",
+																"id",
+																":user_id"
+															],
+															"variable": [
+																{
+																	"key": "user_id"
+																}
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"name": "name",
+							"item": [
+								{
+									"name": "{name}",
+									"item": [
+										{
+											"name": "Check the existence of users by name",
+											"request": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/users/exists/name/:name",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"exists",
+														"name",
+														":name"
+													],
+													"variable": [
+														{
+															"key": "name",
+															"value": "string",
+															"description": "(Required) "
+														}
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "GET",
+														"header": [],
+														"url": {
+															"raw": "{{baseUrl}}/users/exists/name/:name",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"users",
+																"exists",
+																"name",
+																":name"
+															],
+															"variable": [
+																{
+																	"key": "name"
+																}
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "id",
+					"item": [
+						{
+							"name": "{user_id}",
+							"item": [
+								{
+									"name": "Get a user by ID",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/users/id/:user_id",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"users",
+												"id",
+												":user_id"
+											],
+											"variable": [
+												{
+													"key": "user_id",
+													"value": "2383",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/users/id/:user_id",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"id",
+														":user_id"
+													],
+													"variable": [
+														{
+															"key": "user_id"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								},
+								{
+									"name": "Delete a user by ID",
+									"request": {
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/users/id/:user_id",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"users",
+												"id",
+												":user_id"
+											],
+											"variable": [
+												{
+													"key": "user_id",
+													"value": "2383",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "DELETE",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/users/id/:user_id",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"id",
+														":user_id"
+													],
+													"variable": [
+														{
+															"key": "user_id"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "name",
+					"item": [
+						{
+							"name": "{name}",
+							"item": [
+								{
+									"name": "Get a user by name",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/users/name/:name",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"users",
+												"name",
+												":name"
+											],
+											"variable": [
+												{
+													"key": "name",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/users/name/:name",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"name",
+														":name"
+													],
+													"variable": [
+														{
+															"key": "name"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Get all users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/users",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"users"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Create or update a user",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"string\",\n  \"name\": \"string\",\n  \"password\": \"string\",\n  \"surname\": \"string\"\n}",
+							"options": {
+								"raw": {
+									"headerFamily": "json",
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"string\",\n  \"name\": \"string\",\n  \"password\": \"string\",\n  \"surname\": \"string\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/users",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"users"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "/"
+		}
+	]
+}

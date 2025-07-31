@@ -3,6 +3,7 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
 from app.util.validation_util import validate_user
+from app.util.user_util import *
 
 from app.error_handler.exceptions import (
     DuplicateEmailException,
@@ -18,18 +19,19 @@ class UserServiceImpl(UserService):
 
     def get_by_id(self, user_id: int) -> User:
         user = self.user_repository.get_by_id(user_id)
-        validate_user(user)
+        validate_user(user, return_not_found_by_id_message(user_id))
         return user
 
     def get_by_email(self, email: str) -> User:
         user = self.user_repository.get_by_email(email)
-        validate_user(user)
+
+        validate_user(user, return_not_found_by_email_message(email))
         return user
 
 
     def get_by_name(self, name: str) -> User:
         user = self.user_repository.get_by_name(name)
-        validate_user(user)
+        validate_user(user, return_not_found_by_name_message(name))
         return user
 
     def get_all(self) -> List[User]:
@@ -45,7 +47,7 @@ class UserServiceImpl(UserService):
 
     def update(self, user: User) -> User:
         existing_user = self.user_repository.get_by_id(user.id)
-        validate_user(existing_user)
+        validate_user(existing_user,return_not_found_by_id_message(user.id))
 
         conflict = self.user_repository.get_by_email(user.email)
         if conflict and conflict.id != user.id:
@@ -57,7 +59,7 @@ class UserServiceImpl(UserService):
 
     def delete_by_id(self, user_id: int) -> None:
         user = self.user_repository.get_by_id(user_id)
-        validate_user(user, user_id=user_id)
+        validate_user(user,return_not_found_by_id_message(user_id))
 
         try:
             self.user_repository.delete_by_id(user_id)
@@ -66,10 +68,10 @@ class UserServiceImpl(UserService):
 
     def exists_by_id(self, user_id: int) -> bool:
         user = self.user_repository.get_by_id(user_id)
-        validate_user(user)
+        validate_user(user,return_not_found_by_id_message(user_id))
         return True
 
     def exists_by_name(self, name: str) -> bool:
         user = self.user_repository.get_by_name(name)
-        validate_user(user, name=name)
+        validate_user(user, return_not_found_by_name_message(name))
         return True
