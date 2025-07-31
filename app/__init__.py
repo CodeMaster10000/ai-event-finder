@@ -7,7 +7,6 @@ from app.container import Container
 from app.extensions import db
 from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
 from flask_migrate import upgrade as flask_migrate_upgrade
-import logging
 
 from app.services import user_service
 from app.services import user_service_impl
@@ -27,19 +26,22 @@ def create_api(app: Flask):
 
 
 # Main app factory function for Flask to create the app instance
-def create_app():
+def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
 
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    with app.app_context():
-        try:
-            flask_migrate_upgrade()
-            print("Database upgraded successfully.")
-        except Exception as e:
-            print(f"Error during database upgrade: {e}")
+    if test_config and test_config.get("TESTING", True):
+        app.config.update(test_config)
+    else:
+        with app.app_context():
+            try:
+                flask_migrate_upgrade()
+                print("Database upgraded successfully.")
+            except Exception as e:
+                print(f"Error during database upgrade: {e}")
 
     # Dependency injection
     container = Container()

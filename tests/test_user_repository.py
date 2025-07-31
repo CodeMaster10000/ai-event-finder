@@ -5,11 +5,13 @@ from app import create_app
 from app.extensions import db as _db
 from app.models.user import User
 from app.repositories.user_repository_impl import UserRepositoryImpl
+from tests.util.test_util import test_cfg
+
 
 # App fixture
 @pytest.fixture
 def app():
-    app = create_app()  # make sure "testing" uses a test DB
+    app = create_app(test_cfg)  # make sure "testing" uses a test DB
     with app.app_context():
         _db.drop_all()
         _db.create_all()
