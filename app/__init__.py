@@ -11,6 +11,8 @@ from flask_migrate import upgrade as flask_migrate_upgrade
 from app.services import user_service
 from app.services import user_service_impl
 
+from app.configuration.logging_config import configure_logging
+
 migrate = Migrate()
 
 # Function to set up REST API and Swagger API
@@ -29,6 +31,9 @@ def create_api(app: Flask):
 def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Configure logger
+    configure_logging(app)
 
     # Initialize extensions
     db.init_app(app)

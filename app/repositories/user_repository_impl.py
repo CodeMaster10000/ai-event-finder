@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.configuration.logging_config import log_calls
 
-
+@log_calls("repositories.user_repository_impl")
 class UserRepositoryImpl(UserRepository):
     def __init__(self, session: Session):
         super().__init__(session)
