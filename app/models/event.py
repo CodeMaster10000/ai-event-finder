@@ -12,7 +12,6 @@ guest_list = db.Table(
 )
 
 class Event(db.Model):
-    __tablename__ = 'events'
     """
     Represents an event in the database.
 
