@@ -23,7 +23,7 @@ class Container(containers.DeclarativeContainer):
 
     # Services
 
-    # Provide a factory for your UserService implementation
+    # Service provider
     user_service = providers.Singleton(
         UserServiceImpl, user_repository=user_repository
     )
