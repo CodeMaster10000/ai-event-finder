@@ -1,20 +1,12 @@
-# tests/test_user_service_impl.py
-# -------------------------------
-# Unit tests for UserServiceImpl
-#
-# This test suite covers:
-# - Retrieving users by ID, email, and name
-# - Listing all users
-# - Saving a new user and handling duplicate emails
-# - Deleting users by ID and handling missing users
-# - Checking existence by ID and name
-#
-# Usage:
-#   pytest tests/test_user_service_impl.py
+"""
+Unit tests for the UserServiceImpl class.
+
+These tests mock the UserRepository to verify business logic in isolation,
+including proper exception handling and delegation of operations.
+"""
 
 import pytest
 from unittest.mock import MagicMock
-
 from app.models.user import User
 from app.services.user_service_impl import UserServiceImpl
 from app.error_handler.exceptions import DuplicateEmailException, UserNotFoundException
@@ -63,7 +55,7 @@ def test_get_by_name(user_service, mock_user_repo):
 def test_get_all(user_service, mock_user_repo):
     users = [
         User(id=1, name="Ana", surname="Ilievska", email="ana@example.com", password="a"),
-        User(id=2, name="Bob", surname="Smith", email="bob@example.com", password="b"),
+        User(id=2, name="Bob", surname="Smith", email="bob@example.com", password="b")
     ]
     mock_user_repo.get_all.return_value = users
 
@@ -96,34 +88,45 @@ def test_save_raises_on_duplicate_email(user_service, mock_user_repo):
 
 
 def test_delete_by_id_success(user_service, mock_user_repo):
-    mock_user_repo.exists_by_id.return_value = True
+    # Now delete_by_id uses get_by_id internally
+    user = User(id=1, name="Test", surname="User", email="test@example.com", password="pw")
+    mock_user_repo.get_by_id.return_value = user
 
     user_service.delete_by_id(1)
 
-    mock_user_repo.exists_by_id.assert_called_once_with(1)
+    mock_user_repo.get_by_id.assert_called_once_with(1)
     mock_user_repo.delete_by_id.assert_called_once_with(1)
 
 
 def test_delete_by_id_raises_if_not_found(user_service, mock_user_repo):
-    mock_user_repo.exists_by_id.return_value = False
+    mock_user_repo.get_by_id.return_value = None
 
-    with pytest.raises(UserNotFoundException, match="not found"):
+    with pytest.raises(UserNotFoundException, match="id=999"):
         user_service.delete_by_id(999)
 
 
-def test_exists_by_id(user_service, mock_user_repo):
-    mock_user_repo.exists_by_id.return_value = True
+def test_exists_by_id_returns_true(user_service, mock_user_repo):
+    user = User(id=5, name="Test", surname="User", email="a@a.com", password="p")
+    mock_user_repo.get_by_id.return_value = user
 
     result = user_service.exists_by_id(5)
 
-    mock_user_repo.exists_by_id.assert_called_once_with(5)
+    mock_user_repo.get_by_id.assert_called_once_with(5)
     assert result is True
 
 
-def test_exists_by_name(user_service, mock_user_repo):
-    mock_user_repo.exists_by_name.return_value = False
+def test_exists_by_name_raises_if_not_found(user_service, mock_user_repo):
+    mock_user_repo.get_by_name.return_value = None
+
+    with pytest.raises(UserNotFoundException, match="name=Alice"):
+        user_service.exists_by_name("Alice")
+
+
+def test_exists_by_name_returns_true(user_service, mock_user_repo):
+    user = User(id=7, name="Alice", surname="Test", email="alice@test.com", password="p")
+    mock_user_repo.get_by_name.return_value = user
 
     result = user_service.exists_by_name("Alice")
 
-    mock_user_repo.exists_by_name.assert_called_once_with("Alice")
-    assert result is False
+    mock_user_repo.get_by_name.assert_called_once_with("Alice")
+    assert result is True
