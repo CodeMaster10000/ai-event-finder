@@ -3,7 +3,7 @@ from typing import List, Optional
 from app.models.user import User
 
 
-class AbstractUserService(ABC):
+class UserService(ABC):
     @abstractmethod
     def get_by_id(self, user_id: int) -> Optional[User]:
         """Retrieve a user by their unique ID."""

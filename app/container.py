@@ -1,25 +1,27 @@
 from dependency_injector import containers, providers
 from app.extensions import db
 from app.repositories.user_repository import UserRepository
+from app.services.user_service_impl import UserServiceImpl
 
-
-# from app.services.user_service import UserService
-
-
-# Define a container class using DeclarativeContainer base class
 class Container(containers.DeclarativeContainer):
-    wiring_config = containers.WiringConfiguration(packages=["app.routes", "app.services"])
+    # Automatically wire dependencies into your routes and services modules
+    wiring_config = containers.WiringConfiguration(
+        packages=["app.routes", "app.services"]
+    )
 
+    # Provide a singleton SQLAlchemy session
     db_session = providers.Singleton(lambda: db.session)
 
+    # If you have a UserRepository, you could also do:
+    # user_repository = providers.Factory(UserRepository, session=db_session)
     # Repositories
-    user_repository = providers.Factory(
+    user_repository = providers.Singleton(
         UserRepository
     )
 
     # Services
 
-    # Define a factory for the UserService
-    user_service = providers.Factory(
-        # UserService
+    # Provide a factory for your UserService implementation
+    user_service = providers.Singleton(
+        UserServiceImpl
     )
