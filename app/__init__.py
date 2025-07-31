@@ -4,6 +4,7 @@ from flask_restx import Api
 
 from app.configuration.config import Config
 from app.container import Container
+from app.error_handler.global_error_handler import register_error_handlers
 from app.extensions import db
 from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
 from flask_migrate import upgrade as flask_migrate_upgrade
@@ -52,5 +53,6 @@ def create_app(test_config: dict | None = None):
     ])
 
     create_api(app)
+    register_error_handlers(app)
 
     return app
