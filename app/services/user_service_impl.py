@@ -13,8 +13,6 @@ from app.error_handler.exceptions import (
 from app.configuration.logging_config import log_calls
 
 @log_calls("services.user_service_impl")
-
-
 class UserServiceImpl(UserService):
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
