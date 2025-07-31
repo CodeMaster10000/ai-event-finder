@@ -136,7 +136,7 @@ class EventSchema(Schema):
         dump_only=True,
         metadata={"description": "The event category"}
     )
-    guest_list = fields.List(
+    guests = fields.List(
         fields.Nested(UserSchema(only=("name", "surname"))),
         dump_only=True,
         metadata={"description": "List of users attending the event"}

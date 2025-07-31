@@ -6,7 +6,7 @@ from app.util.event_util import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATI
 # used by SQLAlchemy in SQL JOINs
 guest_list = db.Table(
     'guest_list',
-    db.Column('event_id', db.Integer, db.ForeignKey('events.id'), primary_key=True),
+    db.Column('event_id', db.Integer, db.ForeignKey('event.id'), primary_key=True),
     db.Column('user_id',  db.Integer, db.ForeignKey('user.id'),   primary_key=True)
 )
 
@@ -29,7 +29,7 @@ class Event(db.Model):
     id           = db.Column(db.Integer,   primary_key=True)
     title        = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
     datetime     = db.Column(db.DateTime,   nullable=False)
-    description  = db.Column(db.Text(DESCRIPTION_MAX_LENGTH),       nullable=True)
+    description  = db.Column(db.String(DESCRIPTION_MAX_LENGTH),       nullable=True)
 
     # ONE TO MANY
     organizer_id = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=False)
