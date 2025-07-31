@@ -10,6 +10,7 @@ from flask_migrate import upgrade as flask_migrate_upgrade
 import logging
 
 from app.services import user_service
+from app.services import user_service_impl
 
 migrate = Migrate()
 
