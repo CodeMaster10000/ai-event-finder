@@ -2,7 +2,7 @@ from app.extensions import db
 from app.util.event_util import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
 
 
-# MANY TO MANY -> association table, actual join table in db schema
+# MANY-TO-MANY -> association table, actual join table in db schema
 # used by SQLAlchemy in SQL JOINs
 guest_list = db.Table(
     'guest_list',
