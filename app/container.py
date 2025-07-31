@@ -20,8 +20,10 @@ class Container(containers.DeclarativeContainer):
         UserRepository
     )
 
+    # Services
+
     # Service provider
-    user_service = providers.Factory(
+    user_service = providers.Singleton(
         UserServiceImpl,
         user_repository=user_repository  # inject the repo into the service
     )
