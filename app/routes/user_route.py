@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 from app.container import Container
@@ -23,6 +23,15 @@ class UserBaseResource(Resource):
         """Get all users"""
         users = user_service.get_all()
         return users_schema.dump(users), 200
+
+    user_create_input = user_ns.model('user_create_input', {
+        'name': fields.String(required=True),
+        'surname': fields.String(required=True),
+        'email': fields.String(required=True),
+        'password': fields.String(required=True),
+    })
+
+    @user_ns.expect(user_create_input)
 
     @inject
     def post(self,
