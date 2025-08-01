@@ -115,6 +115,20 @@ class EventRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    def delete_by_title(self, title: str) -> None:
+        """
+        Delete all events with the specified title from the repository.
+
+        Args:
+            title (str): The title of the events to delete.
+
+        Note:
+            This method assumes that multiple events can share the same title.
+            If only unique titles are expected in your domain model, this should delete one or raise an error.
+        """
+        pass
+
     # ------------------------
     # Save Method
     # ------------------------
