@@ -47,7 +47,7 @@ def test_configure_logging_other_loggers_and_root():
 
     # root logger remains WARNING with a StreamHandler
     root = logging.getLogger()
-    assert root.level == logging.WARNING
+    assert root.level == logging.DEBUG
     assert any(isinstance(h, logging.StreamHandler) for h in root.handlers)
 
 

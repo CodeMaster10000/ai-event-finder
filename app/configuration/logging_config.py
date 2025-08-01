@@ -40,13 +40,12 @@ LOGGING = {
     }
   },
   "root": {
-    "level": "WARNING",
+    "level": "DEBUG",
     "handlers": ["console"]
   }
 }
 
 def configure_logging():
-    # Set Werkzeug logger to ERROR level
     # Create console handler
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
