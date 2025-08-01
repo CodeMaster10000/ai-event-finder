@@ -1,94 +1,65 @@
-import pytest
+# tests/test_logging_decorator.py
+
 import logging
-from flask import Flask
-from app.configuration.logging_config import configure_logging, log_calls
+import pytest
+from app.util.logging_util import log_calls, get_log_level
 
+def test_get_log_level():
+    assert get_log_level("app.routes") == logging.INFO
+    assert get_log_level("my.SERVICE.layer") == logging.INFO
+    assert get_log_level("app.repositories") == logging.DEBUG
+    assert get_log_level("something.else") == logging.DEBUG
 
-def test_configure_logging_levels_and_handlers():
-    # Create a Flask app and configure logging
-    app = Flask(__name__)
-    configure_logging(app)
+def test_wrap_function_logs_entry(caplog):
+    # capture INFO logs for our test‐logger
+    caplog.set_level(logging.DEBUG, logger="app.testfunc")
 
-    # Root logger should be DEBUG and have exactly one StreamHandler
-    assert app.logger.level == logging.DEBUG
-    handlers = [h for h in app.logger.handlers if isinstance(h, logging.StreamHandler)]
-    assert len(handlers) == 1
-    console_h = handlers[0]
-    assert console_h.level == logging.DEBUG
-    fmt = console_h.formatter._fmt
-    assert "%(__asctime__)s %(levelname)-5s %(name)s: %(message)s".replace("__asctime__", "asctime") in fmt
+    @log_calls("app.testfunc")
+    def foo(a, b=1):
+        return a + b
 
-    # Child loggers for each layer
-    assert app.logger.getChild("routes").level == logging.INFO
-    assert app.logger.getChild("services").level == logging.INFO
-    assert app.logger.getChild("repositories").level == logging.DEBUG
+    result = foo(2, b=3)
+    assert result == 5
 
-    # Werkzeug should be quieted to WARNING
-    assert logging.getLogger("werkzeug").level == logging.WARNING
+    # we should see exactly one entry log at INFO
+    entries = [r for r in caplog.records if r.name == "app.testfunc"]
+    assert len(entries) == 1
+    assert entries[0].levelno == logging.DEBUG
+    assert "foo() called." in entries[0].message
 
+def test_wrap_function_logs_exception(caplog):
+    caplog.set_level(logging.INFO, logger="app.testfunc")
 
-def test_log_calls_function_entry_exit(caplog):
-    @log_calls("routes.user_route")
-    def add(a, b, c=0):
-        return a + b + c
+    @log_calls("app.testfunc")
+    def boom():
+        raise ValueError("bad things")
 
-    caplog.set_level(logging.INFO, logger="app.routes.user_route")
-    result = add(1, 2, c=3)
-    assert result == 6
+    with pytest.raises(ValueError):
+        boom()
 
-    # Should log entry at INFO level with qualified function name
-    msgs = [r.message for r in caplog.records]
-    assert any(
-        add.__qualname__ in m and "Enter" in m and "args=(1, 2)" in m and "'c': 3" in m
-        for m in msgs
-    )
+    # error path should log the failure message
+    errors = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert any("boom() failed with ValueError: bad things" in r.message for r in errors)
 
+def test_wrap_class_methods(caplog):
+    caplog.set_level(logging.DEBUG, logger="app.testclass")
 
-def test_log_calls_exception_logs_and_raises(caplog):
-    @log_calls("services.user_service_impl")
-    def fail():
-        raise RuntimeError("fail")
-
-    caplog.set_level(logging.INFO, logger="app.services.user_service_impl")
-    with pytest.raises(RuntimeError):
-        fail()
-
-    records = caplog.records
-    # First record should be INFO, second ERROR
-    assert records[0].levelno == logging.INFO
-    assert records[1].levelno == logging.ERROR
-    # Exception log should include qualified function name
-    assert any(
-        f"Exception in {fail.__qualname__}" in r.message
-        for r in records
-    )
-
-
-def test_log_calls_wraps_class_methods(caplog):
-    @log_calls("repositories.user_repository_impl")
-    class DummyRepo:
-        def process(self, x):
+    @log_calls("app.testclass")
+    class Dummy:
+        def foo(self, x):
             return x * 2
 
-        def _private(self):
-            return 'no log'
+        def _hidden(self):
+            return "no log"
 
-    repo = DummyRepo()
-    caplog.set_level(logging.DEBUG, logger="app.repositories.user_repository_impl")
+    d = Dummy()
+    # public method should log
+    val = d.foo(4)
+    assert val == 8
+    public_logs = [r for r in caplog.records if r.name == "app.testclass"]
+    assert any("Dummy.foo() called." in r.message for r in public_logs)
 
-    # Public method should be wrapped and logged
-    result = repo.process(7)
-    assert result == 14
-
-    msgs = [r.message for r in caplog.records]
-    method_name = f"{DummyRepo.__qualname__}.process"
-    # Enter log for class method at DEBUG level
-    assert any(
-        method_name in m and "Enter" in m and "args=(" in m and ", 7" in m
-        for m in msgs
-    )
-
-    # Private method should not be logged
+    # private method should not log
     caplog.clear()
-    assert repo._private() == 'no log'
-    assert caplog.records == []
+    d._hidden()
+    assert not caplog.records

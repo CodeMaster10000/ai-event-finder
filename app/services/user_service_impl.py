@@ -10,9 +10,9 @@ from app.error_handler.exceptions import (
     UserSaveException,
     UserDeleteException,
 )
-from app.configuration.logging_config import log_calls
+from app.util.logging_util import log_calls
 
-@log_calls("services.user_service_impl")
+@log_calls("app.services")
 class UserServiceImpl(UserService):
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
