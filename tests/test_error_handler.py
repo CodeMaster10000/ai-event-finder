@@ -17,7 +17,7 @@ def app():
 
     @app.route("/notfound/<int:id>")
     def not_found(id):
-        raise UserNotFoundException(user_id=id)
+        raise UserNotFoundException(f"User with id={id} not found.")
 
     @app.route("/duplicate-email")
     def duplicate_email():

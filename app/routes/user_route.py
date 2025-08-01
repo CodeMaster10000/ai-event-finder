@@ -1,3 +1,5 @@
+import logging
+
 from flask_restx import Namespace, Resource, fields
 from flask import request, abort
 from dependency_injector.wiring import inject, Provide
@@ -6,7 +8,7 @@ from app.services.user_service import UserService
 from app.schemas.user_schema import CreateUserSchema, UserSchema
 from marshmallow import ValidationError
 from app.models.user import User
-
+from app.util.logging_util import log_calls
 # Namespace for user operations
 user_ns = Namespace("users", description="User based operations")
 
@@ -15,6 +17,7 @@ create_user_schema = CreateUserSchema()
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
+@log_calls("app.routes")
 @user_ns.route("")
 class UserBaseResource(Resource):
     @inject
@@ -50,6 +53,7 @@ class UserBaseResource(Resource):
         saved_user = user_service.save(user)
         return user_schema.dump(saved_user), 201
 
+@log_calls("app.routes")
 @user_ns.route('/id/<int:user_id>')
 class UserByIdResource(Resource):
     @inject
@@ -73,6 +77,7 @@ class UserByIdResource(Resource):
         user_service.delete_by_id(user_id)
         return '', 204
 
+@log_calls("app.routes")
 @user_ns.route('/email/<string:email>')
 class UserByEmailResource(Resource):
     @inject
@@ -85,6 +90,7 @@ class UserByEmailResource(Resource):
             abort(404, description=f"User with email {email} not found")
         return user_schema.dump(user), 200
 
+@log_calls("app.routes")
 @user_ns.route('/name/<string:name>')
 class UsersByNameResource(Resource):
     @inject
@@ -97,6 +103,7 @@ class UsersByNameResource(Resource):
             abort(404, description=f"User with name {name} not found")
         return user_schema.dump(user), 200
 
+@log_calls("app.routes")
 @user_ns.route('/exists/id/<int:user_id>')
 class ExistsByIdResource(Resource):
     @inject
@@ -107,6 +114,7 @@ class ExistsByIdResource(Resource):
         exists = user_service.exists_by_id(user_id)
         return {'exists': exists}, 200
 
+@log_calls("app.routes")
 @user_ns.route('/exists/name/<string:name>')
 class ExistsByNameResource(Resource):
     @inject
