@@ -2,7 +2,7 @@ from app.extensions import db
 from app.util.event_util import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
 
 
-# MANY TO MANY -> association table, actual join table in db schema
+# MANY-TO-MANY -> association table, actual join table in db schema
 # used by SQLAlchemy in SQL JOINs
 guest_list = db.Table(
     'guest_list',
@@ -25,6 +25,7 @@ class Event(db.Model):
         guests (List[User]): Users invited to the event.
         category (str):    Category of the event. Max 50 characters.
     """
+    __tablename__ = 'events'
 
     id           = db.Column(db.Integer,   primary_key=True)
     title        = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
