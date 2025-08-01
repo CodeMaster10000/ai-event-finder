@@ -4,16 +4,15 @@ from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
 from app.util.validation_util import validate_user
 from app.util.user_util import *
-#from app.configuration.logging_config import log_calls
+
 from app.error_handler.exceptions import (
     DuplicateEmailException,
     UserSaveException,
     UserDeleteException,
 )
+from app.util.logging_util import log_calls
 
-
-
-#@log_calls("services.user_service_impl")
+@log_calls("app.services")
 class UserServiceImpl(UserService):
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
@@ -28,6 +27,7 @@ class UserServiceImpl(UserService):
 
         validate_user(user, return_not_found_by_email_message(email))
         return user
+
 
     def get_by_name(self, name: str) -> User:
         user = self.user_repository.get_by_name(name)
