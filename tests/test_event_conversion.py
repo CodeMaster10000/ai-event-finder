@@ -76,3 +76,6 @@ def test_invalid_datetime_format():
     }
     with pytest.raises(ValidationError):
         CreateEventSchema().load(bad)
+
+
+
