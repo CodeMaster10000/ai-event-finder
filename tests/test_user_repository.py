@@ -1,10 +1,12 @@
 import pytest
+from marshmallow import ValidationError
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from app import create_app
 from app.extensions import db as _db
 from app.models.user import User
 from app.repositories.user_repository_impl import UserRepositoryImpl
+from app.schemas.user_schema import CreateUserSchema
 from tests.util.test_util import test_cfg
 
 
@@ -87,9 +89,8 @@ def test_exists_by_id(user_repo):
     user_repo.session.commit()
 
     assert saved_user.id is not None  # ID should be auto-generated
-    fetched_user = user_repo.get_by_id(1)
-    assert fetched_user is not None
-    fetched_user = saved_user
+    fetched_user = user_repo.exists_by_id(saved_user.id)
+    assert fetched_user is True
 
 def test_get_all_users(user_repo):
     user1 = User(
@@ -128,9 +129,9 @@ def test_exists_by_name(user_repo):
     saved_user = user_repo.save(user)
     user_repo.session.commit()
 
-    assert saved_user.id is not None
-    fetched_user = user_repo.get_by_name("Alice")
-    assert fetched_user is not None
+    assert saved_user.id is not None  # ID should be auto-generated
+    fetched_user = user_repo.exists_by_name(saved_user.name)
+    assert fetched_user is True
 
 def test_get_by_name(user_repo):
     user = User(
@@ -161,4 +162,5 @@ def test_get_by_email(user_repo):
     assert saved_user.id is not None
     fetched_user = user_repo.get_by_email("alice@example.com")
     assert fetched_user is not None
+
 
