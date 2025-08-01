@@ -10,9 +10,9 @@ from app.error_handler.exceptions import (
     UserSaveException,
     UserDeleteException,
 )
+from app.util.logging_util import log_calls
 
-
-
+@log_calls("app.services")
 class UserServiceImpl(UserService):
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
@@ -52,6 +52,7 @@ class UserServiceImpl(UserService):
         conflict = self.user_repository.get_by_email(user.email)
         if conflict and conflict.id != user.id:
             raise DuplicateEmailException(email=user.email)
+
         try:
             return self.user_repository.save(user)
         except Exception as e:
