@@ -20,9 +20,8 @@ LOGGING = {
   },
   "loggers": {
     "app": {
-      "handlers": ["console"],
       "level": "DEBUG",
-      "propagate": False
+      "propagate": True
     },
     "app.routes": {
       "level": "NOTSET",
