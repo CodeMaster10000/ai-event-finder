@@ -35,9 +35,8 @@ class UserRepositoryImpl(UserRepository):
         self.session.commit()
 
     def exists_by_id(self, user_id: int) -> bool:
-        user = self.session.query(User).get(User, user_id)
+        user = self.session.query(User).get(user_id)
         return True if user else False
 
     def exists_by_name(self, name: str) -> bool:
-        user = self.session.query(User).get(User, name)
-        return True if user else False
+        return self.session.query(User).filter_by(name=name).first() is not None

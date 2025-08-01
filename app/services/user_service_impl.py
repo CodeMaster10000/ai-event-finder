@@ -47,7 +47,7 @@ class UserServiceImpl(UserService):
 
     def update(self, user: User) -> User:
         existing_user = self.user_repository.get_by_id(user.id)
-        validate_user(existing_user,return_not_found_by_id_message(user.id))
+        validate_user(existing_user, return_not_found_by_id_message(user.id))
 
         conflict = self.user_repository.get_by_email(user.email)
         if conflict and conflict.id != user.id:
@@ -60,7 +60,7 @@ class UserServiceImpl(UserService):
 
     def delete_by_id(self, user_id: int) -> None:
         user = self.user_repository.get_by_id(user_id)
-        validate_user(user,return_not_found_by_id_message(user_id))
+        validate_user(user, return_not_found_by_id_message(user_id))
 
         try:
             self.user_repository.delete_by_id(user_id)
@@ -69,7 +69,7 @@ class UserServiceImpl(UserService):
 
     def exists_by_id(self, user_id: int) -> bool:
         user = self.user_repository.get_by_id(user_id)
-        validate_user(user,return_not_found_by_id_message(user_id))
+        validate_user(user, return_not_found_by_id_message(user_id))
         return True
 
     def exists_by_name(self, name: str) -> bool:

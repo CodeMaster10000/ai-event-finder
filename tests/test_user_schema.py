@@ -62,3 +62,25 @@ def test_user_schema_dumps_only_public_fields():
         "surname": "Jones",
         "email": "bob@example.com",
     }
+
+@pytest.mark.parametrize("field", ["name","surname","email","password"])
+def test_create_user_schema_requires_fields(valid_payload, field):
+    payload = dict(valid_payload)
+    del payload[field]
+    with pytest.raises(ValidationError) as exc:
+        CreateUserSchema().load(payload)
+    assert field in exc.value.messages
+
+@pytest.mark.parametrize("field", ["name","surname"])
+def test_rejects_blank_only_strings(valid_payload, field):
+    bad = dict(valid_payload, **{field: "   "})
+    with pytest.raises(ValidationError) as exc:
+        CreateUserSchema().load(bad)
+    assert field in exc.value.messages
+
+def test_invalid_email_format(valid_payload):
+    bad = dict(valid_payload, email="not-an-email")
+    with pytest.raises(ValidationError) as exc:
+        CreateUserSchema().load(bad)
+    assert "email" in exc.value.messages
+
