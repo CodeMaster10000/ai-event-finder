@@ -51,14 +51,12 @@ def test_event_schema_dumps_only_public_fields():
     }
     dumped = EventSchema().dump(event_obj)
     assert dumped == {
-      #  "id": 1,
         "title": "Rock music event",
         "location": "Beertija Pub, Skopje",
         "description": "20% discount on every beer between 8:00-900PM.",
         "category": "Rock",
         "datetime": "2025-07-31 20:30:00",
         "organizer": {
-       #     "id": 2,
             "name": "Bob",
             "surname": "Jones",
             "email": "bob@example.com"

@@ -43,7 +43,7 @@ class CreateEventSchema(Schema):
 
     """
     Description field:
-      - Not required
+      - Required
       - Must be between 1 and 500 characters after trimming
     """
     description = fields.Str(
@@ -97,17 +97,11 @@ class CreateEventSchema(Schema):
         }
     )
 
-    """
-    List of guests field:
-        - Not required
-        - Can be empty if no guests attending
-    """
 
 class EventSchema(Schema):
     """
     Schema for outgoing event data.
     Serializes internal user model into safe JSON.
-    Excludes sensitive fields like guests information.
     """
     class Meta:
         # Exclude any unexpected attributes when dumping

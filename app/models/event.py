@@ -6,7 +6,7 @@ from app.util.event_util import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATI
 # used by SQLAlchemy in SQL JOINs
 guest_list = db.Table(
     'guest_list',
-    db.Column('event_id', db.Integer, db.ForeignKey('event.id'), primary_key=True),
+    db.Column('event_id', db.Integer, db.ForeignKey('events.id'), primary_key=True),
     db.Column('user_id',  db.Integer, db.ForeignKey('user.id'),   primary_key=True)
 )
 
