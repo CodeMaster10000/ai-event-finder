@@ -26,9 +26,7 @@ def register_error_handlers(app):
         """
         404: User lookup by ID, name, or email failed.
         """
-        # log the fact that someone tried to look up a non‑existent user
         # error logging centralized in logging_config instead
-        # app.logger.error("UserNotFoundException: %s", exception)
 
         response = {
             "error": {
@@ -43,9 +41,7 @@ def register_error_handlers(app):
         """
         409: Attempt to create or update a user with an existing email.
         """
-        # log that a duplicate email was detected
         # error logging centralized in logging_config instead
-        #app.logger.error("DuplicateEmailException: %s", exception)
 
         response = {
             "error": {
@@ -61,12 +57,7 @@ def register_error_handlers(app):
         500: Saving (creating/updating) a user failed due to an internal error.
         Logs the original exception if available.
         """
-        #if getattr(exception, "original_exception", None):
-        #    app.logger.exception(
-        #        "UserSaveException occurred", exc_info=exception.original_exception
-        #    )
-        #else:
-        #    app.logger.error("UserSaveException occurred without inner exception")
+        # error logging centralized in logging_config instead
 
         response = {
             "error": {
@@ -82,12 +73,7 @@ def register_error_handlers(app):
         500: Deleting a user failed due to an internal error.
         Logs the original exception if available.
         """
-        #if getattr(exception, "original_exception", None):
-        #    app.logger.exception(
-        #        "UserDeleteException occurred", exc_info=exception.original_exception
-        #    )
-        #else:
-        #    app.logger.error("UserDeleteException occurred without inner exception")
+        # error logging centralized in logging_config instead
 
         response = {
             "error": {

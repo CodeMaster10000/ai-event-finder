@@ -32,7 +32,6 @@ def create_api(app: Flask):
 
 # Main app factory function for Flask to create the app instance
 def create_app(test_config: dict | None = None):
-    configure_logging()
     app = Flask(__name__)
     app.config.from_object(Config)
 
