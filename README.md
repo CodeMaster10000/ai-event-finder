@@ -35,3 +35,12 @@ HOST_DB_PORT=5432
 APP_PORT=5000
 HOST_APP_PORT=5000
 DB_NAME=event_database
+
+## Code Coverage
+```shell
+poetry lock
+poetry install
+poetry install --with testing
+pytest --cov=app --cov-report=term-missing
+```
+- always stick to coverage **greater than 90%**

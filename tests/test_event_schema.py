@@ -1,6 +1,8 @@
 import pytest
 from marshmallow import ValidationError
 
+from app.models.event import Event
+from app.models.user import User
 from app.schemas.event_schema import (
     CreateEventSchema,
     EventSchema,
@@ -100,4 +102,71 @@ def test_create_event_schema_rejects_too_long_title(valid_payload):
     with pytest.raises(ValidationError) as ei:
         CreateEventSchema().load(payload)
     assert "title" in ei.value.messages
+
+def test_dumped_guests_content(valid_payload):
+    """
+    After round-trip, EventSchema.dump should serialize the 'guests'
+    list into a list of dicts with only name & surname.
+    """
+    loaded = CreateEventSchema().load(valid_payload)
+    # build event with 3 guests
+    organizer = User(id=1, name="Org", surname="One", email="org@example.com")
+    guests = [
+        User(name=f"Guest{i}", surname=f"Surname{i}", email=f"g{i}@ex.com")
+        for i in range(3)
+    ]
+    event = Event(
+        title=loaded["title"],
+        location=loaded["location"],
+        description=loaded["description"],
+        category=loaded["category"],
+        datetime=loaded["datetime"],
+        organizer=organizer,
+        organizer_id=1,
+    )
+    event.guests = guests
+
+    dumped = EventSchema().dump(event)
+    # should be a list of dicts with exactly name & surname
+    assert isinstance(dumped["guests"], list)
+    assert all(isinstance(g, dict) for g in dumped["guests"])
+    expected = [
+        {"name": f"Guest{i}", "surname": f"Surname{i}"}
+        for i in range(3)
+    ]
+    assert dumped["guests"] == expected
+
+def test_dumped_datetime_string(valid_payload):
+    """
+    EventSchema.dump should output datetime as the same '%Y-%m-%d %H:%M:%S' string.
+    """
+    loaded = CreateEventSchema().load(valid_payload)
+    organizer = User(id=1, name="Org", surname="One", email="org@example.com")
+    event = Event(
+        title=loaded["title"],
+        location=loaded["location"],
+        description=loaded["description"],
+        category=loaded["category"],
+        datetime=loaded["datetime"],
+        organizer=organizer,
+        organizer_id=1,
+    )
+    # no guests in this simple case
+    dumped = EventSchema().dump(event)
+    assert dumped["datetime"] == "2025-07-31 20:30:00"
+
+def test_create_event_schema_excludes_unknown_fields(valid_payload):
+    """
+    CreateEventSchema should silently drop any extra keys (unknown=EXCLUDE).
+    """
+    extra = dict(valid_payload, foo="bar", baz=123)
+    loaded = CreateEventSchema().load(extra)
+    # none of the unknown keys should survive
+    assert "foo" not in loaded
+    assert "baz" not in loaded
+    # and known keys still present & correct
+    assert loaded["title"] == "Rock music event"
+    assert loaded["location"].startswith("Beertija Pub")
+
+
 
