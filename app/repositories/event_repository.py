@@ -3,11 +3,25 @@ from datetime import datetime
 from typing import List, Optional
 from app.models.event import Event
 
+
 class EventRepository(ABC):
     """
     Abstract base class defining the contract for an Event repository.
     Provides methods for querying, saving, deleting, and checking existence of Event entities.
     """
+
+    def __init__(self, session):
+        """
+        Initialize the repository with a SQLAlchemy session.
+
+        Args:
+            session (Session): The SQLAlchemy session to use for database operations.
+
+        Note:
+            Concrete implementations should pass the session to the base constructor
+            so it can be shared or reused consistently.
+        """
+        self.session = session
 
     # ------------------------
     # Retrieval Methods
@@ -37,7 +51,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_title(self, title: str) -> List[Event]:
+    def get_by_title(self, title: str) -> Optional[Event]:
         """
         Retrieve all events that match a given title.
 
@@ -206,7 +220,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def held_on_date(self, date: datetime) -> bool:
+    def exists_by_date(self, date: datetime) -> bool:
         """
         Check whether any events are held on the given date.
 
