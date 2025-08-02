@@ -57,3 +57,35 @@ class UserDeleteException(Exception):
         # generic message only
         message = f"Unable to delete user{f' with id={user_id}' if user_id is not None else ''}."
         super().__init__(message)
+
+class EventNotFoundException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+class EventSaveException(Exception):
+    def __init__(self, original_exception: Exception = None):
+        self.original_exception = original_exception
+
+        message = "Unable to save event due to an internal error."
+        super().__init__(message)
+
+class EventDeleteException(Exception):
+    """
+    Raised when deleting an event from the database fails (aside from not found).
+    Attributes:
+        event_id (int|None): ID of the event we tried to delete.
+        original_exception (Exception|None): The underlying exception.
+    """
+    def __init__(self, event_id: int = None, original_exception: Exception = None):
+        self.event_id = event_id
+        self.original_exception = original_exception
+
+        message = f"Unable to delete event{f' with id={event_id}' if event_id is not None else ''}."
+        super().__init__(message)
+
+class EventAlreadyExistsException(Exception):
+    def __init__(self, event_name: str, original_exception: Exception = None):
+        self.original_exception = original_exception
+
+        message = f"Event with name {event_name} already exists."
+        super().__init__(message)
