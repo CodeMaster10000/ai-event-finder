@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Optional
+
 from app.models.event import Event
 
 class EventRepository(ABC):
@@ -37,7 +38,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_title(self, title: str) -> List[Event]:
+    def get_by_title(self, title: str) -> Optional[Event]:
         """
         Retrieve all events that match a given title.
 

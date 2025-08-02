@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
+from datetime import datetime
 
 from app.models.event import Event
 
@@ -25,8 +26,13 @@ class EventService(ABC):
         pass
 
     @abstractmethod
-    def get_by_organizer(self, name: str, surname: str) -> List[Event]:
+    def get_by_organizer_id(self, organizer_id: int) -> List[Event]:
         """Retrieve events created by the organizer name and surname."""
+        pass
+
+    @abstractmethod
+    def get_by_date(self, date: datetime) -> List[Event]:
+        """Check for events on a certain date."""
         pass
 
     @abstractmethod
@@ -60,7 +66,7 @@ class EventService(ABC):
         pass
 
     @abstractmethod
-    def exists_by_title(self, name: str) -> bool:
+    def exists_by_title(self, title: str) -> bool:
         """Check whether an event exists by title."""
         pass
 
@@ -72,9 +78,4 @@ class EventService(ABC):
     @abstractmethod
     def exists_by_category(self, category: str) -> bool:
         """Check whether an event exists by category."""
-        pass
-
-    @abstractmethod
-    def held_on_date(self, date: str) -> List[Event]:
-        """Check for events on a certain date."""
         pass
