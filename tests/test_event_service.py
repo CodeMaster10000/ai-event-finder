@@ -15,54 +15,51 @@ from app.error_handler.exceptions import (
     EventNotFoundException,
     EventAlreadyExistsException,
     EventSaveException,
-    EventDeleteException)
+    EventDeleteException,
+    UserNotFoundException)
 
 
 @pytest.fixture
 def mock_event_repo():
     return MagicMock()
 
+@pytest.fixture
+def mock_user_repo():
+    return MagicMock()
 
 @pytest.fixture
-def event_service(mock_event_repo):
-    return EventServiceImpl(event_repository=mock_event_repo)
+def event_service(mock_event_repo, mock_user_repo):
+    return EventServiceImpl(event_repository=mock_event_repo, user_repository=mock_user_repo)
 
 
-def test_get_by_id(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+def test_get_by_title_success(event_service, mock_event_repo):
+    organizer = User(id=1, name="Name", surname="Surname", email="email@example.com", password="secret")
     event = Event(id=1,
-                  title='Event 1',
+                  title="Event 1",
                   organizer=organizer,
                   datetime=datetime.now(),
-                  description='Event description',
+                  description="Event description",
                   organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
+                  location="Location 1",
+                  category="category")
 
-    mock_event_repo.get_by_id.return_value = event
-
-    result = event_service.get_by_id(1)
-
-    mock_event_repo.get_by_id.assert_called_once_with(1)
-    assert result == event
-
-
-def test_get_by_title(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
     mock_event_repo.get_by_title.return_value = event
 
     result = event_service.get_by_title("Event 1")
 
     mock_event_repo.get_by_title.assert_called_once_with("Event 1")
+
     assert result == event
+
+
+
+def test_get_by_title_raises_if_not_found(event_service, mock_event_repo):
+    mock_event_repo.get_by_title.return_value = None
+
+    with pytest.raises(EventNotFoundException, match="Event 1"):
+        event_service.get_by_title("Event 1")
+
+    mock_event_repo.get_by_title.assert_called_once_with("Event 1")
 
 
 def test_get_by_category(event_service, mock_event_repo):
@@ -118,6 +115,36 @@ def test_get_by_date(event_service, mock_event_repo):
     mock_event_repo.get_by_date.assert_called_once_with(datetime_now)
     assert result == event
 
+def test_get_by_organizer_success(event_service, mock_user_repo, mock_event_repo):
+    organizer = User(id=1, name="Name", surname="Surname", email="email@example.com", password="secret")
+    event = Event(id=1,
+                  title="Event 1",
+                  organizer=organizer,
+                  datetime=datetime.now(),
+                  description="Event description",
+                  organizer_id=organizer.id,
+                  location="Location 1",
+                  category="category")
+
+    mock_user_repo.get_by_email.return_value = organizer
+    mock_event_repo.get_by_organizer_id.return_value = [event]
+
+    result = event_service.get_by_organizer("email@example.com")
+
+    mock_user_repo.get_by_email.assert_called_once_with("email@example.com")
+    mock_event_repo.get_by_organizer_id.assert_called_once_with(organizer.id)
+    assert result == [event]
+
+
+def test_get_by_organizer_raises_if_user_not_found(event_service, mock_user_repo):
+    mock_user_repo.get_by_email.return_value = None
+
+    with pytest.raises(UserNotFoundException, match="No user found with email email@example.com"):
+        event_service.get_by_organizer("email@example.com")
+
+    mock_user_repo.get_by_email.assert_called_once_with("email@example.com")
+
+
 def test_get_all(event_service, mock_event_repo):
     organizer1 = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     event1 = Event(id=1,
@@ -148,7 +175,7 @@ def test_get_all(event_service, mock_event_repo):
     assert result == events
 
 
-def test_save_creates_event(event_service, mock_event_repo):
+def test_create_event(event_service, mock_event_repo):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     event = Event(id=1,
                   title='Event 1',
@@ -161,14 +188,14 @@ def test_save_creates_event(event_service, mock_event_repo):
     mock_event_repo.get_by_title.return_value = None
     mock_event_repo.save.return_value = event
 
-    result = event_service.save(event)
+    result = event_service.create(event)
 
     mock_event_repo.get_by_title.assert_called_once_with("Event 1")
     mock_event_repo.save.assert_called_once_with(event)
     assert result == event
 
 
-def test_save_raises_on_duplicate_title(event_service, mock_event_repo):
+def test_create_raises_on_duplicate_title(event_service, mock_event_repo):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     existing_event = Event(id=1,
                   title='Event 1',
@@ -191,10 +218,10 @@ def test_save_raises_on_duplicate_title(event_service, mock_event_repo):
     mock_event_repo.get_by_title.return_value = existing_event
 
     with pytest.raises(EventAlreadyExistsException, match="already exists"):
-        event_service.save(existing_event)
+        event_service.create(duplicate_event)
 
 
-def test_delete_by_id_success(event_service, mock_event_repo):
+def test_delete_by_title_success(event_service, mock_event_repo):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     event = Event(id=1,
                            title='Event 1',
@@ -204,47 +231,22 @@ def test_delete_by_id_success(event_service, mock_event_repo):
                            organizer_id=organizer.id,
                            location='Location 1',
                            category='category')
-    mock_event_repo.get_by_id.return_value = event
-    result = event_service.get_by_id(1)
+    mock_event_repo.get_by_title.return_value = event
+    result = event_service.get_by_title("Event 1")
     assert result == event
 
-    event_service.delete_by_id(1)
-    mock_event_repo.delete_by_id.assert_called_once_with(1)
-
-# id
-def test_delete_by_id_raises_if_not_found(event_service, mock_event_repo):
-    mock_event_repo.get_by_id.return_value = None
-
-    with pytest.raises(EventNotFoundException, match="id 999"):
-        event_service.delete_by_id(999)
+    event_service.delete_by_title("Event 1")
+    mock_event_repo.delete_by_title.assert_called_once_with("Event 1")
 
 
-def test_exists_by_id_returns_true(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_id.return_value = event
-
-    result = event_service.exists_by_id(1)
-
-    mock_event_repo.get_by_id.assert_called_once_with(1)
-    assert result is True
-
-# title
-def test_exists_by_title_raises_if_not_found(event_service, mock_event_repo):
+def test_delete_by_title_raises_if_not_found(event_service, mock_event_repo):
     mock_event_repo.get_by_title.return_value = None
 
     with pytest.raises(EventNotFoundException, match="Event 1"):
-        event_service.exists_by_title("Event 1")
+        event_service.delete_by_title("Event 1")
 
-
-def test_exists_by_title_returns_true(event_service, mock_event_repo):
+def test_delete_by_title_wraps_repository_errors(event_service, mock_event_repo):
+    """delete_by_title should catch exceptions from the repo and raise EventDeleteException."""
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     event = Event(id=1,
                   title='Event 1',
@@ -254,84 +256,18 @@ def test_exists_by_title_returns_true(event_service, mock_event_repo):
                   organizer_id=organizer.id,
                   location='Location 1',
                   category='category')
-    mock_event_repo.get_by_name.return_value = event
 
-    result = event_service.exists_by_title("Event 1")
+    mock_event_repo.get_by_title.return_value = event
+    mock_event_repo.delete_by_title.side_effect = RuntimeError("db down")
 
+    with pytest.raises(EventDeleteException) as ei:
+        event_service.delete_by_title("Event 1")
+
+    assert isinstance(ei.value.original_exception, RuntimeError)
     mock_event_repo.get_by_title.assert_called_once_with("Event 1")
-    assert result is True
+    mock_event_repo.delete_by_title.assert_called_once_with("Event 1")
 
-# category
-def test_exists_by_location_raises_if_not_found(event_service, mock_event_repo):
-    mock_event_repo.get_by_title.return_value = None
-
-    with pytest.raises(EventNotFoundException, match="Location 1"):
-        event_service.exists_by_title("Location 1")
-
-
-def test_exists_by_location_returns_true(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_name.return_value = event
-
-    result = event_service.exists_by_title("Location 1")
-
-    mock_event_repo.get_by_title.assert_called_once_with("Location 1")
-    assert result is True
-
-# location
-def test_exists_category_raises_if_not_found(event_service, mock_event_repo):
-    mock_event_repo.get_by_title.return_value = None
-
-    with pytest.raises(EventNotFoundException, match="Category 1"):
-        event_service.exists_by_title("Category 1")
-
-
-def test_exists_by_category_returns_true(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_location.return_value = event
-
-    result = event_service.exists_by_location("category")
-
-    mock_event_repo.get_by_location.assert_called_once_with("category")
-    assert result is True
-
-# organizer
-def test_get_by_organizer_id(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-
-    mock_event_repo.get_by_organizer_id.return_value = [event]
-
-    result = event_service.get_by_organizer_id(organizer.id)
-
-    mock_event_repo.get_by_organizer_id.assert_called_once_with(organizer.id)
-    assert result == [event]
-
-
-def test_save_wraps_repository_errors(event_service, mock_event_repo):
+def test_create_wraps_repository_errors(event_service, mock_event_repo):
     """save should catch any Exception from repo.save and re-raise as EventSaveException."""
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     new_event = Event(id=1,
@@ -345,7 +281,7 @@ def test_save_wraps_repository_errors(event_service, mock_event_repo):
     mock_event_repo.get_by_title.return_value = None
     mock_event_repo.save.side_effect = RuntimeError("db down")
     with pytest.raises(EventSaveException) as ei:
-        event_service.save(new_event)
+        event_service.create(new_event)
     assert isinstance(ei.value.original_exception, RuntimeError)
 
 
@@ -428,28 +364,3 @@ def test_update_wraps_save_errors(event_service, mock_event_repo):
     with pytest.raises(EventSaveException) as ei:
         event_service.update(event)
     assert isinstance(ei.value.original_exception, ValueError)
-
-
-def test_delete_by_id_wraps_errors(event_service, mock_event_repo):
-    """delete_by_id should catch repo.delete_by_id exceptions and re-raise EventDeleteException."""
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_id.return_value = event
-    mock_event_repo.delete_by_id.side_effect = KeyError("fail")
-    with pytest.raises(EventDeleteException) as ei:
-        event_service.delete_by_id(1)
-    assert ei.value.event_id == 1
-
-
-def test_exists_by_id_raises_not_found(event_service, mock_event_repo):
-    """exists_by_id should raise EventNotFound when the event is not found."""
-    mock_event_repo.get_by_id.return_value = None
-    with pytest.raises(EventNotFoundException):
-        event_service.exists_by_id(77777)
