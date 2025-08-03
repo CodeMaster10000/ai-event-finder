@@ -1,0 +1,74 @@
+from typing import List
+from datetime import datetime
+
+from app.models.event import Event
+from app.repositories.event_repository import EventRepository
+from app.repositories.user_repository import UserRepository
+from app.services.event_service import EventService
+from app.util.validation_util import validate_user, validate_event
+
+from app.error_handler.exceptions import (
+    EventNotFoundException,
+    EventSaveException,
+    EventDeleteException,
+    EventAlreadyExistsException
+)
+
+class EventServiceImpl(EventService):
+    def __init__(self, event_repository: EventRepository, user_repository: UserRepository):
+        self.event_repository = event_repository
+        self.user_repository = user_repository
+
+    def get_by_title(self, title: str) -> Event:
+        event = self.event_repository.get_by_title(title)
+        validate_event(event, f"No event with title '{title}")
+        return event
+
+    def get_by_location(self, location: str) -> List[Event]:
+        return self.event_repository.get_by_location(location)
+
+    def get_by_category(self, category: str) -> List[Event]:
+        return self.event_repository.get_by_category(category)
+
+    def get_by_organizer(self, email: str) -> List[Event]:
+        organizer = self.user_repository.get_by_email(email)
+        validate_user(organizer, f"No user found with email {email}")
+        return self.event_repository.get_by_organizer_id(organizer.id)
+
+    def get_by_date(self, date: datetime) -> List[Event]:
+        return self.event_repository.get_by_date(date)
+
+    def get_all(self) -> List[Event]:
+        return self.event_repository.get_all()
+
+    def delete_by_title(self, title: str) -> None:
+        event = self.event_repository.get_by_title(title)
+        if not event:
+            raise EventNotFoundException(f"Event with title '{title}' not found.")
+        try:
+            self.event_repository.delete_by_title(title)
+        except Exception as e:
+            raise EventDeleteException(original_exception=e)
+
+    def create(self, event: Event) -> Event:
+        if self.event_repository.get_by_title(event.title):
+            raise EventAlreadyExistsException(event.title)
+        try:
+            return self.event_repository.save(event)
+        except Exception as e:
+            raise EventSaveException(original_exception=e)
+
+    def update(self, event: Event) -> Event:
+        existing_event = self.event_repository.get_by_id(event.id)
+        conflict = self.event_repository.get_by_title(event.title)
+
+        if conflict is not None and existing_event is not None and conflict.id != existing_event.id:
+            raise EventAlreadyExistsException(conflict.title)
+
+        if not existing_event:
+            raise EventNotFoundException(f"Event not found in the database.")
+
+        try:
+            return self.event_repository.save(event)
+        except Exception as e:
+            raise EventSaveException(original_exception=e)
