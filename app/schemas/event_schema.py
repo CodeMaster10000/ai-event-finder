@@ -97,6 +97,11 @@ class CreateEventSchema(Schema):
         }
     )
 
+    organizer_email = fields.Email(
+        required=True,
+        error_messages={"required": "Organizer email is required."}
+    )
+
 
 class EventSchema(Schema):
     """
