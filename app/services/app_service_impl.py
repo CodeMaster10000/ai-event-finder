@@ -1,5 +1,5 @@
 from typing import List
-
+from sqlalchemy.exc import IntegrityError
 from app.models.user import User
 from app.models.event import Event
 from app.repositories.event_repository import EventRepository
@@ -9,7 +9,9 @@ from app.util.validation_util import validate_user, validate_event
 from app.util.user_util import return_not_found_by_email_message
 from app.util.event_util import return_not_found_by_title_message
 from app.error_handler.exceptions import UserNotInEvent, UserAlreadyInEvent
+from app.util.logging_util import log_calls
 
+@log_calls("app.services")
 class AppServiceImpl(AppService):
     """
     Orchestrates user–event interactions by delegating persistence
@@ -26,23 +28,27 @@ class AppServiceImpl(AppService):
     def add_participant_to_event(self, event_title: str, user_email: str) -> None:
         """
         Add the user (user_email) to the event (event_title).
-        Raises ValueError if either entity is missing,
-        RuntimeError if the user is already a participant.
+        Raises custom Exception if either entity is missing,
+        Raises UserAlreadyInEvent if the user is already a participant.
         """
         event = self._get_event_and_validate(event_title=event_title)
         user = self._get_user_and_validate(user_email=user_email)
 
         if user in event.participants:
             raise UserAlreadyInEvent(user_email=user_email, event_title=event_title)
-        event.participants.append(user)
-        self.event_repo.save(event)
+
+        try:
+            event.participants.append(user)
+            self.event_repo.save(event)
+        except IntegrityError:
+            # translate low-level SQL failure into your domain exception
+            raise UserAlreadyInEvent(user_email=user_email, event_title=event_title)
 
     def remove_participant_from_event(self, event_title: str, user_email: str) -> None:
         """
-
-        :param event_title:
-        :param user_email:
-        :return:
+        Remove the user (user_email) from the event (event_title)
+        Raises custom Exception if either entity is missing.
+        Raises UserNotInEvent if user is not a participant.
         """
         event = self._get_event_and_validate(event_title=event_title)
         user = self._get_user_and_validate(user_email=user_email)
@@ -54,12 +60,11 @@ class AppServiceImpl(AppService):
 
     def list_participants(self, event_title: str) -> List[User]:
         """
-
-        :param event_title:
-        :return:
+        Returns a list of users participating in the event (event_title)
+        Raises custom Exception if event is missing.
         """
         event = self._get_event_and_validate(event_title=event_title)
-        return event.participants
+        return list(event.participants)
 
     # ----------- PRIVATE HELPERS ------------- #
     def _get_event_and_validate(self, event_title:str) -> Event:

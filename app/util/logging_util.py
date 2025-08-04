@@ -28,8 +28,8 @@ def log_calls(layer: str):
         if isinstance(obj, type):
             cls_name = obj.__name__
             for name, attr in vars(obj).items():
-                # skip dunder methods (including __init__)
-                if name.startswith("__"):
+                # skip private and dunder methods (including __init__)
+                if name.startswith("_"):
                     continue
 
                 # staticmethod
