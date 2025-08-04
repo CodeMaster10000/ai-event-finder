@@ -1,12 +1,10 @@
 import pytest
-from marshmallow import ValidationError
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from app import create_app
 from app.extensions import db as _db
 from app.models.user import User
 from app.repositories.user_repository_impl import UserRepositoryImpl
-from app.schemas.user_schema import CreateUserSchema
 from tests.util.test_util import test_cfg
 
 
@@ -27,8 +25,8 @@ def db_session(app):
     connection = _db.engine.connect()
     transaction = connection.begin()
 
-    sessionFactory = sessionmaker(bind=connection)
-    session = scoped_session(sessionFactory)
+    session_factory = sessionmaker(bind=connection)
+    session = scoped_session(session_factory)
 
     yield session
 
