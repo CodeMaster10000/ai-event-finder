@@ -89,3 +89,18 @@ class EventAlreadyExistsException(Exception):
 
         message = f"Event with name {event_name} already exists."
         super().__init__(message)
+
+class UserAlreadyInEvent(Exception):
+    def __init__(self, event_title: str, user_email:str):
+        self.event_title = event_title
+        self.user_email = user_email
+        message = f"User with email {user_email} already exists in event with title {event_title}."
+        super().__init__(message)
+
+
+class UserNotInEvent(Exception):
+    def __init__(self, event_title: str, user_email:str):
+        self.event_title = event_title
+        self.user_email = user_email
+        message = f"User with email {user_email} doesn't exist in event with title {event_title}."
+        super().__init__(message)
