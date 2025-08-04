@@ -90,7 +90,7 @@ class EventAlreadyExistsException(Exception):
         message = f"Event with name {event_name} already exists."
         super().__init__(message)
 
-class UserAlreadyInEvent(Exception):
+class UserAlreadyInEventException(Exception):
     def __init__(self, event_title: str, user_email:str):
         self.event_title = event_title
         self.user_email = user_email
@@ -98,9 +98,26 @@ class UserAlreadyInEvent(Exception):
         super().__init__(message)
 
 
-class UserNotInEvent(Exception):
+class UserNotInEventException(Exception):
     def __init__(self, event_title: str, user_email:str):
         self.event_title = event_title
         self.user_email = user_email
         message = f"User with email {user_email} doesn't exist in event with title {event_title}."
         super().__init__(message)
+
+class EventSaveException(Exception):
+    """
+    Raised when persisting an event fails due to an internal error.
+    """
+
+    def __init__(self, original_exception: Exception):
+        super().__init__("Unable to save event due to an internal error.")
+        self.original_exception = original_exception
+
+
+
+
+
+
+
+

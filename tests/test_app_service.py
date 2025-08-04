@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import MagicMock
 from sqlalchemy.exc import IntegrityError
-
+from psycopg2.errors import UniqueViolation
 from app.services.app_service_impl import AppServiceImpl
 from app.error_handler.exceptions import (
-    UserAlreadyInEvent,
-    UserNotInEvent,
+    UserAlreadyInEventException,
+    UserNotInEventException,
     UserNotFoundException,
     EventNotFoundException
 )
@@ -87,26 +87,27 @@ def test_add_participant_user_not_found(service, mock_user_repo, mock_event_repo
 
 
 def test_add_participant_already_exists(service, mock_user_repo, mock_event_repo):
-    """Should raise UserAlreadyInEvent if user already in participants."""
+    """Should raise UserAlreadyInEventException if user already in participants."""
     user = DummyUser("u@example.com")
     event = DummyEvent("MyEvent")
     event.participants.append(user)
     mock_event_repo.get_by_title.return_value = event
     mock_user_repo.get_by_email.return_value = user
 
-    with pytest.raises(UserAlreadyInEvent):
+    with pytest.raises(UserAlreadyInEventException):
         service.add_participant_to_event("MyEvent", "u@example.com")
 
 
 def test_add_participant_integrity_error_translated(service, mock_user_repo, mock_event_repo):
-    """Should translate DB IntegrityError into UserAlreadyInEvent."""
+    """Should translate DB IntegrityError into UserAlreadyInEventException."""
     user = DummyUser("u@example.com")
     event = DummyEvent("MyEvent")
     mock_event_repo.get_by_title.return_value = event
     mock_user_repo.get_by_email.return_value = user
-    mock_event_repo.save.side_effect = IntegrityError(None, None, None)
 
-    with pytest.raises(UserAlreadyInEvent):
+    mock_event_repo.save.side_effect = IntegrityError("INSERT ...", {}, UniqueViolation())
+
+    with pytest.raises(UserAlreadyInEventException):
         service.add_participant_to_event("MyEvent", "u@example.com")
 
 
@@ -143,13 +144,13 @@ def test_remove_participant_user_not_found(service, mock_user_repo, mock_event_r
 
 
 def test_remove_participant_not_in_event(service, mock_user_repo, mock_event_repo):
-    """Should raise UserNotInEvent if user not already in participants."""
+    """Should raise UserNotInEventException if user not already in participants."""
     user = DummyUser("u@example.com")
     event = DummyEvent("MyEvent")
     mock_event_repo.get_by_title.return_value = event
     mock_user_repo.get_by_email.return_value = user
 
-    with pytest.raises(UserNotInEvent):
+    with pytest.raises(UserNotInEventException):
         service.remove_participant_from_event("MyEvent", "u@example.com")
 
 

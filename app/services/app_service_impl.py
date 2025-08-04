@@ -8,8 +8,9 @@ from app.services.app_service import AppService
 from app.util.validation_util import validate_user, validate_event
 from app.util.user_util import return_not_found_by_email_message
 from app.util.event_util import return_not_found_by_title_message
-from app.error_handler.exceptions import UserNotInEvent, UserAlreadyInEvent
+from app.error_handler.exceptions import UserNotInEventException, UserAlreadyInEventException, EventSaveException
 from app.util.logging_util import log_calls
+from psycopg2.errors import UniqueViolation
 
 @log_calls("app.services")
 class AppServiceImpl(AppService):
@@ -35,14 +36,17 @@ class AppServiceImpl(AppService):
         user = self._get_user_and_validate(user_email=user_email)
 
         if user in event.participants:
-            raise UserAlreadyInEvent(user_email=user_email, event_title=event_title)
+            raise UserAlreadyInEventException(user_email=user_email, event_title=event_title)
 
         try:
             event.participants.append(user)
             self.event_repo.save(event)
-        except IntegrityError:
-            # translate low-level SQL failure into your domain exception
-            raise UserAlreadyInEvent(user_email=user_email, event_title=event_title)
+        except IntegrityError as e:
+            # only convert UNIQUE constraint violations on the guest_list table
+            if isinstance(e.orig, UniqueViolation):
+                raise UserAlreadyInEventException(user_email, event_title)
+            # something else went wrong—surface it as a save error
+            raise EventSaveException(original_exception=e)
 
     def remove_participant_from_event(self, event_title: str, user_email: str) -> None:
         """
@@ -54,7 +58,7 @@ class AppServiceImpl(AppService):
         user = self._get_user_and_validate(user_email=user_email)
 
         if user not in event.participants:
-            raise UserNotInEvent(user_email=user_email, event_title=event_title)
+            raise UserNotInEventException(user_email=user_email, event_title=event_title)
         event.participants.remove(user)
         self.event_repo.save(event)
 
