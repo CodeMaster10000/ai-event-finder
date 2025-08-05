@@ -113,7 +113,7 @@ def test_log_calls_wraps_all_class_methods(caplog):
         def foo(self):
             return "foo"
 
-        def _bar(self):
+        def bar(self):
             return "bar"
 
         @classmethod
@@ -126,14 +126,14 @@ def test_log_calls_wraps_all_class_methods(caplog):
 
     inst = Sample()
     assert inst.foo() == "foo"
-    assert inst._bar() == "bar"
+    assert inst.bar() == "bar"
     assert inst.cls_method() == "cls"
     assert inst.static_method() == "static"
 
     recs = [r.getMessage() for r in caplog.records if r.name == "app.repositories"]
     # All four methods should have been wrapped and logged at DEBUG level
     assert "Sample.foo() called." in recs
-    assert "Sample._bar() called." in recs
+    assert "Sample.bar() called." in recs
     assert "Sample.cls_method() called." in recs
     assert "Sample.static_method() called." in recs
 

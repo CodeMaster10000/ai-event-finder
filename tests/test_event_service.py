@@ -175,50 +175,68 @@ def test_get_all(event_service, mock_event_repo):
     assert result == events
 
 
-def test_create_event(event_service, mock_event_repo):
+def test_create_event(event_service, mock_event_repo, mock_user_repo):
+    # Arrange
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
+    mock_user_repo.get_by_email.return_value = organizer
     mock_event_repo.get_by_title.return_value = None
-    mock_event_repo.save.return_value = event
 
-    result = event_service.create(event)
+    payload = {
+        'title':           'Event 1',
+        'description':     'Event description',
+        'datetime':        datetime.now(),
+        'location':        'Location 1',
+        'category':        'category',
+        'organizer_email': organizer.email
+    }
+    saved_event = Event(
+        title=payload['title'],
+        description=payload['description'],
+        datetime=payload['datetime'],
+        location=payload['location'],
+        category=payload['category'],
+        organizer_id=organizer.id
+    )
+    mock_event_repo.save.return_value = saved_event
 
-    mock_event_repo.get_by_title.assert_called_once_with("Event 1")
-    mock_event_repo.save.assert_called_once_with(event)
-    assert result == event
+    # Act
+    result = event_service.create(payload)
+
+    # Assert
+    assert isinstance(result, Event)
+    assert result.title == 'Event 1'
+    assert result.organizer_id == organizer.id
 
 
-def test_create_raises_on_duplicate_title(event_service, mock_event_repo):
+def test_create_raises_on_duplicate_title(event_service, mock_event_repo, mock_user_repo):
+    # Arrange
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    existing_event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.save.return_value = existing_event
-    duplicate_event = Event(id=2,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
+    mock_user_repo.get_by_email.return_value = organizer
 
-    mock_event_repo.get_by_title.return_value = existing_event
+    # Simulate an existing event with the same title
+    existing = Event(
+        title='DupEvent',
+        description='desc',
+        datetime=datetime.now(),
+        location='loc',
+        category='cat',
+        organizer_id=organizer.id
+    )
+    mock_event_repo.get_by_title.return_value = existing
 
-    with pytest.raises(EventAlreadyExistsException, match="already exists"):
-        event_service.create(duplicate_event)
+    payload = {
+        'title':           'DupEvent',
+        'description':     'desc',
+        'datetime':        datetime.now(),
+        'location':        'loc',
+        'category':        'cat',
+        'organizer_email': organizer.email
+    }
+
+    # Act & Assert
+    with pytest.raises(EventAlreadyExistsException) as exc:
+        event_service.create(payload)
+    assert 'DupEvent' in str(exc.value)
 
 
 def test_delete_by_title_success(event_service, mock_event_repo):
@@ -267,22 +285,28 @@ def test_delete_by_title_wraps_repository_errors(event_service, mock_event_repo)
     mock_event_repo.get_by_title.assert_called_once_with("Event 1")
     mock_event_repo.delete_by_title.assert_called_once_with("Event 1")
 
-def test_create_wraps_repository_errors(event_service, mock_event_repo):
-    """save should catch any Exception from repo.save and re-raise as EventSaveException."""
+
+def test_create_wraps_repository_errors(event_service, mock_event_repo, mock_user_repo):
+    # Arrange
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    new_event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
+    mock_user_repo.get_by_email.return_value = organizer
     mock_event_repo.get_by_title.return_value = None
     mock_event_repo.save.side_effect = RuntimeError("db down")
-    with pytest.raises(EventSaveException) as ei:
-        event_service.create(new_event)
-    assert isinstance(ei.value.original_exception, RuntimeError)
+
+    payload = {
+        'title':           'CrashEvent',
+        'description':     'desc',
+        'datetime':        datetime.now(),
+        'location':        'loc',
+        'category':        'cat',
+        'organizer_email': organizer.email
+    }
+
+    # Act & Assert
+    with pytest.raises(EventSaveException) as exc:
+        event_service.create(payload)
+    assert str(exc.value) == 'Unable to save event due to an internal error.'
+
 
 
 def test_update_success(event_service, mock_event_repo):

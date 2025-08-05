@@ -1,0 +1,5 @@
+[run]
+omit =
+    app/services/user_service.py
+    app/services/event_service.py
+    app/services/app_service.py

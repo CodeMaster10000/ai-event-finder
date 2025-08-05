@@ -5,12 +5,8 @@ from app.models.user import User
 # 1. Import your schemas
 from app.schemas.event_schema import CreateEventSchema, EventSchema
 
-# 2. Import your model/
+# 2. Import your model
 from app.models.event import Event
-
-# 3. A dummy hash function (replace with your real one or mock)
-def dummy_hash(raw):
-    return f"hashed-{raw}"
 
 @pytest.fixture
 def raw_payload():
@@ -20,11 +16,16 @@ def raw_payload():
         "description": " 20% discount on every beer between 8:00-900PM.    ",
         "category": "Rock",
         "datetime": "2025-07-31 20:30:00",
+        "organizer_email": "bob@example.com",
     }
 
+# Roundtrip: DTO -> Entity -> DTO
 def test_dto_to_entity_to_dto_roundtrip(raw_payload):
     # 1) LOAD: Validate & normalize incoming data
     loaded = CreateEventSchema().load(raw_payload)
+
+    # verify organizer_email is present in loaded data
+    assert loaded["organizer_email"] == raw_payload["organizer_email"]
 
     # 2) Creating a mock user and guests list
     organizer = User(id=2, name="Bob", surname="Jones", email="bob@example.com")
@@ -32,6 +33,7 @@ def test_dto_to_entity_to_dto_roundtrip(raw_payload):
         User(name=f"Name {i}", surname=f"Surname {i}", email=f"email{i}@example.com")
         for i in range(3)
     ]
+    # 3) DTO -> Entity: attach dummy organizer_id and build Event
     event = Event(
         title=loaded["title"],
         location=loaded["location"],
@@ -39,14 +41,14 @@ def test_dto_to_entity_to_dto_roundtrip(raw_payload):
         category=loaded["category"],
         datetime=loaded["datetime"],
         organizer=organizer,
-        organizer_id=2,
+        organizer_id=organizer.id,
     )
     event.guests = guests
 
-    # 3) DUMP
+    # 4) DUMP: serialize back to dict
     dumped = EventSchema().dump(event)
 
-    # 4) ASSERTIONS
+    # 5) ASSERTIONS: loaded values trimmed and normalized
     assert loaded["title"] == "Rock music event"
     assert loaded["location"] == "Beertija Pub, Skopje"
     assert loaded["description"] == "20% discount on every beer between 8:00-900PM."
@@ -61,6 +63,11 @@ def test_dto_to_entity_to_dto_roundtrip(raw_payload):
         "email": "bob@example.com"
     }
 
+    # ensure guests were serialized
+    assert isinstance(dumped["guests"], list)
+    assert len(dumped["guests"]) == 3
+
+    # check keys
     assert set(dumped.keys()) == {
         "title", "location", "description", "category", "datetime", "organizer", "guests"
     }
@@ -73,9 +80,7 @@ def test_invalid_datetime_format():
         "description": "20% discount on every beer between 8:00-900PM.",
         "category": "Rock",
         "datetime": "2025/07-31 20:30:00",
+        "organizer_email": "bob@example.com",
     }
     with pytest.raises(ValidationError):
         CreateEventSchema().load(bad)
-
-
-
