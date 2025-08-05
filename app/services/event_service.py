@@ -36,8 +36,8 @@ class EventService(ABC):
         pass
 
     @abstractmethod
-    def create(self, event: Event) -> Event:
-        """Create a new event or update an existing event."""
+    def create(self, data: dict) -> Event:
+        """Create a new event from validated payload."""
         pass
 
     @abstractmethod

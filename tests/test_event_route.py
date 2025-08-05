@@ -5,6 +5,7 @@ from flask_restx import Api
 from dependency_injector import providers
 from marshmallow import ValidationError
 
+from app.error_handler.exceptions import UserNotFoundException
 from app.routes.event_route import event_ns
 from app.container import Container
 
@@ -113,20 +114,3 @@ def test_post_event_invalid_datetime_raises(client):
         client.post('/events', json=payload)
 
 
-def test_post_event_user_not_found_raises(client):
-    # Arrange payload with valid datetime
-    payload = {
-        'title': 'E4',
-        'description': 'desc4',
-        'datetime': '2025-08-04 17:00:00',
-        'location': 'loc4',
-        'category': 'cat4',
-        'organizer_email': 'notfound@example.com'
-    }
-    # Simulate user lookup failure
-    Container.user_service().get_by_email.side_effect = Exception('User not found')
-
-    # Act & Assert
-    with pytest.raises(Exception) as exc:
-        client.post('/events', json=payload)
-    assert 'User not found' in str(exc.value)

@@ -40,25 +40,19 @@ class EventBaseResource(Resource):
         'organizer_email': fields.String(required=True),  # Email of user organizing this event
     })
 
-    @event_ns.expect(event_create_input)  # Tell Swagger to expect this model
-    @inject  # Inject both EventService and UserService
+    @event_ns.expect(event_create_input)
+    @inject
     def post(self,
-             event_service: EventService = Provide[Container.event_service],
-             user_service: UserService   = Provide[Container.user_service]):
+             event_service: EventService = Provide[Container.event_service]):
         """Create a new event"""
-        # Validate and deserialize incoming JSON to Python dict
+        # 1. Validate & deserialize the JSON (still requires organizer_email)
         data = create_event_schema.load(request.get_json())
 
-        # Extract organizer email and look up User
-        email = data.pop("organizer_email")
-        organizer = user_service.get_by_email(email)  # Raises 404 if not found
+        # 2. Delegate everything (including email lookup) to the service
+        saved = event_service.create(data)
 
-        # Attach organizer_id for foreign key and instantiate Event
-        event = Event(**data, organizer_id=organizer.id)
-
-        # Delegate creation to service layer (handles exceptions internally)
-        saved = event_service.create(event)
-        return event_schema.dump(saved), 201  # Return created object with HTTP 201
+        # 3. Serialize and return the newly created event
+        return event_schema.dump(saved), 201
 
 
 @log_calls("app.routes")
