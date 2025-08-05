@@ -5,6 +5,7 @@ from app.container import Container
 from app.schemas.user_schema import UserSchema
 from app.services.app_service import AppService
 from app.util.logging_util import log_calls
+from flask_jwt_extended import jwt_required
 
 app_ns = Namespace("app", description="Event participation-related operations")
 users_schema = UserSchema(many=True)
@@ -14,6 +15,7 @@ users_schema = UserSchema(many=True)
 @log_calls("app.routes")
 class ParticipantResource(Resource):
     @inject
+    @jwt_required()
     def post(
         self,
         event_title: str,
@@ -26,6 +28,7 @@ class ParticipantResource(Resource):
         return {"message": f"User '{user_email}' successfully added to event '{event_title}'"}, 201
 
     @inject
+    @jwt_required()
     def delete(
         self,
         event_title: str,
@@ -42,6 +45,7 @@ class ParticipantResource(Resource):
 @log_calls("app.routes")
 class ListParticipantsResource(Resource):
     @inject
+    @jwt_required()
     def get(
         self,
         event_title: str,
