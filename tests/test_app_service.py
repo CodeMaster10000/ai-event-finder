@@ -27,7 +27,7 @@ class DummyUser:
 class DummyEvent:
     def __init__(self, title):
         self.title = title
-        self.participants = []
+        self.guests = []
 
     def __repr__(self):
         return f"<DummyEvent {self.title}>"
@@ -64,7 +64,7 @@ def test_add_participant_success(service, mock_user_repo, mock_event_repo):
 
     service.add_participant_to_event("MyEvent", "u@example.com")
 
-    assert user in event.participants
+    assert user in event.guests
     mock_event_repo.save.assert_called_once_with(event)
 
 
@@ -90,7 +90,7 @@ def test_add_participant_already_exists(service, mock_user_repo, mock_event_repo
     """Should raise UserAlreadyInEventException if user already in participants."""
     user = DummyUser("u@example.com")
     event = DummyEvent("MyEvent")
-    event.participants.append(user)
+    event.guests.append(user)
     mock_event_repo.get_by_title.return_value = event
     mock_user_repo.get_by_email.return_value = user
 
@@ -115,13 +115,13 @@ def test_remove_participant_success(service, mock_user_repo, mock_event_repo):
     """Should remove user from participants and call save()."""
     user = DummyUser("u@example.com")
     event = DummyEvent("MyEvent")
-    event.participants.append(user)
+    event.guests.append(user)
     mock_event_repo.get_by_title.return_value = event
     mock_user_repo.get_by_email.return_value = user
 
     service.remove_participant_from_event("MyEvent", "u@example.com")
 
-    assert user not in event.participants
+    assert user not in event.guests
     mock_event_repo.save.assert_called_once_with(event)
 
 
@@ -159,7 +159,7 @@ def test_list_participants_success(service, mock_user_repo, mock_event_repo):
     event = DummyEvent("MyEvent")
     u1 = DummyUser("a@a.com")
     u2 = DummyUser("b@b.com")
-    event.participants.extend([u1, u2])
+    event.guests.extend([u1, u2])
     mock_event_repo.get_by_title.return_value = event
 
     result = service.list_participants("MyEvent")

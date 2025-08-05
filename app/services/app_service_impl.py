@@ -35,11 +35,11 @@ class AppServiceImpl(AppService):
         event = self._get_event_and_validate(event_title=event_title)
         user = self._get_user_and_validate(user_email=user_email)
 
-        if user in event.participants:
+        if user in event.guests:
             raise UserAlreadyInEventException(user_email=user_email, event_title=event_title)
 
         try:
-            event.participants.append(user)
+            event.guests.append(user)
             self.event_repo.save(event)
         except IntegrityError as e:
             # only convert UNIQUE constraint violations on the guest_list table
@@ -57,9 +57,9 @@ class AppServiceImpl(AppService):
         event = self._get_event_and_validate(event_title=event_title)
         user = self._get_user_and_validate(user_email=user_email)
 
-        if user not in event.participants:
+        if user not in event.guests:
             raise UserNotInEventException(user_email=user_email, event_title=event_title)
-        event.participants.remove(user)
+        event.guests.remove(user)
         self.event_repo.save(event)
 
     def list_participants(self, event_title: str) -> List[User]:
@@ -68,7 +68,7 @@ class AppServiceImpl(AppService):
         Raises custom Exception if event is missing.
         """
         event = self._get_event_and_validate(event_title=event_title)
-        return list(event.participants)
+        return list(event.guests)
 
     # ----------- PRIVATE HELPERS ------------- #
     def _get_event_and_validate(self, event_title:str) -> Event:
