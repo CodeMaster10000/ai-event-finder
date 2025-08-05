@@ -50,9 +50,21 @@ class EventServiceImpl(EventService):
         except Exception as e:
             raise EventDeleteException(original_exception=e)
 
-    def create(self, event: Event) -> Event:
-        if self.event_repository.get_by_title(event.title):
-            raise EventAlreadyExistsException(event.title)
+    def create(self, data: dict) -> Event:
+        # 1) Ensure no duplicate title
+        if self.event_repository.get_by_title(data['title']):
+            raise EventAlreadyExistsException(data['title'])
+
+        # 2) Resolve organizer email → User
+        email = data.get('organizer_email')
+        organizer = self.user_repository.get_by_email(email)
+        validate_user(organizer, f"No user found with email {email}")
+
+        # 3) Build the Event model, dropping organizer_email
+        payload = {k: v for k, v in data.items() if k != 'organizer_email'}
+        event = Event(**payload, organizer_id=organizer.id)
+
+        # 4) Persist it
         try:
             return self.event_repository.save(event)
         except Exception as e:
