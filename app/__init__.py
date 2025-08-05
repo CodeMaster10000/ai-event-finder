@@ -10,6 +10,7 @@ from app.extensions import db
 from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
 from flask_migrate import upgrade as flask_migrate_upgrade
 
+from app.routes.app_route import app_ns
 from app.routes.event_route import event_ns
 from app.routes.user_route import user_ns
 from app.services import user_service
@@ -30,6 +31,7 @@ def create_api(app: Flask):
     api.add_namespace(user_ns, path="/users")
     api.add_namespace(event_ns, path="/events")
 
+    api.add_namespace(app_ns,path="/app")
 
 # Main app factory function for Flask to create the app instance
 def create_app(test_config: dict | None = None):
@@ -53,7 +55,7 @@ def create_app(test_config: dict | None = None):
     container = Container()
     container.init_resources()
     container.wire(modules=[
-        "app.routes.user_route",
+        "app.routes.user_route", "app.routes.app_route",
         "app.routes.event_route",
     ])
 
