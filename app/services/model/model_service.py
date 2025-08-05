@@ -1,0 +1,61 @@
+from abc import ABC, abstractmethod
+from typing import List, Dict
+
+from app.configuration.config import Config
+from app.repositories.event_repository import EventRepository
+
+
+class ModelService(ABC):
+    """
+    Abstract base class for chat-based event querying.
+    """
+
+    def __init__(self, event_repository: EventRepository, sys_prompt: str):
+        """Initialize with an EventRepository for vector search."""
+        self.event_repository = event_repository
+        self.sys_prompt = sys_prompt
+
+    @abstractmethod
+    def query_prompt(self, user_prompt: str) -> str:
+        """
+        Embed the user prompt, retrieve relevant events, tune hyperparameters, append systemprompt, construct messages,
+        and return the assistant's text response.
+        """
+        #TODO implement this here
+        ...
+
+    def build_messages(self, context: str, user_prompt: str, sys_prompt) -> List[Dict[str, str]]:
+        """
+        Assemble the chat messages with system, assistant, and user roles.
+        """
+        #TODO implement this here
+
+    def get_rag_data_and_create_context(self, user_prompt):
+        #TODO implement this here
+        """
+        Retrieves relevant event data using a Retrieval-Augmented Generation (RAG) approach
+        and constructs a context-aware message list for downstream processing (e.g., LLM input).
+
+        Args:
+            sys_prompt (str): A system-level prompt or instruction to be included in the message context.
+
+        Returns:
+            List[dict]: A list of formatted messages (typically for LLM input), containing:
+                - A system message with event context derived from the most relevant results.
+                - A user message with the original user query.
+
+        Workflow:
+            1. The method first converts the `user_prompt` into an embedding vector using `get_embedding()`.
+            2. It then retrieves the top-N most similar events from `self.event_repository`
+               using the `search_by_embedding()` method.
+            3. It formats the results into a readable bullet-point list, including each event's
+               name, type, location, and time.
+            4. It calls `self.build_messages()` to build a message history with the system and user prompts.
+
+        Example of formatted context:
+            * AI Conference Talk @ New York (2024-09-10)
+            * Hackathon Competition @ San Francisco (2024-09-11)
+
+        This method is useful in RAG-based applications to inject real-world data context into
+        LLM queries.
+        """
