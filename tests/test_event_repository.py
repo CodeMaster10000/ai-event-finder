@@ -117,7 +117,6 @@ def events_fixture(event_repo, db_session, organizer_user, now):
         saved_event = event_repo.save(event)
         created_events.append(saved_event)
 
-    event_repo.session.commit()
     return created_events
 
 
@@ -247,7 +246,6 @@ def test_save_event(event_repo, organizer_user, now):
         category="Test Category"
     )
     saved = event_repo.save(new_event)
-    event_repo.session.commit()
 
     assert saved.id is not None
     fetched = event_repo.get_by_id(saved.id)
