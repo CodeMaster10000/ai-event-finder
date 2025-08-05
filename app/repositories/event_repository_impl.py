@@ -10,7 +10,6 @@ class EventRepositoryImpl(EventRepository):
 
     def __init__(self, session: Session):
         super().__init__(session)
-        self.session = session
 
     def get_all(self) -> List[Event]:
         return self.session.query(Event).all()  # type: List[Event]
