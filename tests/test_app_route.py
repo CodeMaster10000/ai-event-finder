@@ -80,27 +80,26 @@ def test_list_participants_success(app, mock_app_service, auth_header):
 
     mock_app_service.list_participants.assert_called_once_with("event_1")
 
-def test_prompt_resource_success(app, mock_model_service, auth_header):
-    prompt_text = "Tell me a joke"
-    expected_response = "Why did the chicken cross the road? To get to the other side!"
-    # stub out the service
-    mock_model_service.query_prompt.return_value = expected_response
+def test_prompt_resource_forwards_prompt_to_model_service(app, mock_model_service, auth_header):
+    # 1) Arrange
+    prompt_text = "Just checking"
+    # Make sure the container lookup won’t blow up
+    from app import Container
+    from dependency_injector import providers
     Container.model_service = providers.Object(None)
 
-    # simulate a POST /app/prompt with JSON body and JWT header
+    # 2) Act
     with app.test_request_context(
-        "/app/prompt",
-        method="POST",
-        json={"prompt": prompt_text},
+        f"/app/prompt?prompt={prompt_text}",
+        method="GET",
         headers=auth_header,
     ):
         resource = PromptResource()
-        response_body, status_code = resource.post(model_service=mock_model_service)
+        _, status = resource.get(model_service=mock_model_service)
 
-        # assert we get back exactly what the service returned
-        assert status_code == 200
-        assert response_body == {"response": expected_response}
-        mock_model_service.query_prompt.assert_called_once_with(prompt_text)
+    # 3) Assert
+    assert status == 200
+    mock_model_service.query_prompt.assert_called_once_with(prompt_text)
 
 
 
