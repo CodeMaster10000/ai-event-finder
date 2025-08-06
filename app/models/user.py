@@ -13,6 +13,7 @@ class User(db.Model):
         email (str): The email address of the user. Max 80 characters.
         password (str): The password of the user. Max 80 characters.
     """
+
     id=db.Column(db.Integer, primary_key=True)
     name=db.Column(db.String(NAME_MAX_LENGTH), nullable=False)
     surname=db.Column(db.String(SURNAME_MAX_LENGTH), nullable=False)

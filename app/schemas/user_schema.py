@@ -116,10 +116,10 @@ class UserSchema(Schema):
         # Preserve field declaration order in output
         ordered = True
 
-    id = fields.Int(
-        dump_only=True,
-        metadata={"description":"Unique identifier for the user"}
-    )
+    #id = fields.Int(
+    #    dump_only=True,
+    #    metadata={"description":"Unique identifier for the user"}
+    #)
     name = fields.Str(
         dump_only=True,
         metadata={"description": "User's first name"}
