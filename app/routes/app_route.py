@@ -75,11 +75,11 @@ class PromptResource(Resource):
     @jwt_required()
     def get(
         self,
-        model_service: ModelService = Provide[Container.model_service],
+        #model_service: ModelService = Provide[Container.model_service],
     ):
         """Accept a user prompt via query-string and return the model’s response"""
         user_prompt = request.args.get("prompt")
         if not user_prompt:
             abort(400, "'prompt' query parameter is required")
-        result = model_service.query_prompt(user_prompt)
-        return {"response": result}, 200
+        #result = model_service.query_prompt(user_prompt)
+        return {"response": "demo"}, 200
