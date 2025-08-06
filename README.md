@@ -35,6 +35,7 @@ HOST_DB_PORT=5432
 APP_PORT=5000
 HOST_APP_PORT=5000
 DB_NAME=event_database
+VECTOR_DIM=768
 
 ## Code Coverage
 ```shell
