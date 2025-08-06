@@ -29,5 +29,16 @@ services:
     volumes:
       - .:/app
 
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+
+
 volumes:
   postgres_data:
+  ollama-models:
