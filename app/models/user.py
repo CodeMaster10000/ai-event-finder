@@ -16,7 +16,7 @@ class User(db.Model):
     id=db.Column(db.Integer, primary_key=True)
     name=db.Column(db.String(NAME_MAX_LENGTH), nullable=False)
     surname=db.Column(db.String(SURNAME_MAX_LENGTH), nullable=False)
-    email = db.Column(db.String(EMAIL_MAX_LENGTH), nullable=False, unique=True)
+    email = db.Column(db.String(EMAIL_MAX_LENGTH), nullable=False, unique=True, index=True)
     password=db.Column(db.String(PASSWORD_MAX_LENGTH), nullable=False)
 
     # MANY TO MANY

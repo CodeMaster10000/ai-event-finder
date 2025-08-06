@@ -1,6 +1,10 @@
+import os
+
+from pgvector.sqlalchemy import Vector
+
+from app.configuration.config import Config
 from app.extensions import db
 from app.util.event_util import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
-
 
 # MANY-TO-MANY -> association table, actual join table in db schema
 # used by SQLAlchemy in SQL JOINs
@@ -31,6 +35,7 @@ class Event(db.Model):
     title        = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
     datetime     = db.Column(db.DateTime,   nullable=False)
     description  = db.Column(db.String(DESCRIPTION_MAX_LENGTH),       nullable=True)
+    embedding    = db.Column(Vector(Config.VECTOR_DIM), nullable=True)
 
     # ONE TO MANY
     organizer_id = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=False)

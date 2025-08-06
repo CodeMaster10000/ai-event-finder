@@ -22,7 +22,7 @@ description      = "A Flask-based Event Finder API with PGVector-powered RAG"
 readme           = "README.md"
 license          = { text = "None" }
 authors          = [{ name="Mile", email="demo@xml.com" }]
-requires-python  = ">=3.10,<4.0"
+requires-python  = ">=3.12,<4.0"
 
 dependencies = [
   "alembic==1.16.1",
@@ -103,7 +103,7 @@ dependencies = [
   "mpmath==1.3.0",
   "msgpack==1.1.0",
   "networkx==3.4.2",
-  "numpy==2.2.6",
+  "numpy>=2.3.0",
   "pbs-installer==2025.5.17",
   "pillow==11.2.1",
   "pkginfo==1.12.1.2",
