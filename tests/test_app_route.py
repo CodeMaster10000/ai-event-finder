@@ -1,10 +1,12 @@
 from unittest.mock import MagicMock
 
 import pytest
+from dependency_injector import providers
 
-from app import create_app
-from app.routes.app_route import ParticipantResource, ListParticipantsResource
+from app import create_app, Container
+from app.routes.app_route import ParticipantResource, ListParticipantsResource, PromptResource
 from app.services.app_service import AppService
+from app.services.model.model_service import ModelService
 from app.util.test_jwt_token_util import generate_test_token
 
 
@@ -22,6 +24,10 @@ def auth_header(app):
 def mock_app_service():
     return MagicMock(spec=AppService)
 
+@pytest.fixture
+def mock_model_service():
+    # create a fake ModelService with the right interface
+    return MagicMock(spec=ModelService)
 
 #ADD PARTICIPANT TO EVENT (POST)
 
@@ -74,7 +80,27 @@ def test_list_participants_success(app, mock_app_service, auth_header):
 
     mock_app_service.list_participants.assert_called_once_with("event_1")
 
+def test_prompt_resource_success(app, mock_model_service, auth_header):
+    prompt_text = "Tell me a joke"
+    expected_response = "Why did the chicken cross the road? To get to the other side!"
+    # stub out the service
+    mock_model_service.query_prompt.return_value = expected_response
+    Container.model_service = providers.Object(None)
 
+    # simulate a POST /app/prompt with JSON body and JWT header
+    with app.test_request_context(
+        "/app/prompt",
+        method="POST",
+        json={"prompt": prompt_text},
+        headers=auth_header,
+    ):
+        resource = PromptResource()
+        response_body, status_code = resource.post(model_service=mock_model_service)
+
+        # assert we get back exactly what the service returned
+        assert status_code == 200
+        assert response_body == {"response": expected_response}
+        mock_model_service.query_prompt.assert_called_once_with(prompt_text)
 
 
 
