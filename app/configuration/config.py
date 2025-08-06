@@ -15,5 +15,6 @@ class Config:
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    VECTOR_DIM = int(os.getenv('VECTOR_DIM'))
 
 print("Using DB user:", os.getenv("DB_USER"))

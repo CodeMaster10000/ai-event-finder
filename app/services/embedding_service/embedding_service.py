@@ -11,7 +11,7 @@ class EmbeddingService(ABC):
     (e.g., OpenAI, Azure, Cohere).
 
     Implementations should:
-    - Accept a dictionary of event attributes (e.g., title, description, location, etc.)
+    - Accept an Event Object with event attributes (e.g., title, description, location, etc.)
     - Convert these attributes into a suitable format for the embedding model
     - Generate and return a numerical embedding as a list of floats
 

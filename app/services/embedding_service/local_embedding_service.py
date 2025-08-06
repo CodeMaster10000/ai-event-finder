@@ -3,7 +3,9 @@ import requests
 from .embedding_service import EmbeddingService
 from app.configuration.config import Config
 from app.models.event import Event
+from app.util.event_util import format_event
 class LocalEmbeddingService(EmbeddingService):
+
 
     def create_embedding(self, event_data: Event) -> list[float]:
         """
@@ -18,7 +20,7 @@ class LocalEmbeddingService(EmbeddingService):
 
         base_url = Config.OLLAMA_URL
         model = Config.OLLAMA_MODEL
-        prompt = self._format_event(event_data)
+        prompt = format_event(event_data)
         response = requests.post(
             f"{base_url}/api/embeddings",
             json={"model": model, "prompt": prompt},
@@ -27,23 +29,3 @@ class LocalEmbeddingService(EmbeddingService):
         result = response.json()
         return result["embedding"]
 
-    def _format_event(self, event: Event) -> str:
-        """
-        Format an Event object into a string prompt to send to the embedding model.
-
-        Args:
-            event (Event): Event object from the database.
-
-        Returns:
-            str: Formatted string representing the event.
-        """
-        fields = [
-            event.title or "",
-            event.description or "",
-            event.location or "",
-            event.category or "",
-            event.datetime.isoformat() if event.datetime else "",
-            str(event.organizer) if event.organizer else "",  # You could also use organizer.name or email
-        ]
-
-        return " | ".join(fields)

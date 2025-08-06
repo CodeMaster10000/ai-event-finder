@@ -8,12 +8,18 @@ from marshmallow import ValidationError
 from app.error_handler.exceptions import UserNotFoundException
 from app.routes.event_route import event_ns
 from app.container import Container
+from app.util.test_jwt_token_util import generate_test_token
+from flask_jwt_extended import JWTManager
 
 @pytest.fixture
 def app():
     # Create Flask app and register namespace
     app = Flask(__name__)
+
     app.config['TESTING'] = True
+    app.config['JWT_SECRET_KEY'] = 'test-secret-key'  # Required by flask-jwt-extended
+
+    JWTManager(app)
     api = Api(app)
     api.add_namespace(event_ns, path='/events')
 
@@ -31,11 +37,16 @@ def app():
     yield app
 
 @pytest.fixture
+def auth_header(app):
+    token = generate_test_token(app, user_id=1)
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture
 def client(app):
     return app.test_client()
 
 
-def test_get_all_events(client):
+def test_get_all_events(client, auth_header):
     # Arrange
     mock_service = Container.event_service()
     FakeEvent = type('FakeEvent', (), {})
@@ -49,7 +60,7 @@ def test_get_all_events(client):
     mock_service.get_all.return_value = [evt]
 
     # Act
-    response = client.get('/events')
+    response = client.get('/events', headers=auth_header)
 
     # Assert
     assert response.status_code == 200
@@ -59,7 +70,7 @@ def test_get_all_events(client):
     assert data[0]['description'] == 'desc'
 
 
-def test_post_event_success(client):
+def test_post_event_success(client, auth_header):
     # Arrange
     mock_user_service = Container.user_service()
     mock_user = type('U', (), {'id': 42})
@@ -86,7 +97,7 @@ def test_post_event_success(client):
     }
 
     # Act
-    response = client.post('/events', json=payload)
+    response = client.post('/events', json=payload, headers=auth_header)
 
     # Assert
     assert response.status_code == 201
@@ -96,7 +107,7 @@ def test_post_event_success(client):
     assert 'id' not in result
 
 
-def test_post_event_invalid_datetime_raises(client):
+def test_post_event_invalid_datetime_raises(client, auth_header):
     # Arrange invalid datetime
     payload = {
         'title': 'E3',
@@ -111,6 +122,6 @@ def test_post_event_invalid_datetime_raises(client):
 
     # Act & Assert
     with pytest.raises(ValidationError):
-        client.post('/events', json=payload)
+        client.post('/events', json=payload, headers=auth_header)
 
 

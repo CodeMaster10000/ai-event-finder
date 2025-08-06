@@ -10,6 +10,7 @@ from app.models.event import Event
 from app.services.user_service import UserService
 from app.util.logging_util import log_calls
 from datetime import datetime
+from flask_jwt_extended import jwt_required
 
 # Namespace for event operations; all routes under '/events'
 event_ns = Namespace("events", description="Event based operations")
@@ -24,6 +25,7 @@ events_schema = EventSchema(many=True)     # Serializes a list of Event objects
 @event_ns.route("")       # Root endpoint for events (e.g., GET /events, POST /events)
 class EventBaseResource(Resource):
     @inject  # Inject EventService from DI container
+    @jwt_required()
     def get(self,
             event_service: EventService = Provide[Container.event_service]):
         """Get all events"""
@@ -42,6 +44,7 @@ class EventBaseResource(Resource):
 
     @event_ns.expect(event_create_input)
     @inject
+    @jwt_required()
     def post(self,
              event_service: EventService = Provide[Container.event_service]):
         """Create a new event"""
@@ -59,6 +62,7 @@ class EventBaseResource(Resource):
 @event_ns.route('/title/<string:title>')  # Endpoint for operations by title
 class EventByTitleResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             title: str,
             event_service: EventService = Provide[Container.event_service]):
@@ -67,6 +71,7 @@ class EventByTitleResource(Resource):
         return event_schema.dump(event), 200
 
     @inject
+    @jwt_required()
     def delete(self,
                title: str,
                event_service: EventService = Provide[Container.event_service]):
@@ -82,6 +87,7 @@ class EventByTitleResource(Resource):
 @event_ns.route('/location/<string:location>')  # Endpoint to query by location
 class EventsByLocationResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             location: str,
             event_service: EventService = Provide[Container.event_service]):
@@ -94,6 +100,7 @@ class EventsByLocationResource(Resource):
 @event_ns.route('/category/<string:category>')  # Endpoint to query by category
 class EventsByCategoryResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             category: str,
             event_service: EventService = Provide[Container.event_service]):
@@ -106,6 +113,7 @@ class EventsByCategoryResource(Resource):
 @event_ns.route('/organizer/<string:email>')  # Endpoint to query by organizer email
 class EventsByOrganizerResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             email: str,
             event_service: EventService = Provide[Container.event_service]):
@@ -118,6 +126,7 @@ class EventsByOrganizerResource(Resource):
 @event_ns.route('/date/<string:date_str>')  # Endpoint to query by date string
 class EventsByDateResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             date_str: str,
             event_service: EventService = Provide[Container.event_service]):
