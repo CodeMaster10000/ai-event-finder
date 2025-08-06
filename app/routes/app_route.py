@@ -1,14 +1,16 @@
 from dependency_injector.wiring import Provide, inject
-from flask_restx import Namespace, Resource
-
 from app.container import Container
 from app.schemas.user_schema import UserSchema
 from app.services.app_service import AppService
+from app.services.model.model_service import ModelService
 from app.util.logging_util import log_calls
 from flask_jwt_extended import jwt_required
+from flask_restx import Namespace, Resource, fields
+from flask import request, abort
 
 app_ns = Namespace("app", description="Event participation-related operations")
 users_schema = UserSchema(many=True)
+
 
 # Endpoint: POST and DELETE /app/<event_title>/participants/<user_email>
 @app_ns.route("/<string:event_title>/participants/<string:user_email>")
@@ -55,3 +57,26 @@ class ListParticipantsResource(Resource):
 
         participant_list = app_service.list_participants(event_title)
         return users_schema.dump(participant_list), 200
+
+
+@app_ns.route("/prompt")
+@log_calls("app.routes")
+class PromptResource(Resource):
+    @app_ns.param(
+        "prompt",
+        "The user's chat prompt",
+        _in="query",
+        required=True
+    )
+    @inject
+    @jwt_required()
+    def get(
+        self,
+        #model_service: ModelService = Provide[Container.model_service],
+    ):
+        """Accept a user prompt via query-string and return the model’s response"""
+        user_prompt = request.args.get("prompt")
+        if not user_prompt:
+            abort(400, "'prompt' query parameter is required")
+        #result = model_service.query_prompt(user_prompt)
+        return {"response": "demo"}, 200
