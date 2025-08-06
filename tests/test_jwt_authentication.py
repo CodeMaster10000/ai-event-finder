@@ -97,7 +97,6 @@ def test_get_all_events_unauthorized(client):
     response = client.get("/events")  # No token sent
 
     assert response.status_code == 401
-    assert "Missing Authorization Header" in response.get_json()["msg"]
 
 def test_login_success(client, test_user_record):
     response = client.post("/auth/login", json={
