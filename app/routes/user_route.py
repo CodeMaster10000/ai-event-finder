@@ -9,6 +9,7 @@ from app.schemas.user_schema import CreateUserSchema, UserSchema
 from marshmallow import ValidationError
 from app.models.user import User
 from app.util.logging_util import log_calls
+from flask_jwt_extended import jwt_required
 # Namespace for user operations
 user_ns = Namespace("users", description="User based operations")
 
@@ -21,6 +22,7 @@ users_schema = UserSchema(many=True)
 @user_ns.route("")
 class UserBaseResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             user_service: UserService = Provide[Container.user_service]):
         """Get all users"""
@@ -37,6 +39,7 @@ class UserBaseResource(Resource):
     @user_ns.expect(user_create_input)
 
     @inject
+    @jwt_required()
     def post(self,
              user_service: UserService = Provide[Container.user_service]):
         """Create or update a user"""
@@ -57,6 +60,7 @@ class UserBaseResource(Resource):
 @user_ns.route('/id/<int:user_id>')
 class UserByIdResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             user_id: int,
             user_service: UserService = Provide[Container.user_service]):
@@ -67,6 +71,7 @@ class UserByIdResource(Resource):
         return user_schema.dump(user), 200
 
     @inject
+    @jwt_required()
     def delete(self,
                user_id: int,
                user_service: UserService = Provide[Container.user_service]):
@@ -81,6 +86,7 @@ class UserByIdResource(Resource):
 @user_ns.route('/email/<string:email>')
 class UserByEmailResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             email: str,
             user_service: UserService = Provide[Container.user_service]):
@@ -94,6 +100,7 @@ class UserByEmailResource(Resource):
 @user_ns.route('/name/<string:name>')
 class UsersByNameResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             name: str,
             user_service: UserService = Provide[Container.user_service]):
@@ -107,6 +114,7 @@ class UsersByNameResource(Resource):
 @user_ns.route('/exists/id/<int:user_id>')
 class ExistsByIdResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             user_id: int,
             user_service: UserService = Provide[Container.user_service]):
@@ -118,6 +126,7 @@ class ExistsByIdResource(Resource):
 @user_ns.route('/exists/name/<string:name>')
 class ExistsByNameResource(Resource):
     @inject
+    @jwt_required()
     def get(self,
             name: str,
             user_service: UserService = Provide[Container.user_service]):

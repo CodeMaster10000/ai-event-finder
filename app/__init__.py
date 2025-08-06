@@ -6,40 +6,58 @@ from flask_restx import Api
 from app.configuration.config import Config
 from app.container import Container
 from app.error_handler.global_error_handler import register_error_handlers
-from app.extensions import db
+from app.extensions import db, jwt
 from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
 from flask_migrate import upgrade as flask_migrate_upgrade
 
-from app.routes.app_route import app_ns
+import secrets
+from datetime import timedelta
+
 from app.routes.event_route import event_ns
 from app.routes.user_route import user_ns
 from app.services import user_service
 from app.services import user_service_impl
+from app.routes.login_route import auth_ns
 
 
 migrate = Migrate()
 
 # Function to set up REST API and Swagger API
 def create_api(app: Flask):
+    authorizations = {
+        "BearerAuth": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization",
+            "description": "Paste your JWT token here. Format: Bearer <token>"
+        }
+    }
+
     api = Api(
         app,
         title="Event Finder API",
         version="1.0",
         description="REST API",
-        doc="/swagger/"  # optional: where Swagger UI lives
+        doc="/swagger/",  # optional: where Swagger UI lives
+        authorizations=authorizations
     )
     api.add_namespace(user_ns, path="/users")
     api.add_namespace(event_ns, path="/events")
+    api.add_namespace(auth_ns, path="/auth")
 
-    api.add_namespace(app_ns,path="/app")
 
 # Main app factory function for Flask to create the app instance
 def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    app.config['SECRET_KEY'] = secrets.token_hex(32)
+    app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(64)
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+
     # Initialize extensions
     db.init_app(app)
+    jwt.init_app(app)
     migrate.init_app(app, db)
     if test_config and test_config.get("TESTING", True):
         app.config.update(test_config)
