@@ -11,9 +11,6 @@ from flask import request, abort
 app_ns = Namespace("app", description="Event participation-related operations")
 users_schema = UserSchema(many=True)
 
-prompt_input = app_ns.model('prompt_input', {
-    'prompt': fields.String(required=True, description="The user's chat prompt")
-})
 
 # Endpoint: POST and DELETE /app/<event_title>/participants/<user_email>
 @app_ns.route("/<string:event_title>/participants/<string:user_email>")
