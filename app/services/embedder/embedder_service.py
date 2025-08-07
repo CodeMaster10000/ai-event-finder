@@ -1,1 +1,0 @@
-# Create a class that represents the embedder model - abstract class
