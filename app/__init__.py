@@ -1,24 +1,23 @@
-from app.configuration.logging_config import configure_logging
-import logging
-from flask import Flask
-from flask_migrate import Migrate
-from flask_restx import Api
-from app.configuration.config import Config
-from app.container import Container
-from app.error_handler.global_error_handler import register_error_handlers
-from app.extensions import db, jwt
-from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
-from flask_migrate import upgrade as flask_migrate_upgrade
-
 import secrets
 from datetime import timedelta
 
+from flask import Flask
+from flask_migrate import Migrate
+from flask_migrate import upgrade as flask_migrate_upgrade
+from flask_restx import Api
+
+from app.configuration.config import Config
+from app.configuration.logging_config import configure_logging
+from app.container import Container
+from app.error_handler.auth_exception_handlers import register_auth_error_handlers
+from app.error_handler.global_error_handler import register_error_handlers
+from app.extensions import db, jwt
+from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
 from app.routes.event_route import event_ns
+from app.routes.login_route import auth_ns
 from app.routes.user_route import user_ns
 from app.services import user_service
 from app.services import user_service_impl
-from app.routes.login_route import auth_ns
-
 
 migrate = Migrate()
 
@@ -51,6 +50,8 @@ def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    app.config["PROPAGATE_EXCEPTIONS"] = True
+
     app.config['SECRET_KEY'] = secrets.token_hex(32)
     app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(64)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
@@ -79,6 +80,7 @@ def create_app(test_config: dict | None = None):
 
     create_api(app)
     # Configure logging and activate error listener
+    register_auth_error_handlers(app)
     configure_logging()
     register_error_handlers(app)
 

@@ -39,6 +39,11 @@ OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=nomic-embed-text
 VECTOR_DIM=768
 
+## Example for flaskenv. File
+FLASK_APP=run.py
+FLASK_ENV=development
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${HOST_DB_PORT}/${DB_NAME}"
+
 ## Code Coverage
 ```shell
 poetry lock
