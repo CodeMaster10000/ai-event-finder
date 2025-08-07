@@ -1,37 +1,40 @@
-"""Event Entity Specific Variables"""
-TITLE_MAX_LENGTH = 50
-DESCRIPTION_MAX_LENGTH = 500
-LOCATION_MAX_LENGTH = 50
-CATEGORY_MAX_LENGTH = 50
+# app/util/event_util.py
 
-from app.models.event import Event
+"""Event-Entity helper functions"""
+
+from app.constants import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.event import Event
+
 
 def return_not_found_by_id_message(event_id) -> str:
     return f"Event not found with id {event_id}"
+
 def return_not_found_by_title_message(title) -> str:
     return f"Event not found with title {title}"
+
 def return_not_found_by_category_message(category) -> str:
     return f"Event not found with category {category}"
+
 def return_not_found_by_location_message(location) -> str:
     return f"Event not found with location {location}"
 
-def format_event(self, event: Event) -> str:
+
+def format_event(event: "Event") -> str:
     """
     Format an Event object into a string prompt to send to the embedding model.
-
-    Args:
-        event (Event): Event object from the database.
-
-    Returns:
-        str: Formatted string representing the event.
     """
+    # local import so we only load Event at call time
+    from app.models.event import Event
+
     fields = [
         event.title or "",
         event.description or "",
         event.location or "",
         event.category or "",
         event.datetime.isoformat() if event.datetime else "",
-        str(event.organizer) if event.organizer else "",  # You could also use organizer.name or email
+        str(event.organizer) if event.organizer else "",
     ]
-
     return " | ".join(fields)
