@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
-
+from sqlalchemy.orm import Session
 from app.models.user import User
 
 
@@ -9,16 +9,8 @@ class UserRepository(ABC):
     Interface for User repository operations.
     """
 
-    def __init__(self, session):
-        """
-        Initialize the repository with a database session.
-
-        :param session: The database session or connection.
-        """
-        self.session = session
-
     @abstractmethod
-    def get_by_id(self, user_id: int) -> Optional[User]:
+    def get_by_id(self, user_id: int, session:Session) -> Optional[User]:
         """
         Retrieve a user by its unique identifier.
 
@@ -28,7 +20,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str, session:Session) -> Optional[User]:
         """
         Retrieve a user by their email address.
 
@@ -38,7 +30,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_by_name(self, name: str) -> Optional[User]:
+    def get_by_name(self, name: str, session:Session) -> Optional[User]:
         """
         Retrieve a user by their name.
 
@@ -48,7 +40,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_all(self) -> List[User]:
+    def get_all(self, session:Session) -> List[User]:
         """
         Retrieve all users in the system.
 
@@ -57,7 +49,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self, user: User) -> User:
+    def save(self, user: User, session:Session) -> User:
         """
         Persist a new user or update an existing one.
 
@@ -67,7 +59,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_by_id(self, user_id: int) -> None:
+    def delete_by_id(self, user_id: int, session:Session) -> None:
         """
         Delete a user given their unique identifier.
 
@@ -78,7 +70,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def exists_by_id(self, user_id: int) -> bool:
+    def exists_by_id(self, user_id: int, session:Session) -> bool:
         """
         Check whether a user exists by their ID.
 
@@ -88,7 +80,7 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def exists_by_name(self, name: str) -> bool:
+    def exists_by_name(self, name: str, session:Session) -> bool:
         """
         Check whether a user exists by their name.
 

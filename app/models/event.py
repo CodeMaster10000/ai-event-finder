@@ -34,6 +34,7 @@ class Event(db.Model):
         location (str):            Location (max length = LOCATION_MAX_LENGTH).
         category (str):            Category (max length = CATEGORY_MAX_LENGTH).
         guests (List[User]):       Users invited to the event.
+        version (int):             Optimistic lock version counter (auto-incremented on update).
     """
     __tablename__ = 'events'
 
@@ -42,6 +43,7 @@ class Event(db.Model):
     datetime     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     description  = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
     embedding    = db.Column(Vector(Config.VECTOR_DIM), nullable=True)
+    version      = db.Column(db.Integer, nullable=False, default=1)
 
     # ONE-TO-MANY: organizer
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -61,6 +63,10 @@ class Event(db.Model):
         back_populates='events_attending',
         lazy='dynamic',
     )
+
+    __mapper_args__ = {
+        "version_id_col": version
+    }
 
     def __repr__(self):
         return f"<Event {self.id} – {self.title} @ {self.datetime.isoformat()}>"

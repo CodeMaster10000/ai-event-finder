@@ -8,9 +8,11 @@ from app.services.app_service import AppService
 from app.util.validation_util import validate_user, validate_event
 from app.util.user_util import return_not_found_by_email_message
 from app.util.event_util import return_not_found_by_title_message
+from app.util.transaction_util import transactional, retry_conflicts
 from app.error_handler.exceptions import UserNotInEventException, UserAlreadyInEventException, EventSaveException
 from app.util.logging_util import log_calls
 from psycopg2.errors import UniqueViolation
+
 
 @log_calls("app.services")
 class AppServiceImpl(AppService):
@@ -26,29 +28,40 @@ class AppServiceImpl(AppService):
         self.user_repo = user_repo
         self.event_repo = event_repo
 
-    def add_participant_to_event(self, event_title: str, user_email: str) -> None:
+    @retry_conflicts(max_retries=3, backoff_sec=0.1)
+    @transactional
+    def add_participant_to_event(self, event_title: str, user_email: str, session=None) -> None:
         """
         Add the user (user_email) to the event (event_title).
-        Raises custom Exception if either entity is missing,
-        Raises UserAlreadyInEvent if the user is already a participant.
+
+        • Uses optimistic-locking on the request-scoped session.
+        • Retries up to 3 times on version conflicts.
+        • Converts duplicate-invite IntegrityErrors into UserAlreadyInEventException.
         """
-        event = self._get_event_and_validate(event_title=event_title)
-        user = self._get_user_and_validate(user_email=user_email)
+        # 1) Load & validate
+        event = self._get_event_and_validate(event_title)
+        user = self._get_user_and_validate(user_email)
 
+        # 2) Guard against an obvious double-invite
         if user in event.guests:
-            raise UserAlreadyInEventException(user_email=user_email, event_title=event_title)
+            raise UserAlreadyInEventException(user_email=user_email,
+                                              event_title=event_title)
 
+        # 3) Append + save inside one atomic transaction
         try:
             event.guests.append(user)
             self.event_repo.save(event)
         except IntegrityError as e:
-            # only convert UNIQUE constraint violations on the guest_list table
+            # Unique PK violation on the guest_list join => double-invite
             if isinstance(e.orig, UniqueViolation):
-                raise UserAlreadyInEventException(user_email, event_title)
-            # something else went wrong—surface it as a save error
+                raise UserAlreadyInEventException(user_email=user_email,
+                                                  event_title=event_title)
+            # Any other DB problem: wrap as a save error
             raise EventSaveException(original_exception=e)
 
-    def remove_participant_from_event(self, event_title: str, user_email: str) -> None:
+    @retry_conflicts(max_retries=3, backoff_sec=0.1)
+    @transactional
+    def remove_participant_from_event(self, event_title: str, user_email: str, session=None) -> None:
         """
         Remove the user (user_email) from the event (event_title)
         Raises custom Exception if either entity is missing.

@@ -14,19 +14,17 @@ class Container(containers.DeclarativeContainer):
         packages=["app.routes", "app.services"]
     )
 
-    # Provide a singleton SQLAlchemy session
-    db_session = providers.Singleton(lambda: db.session)
+    # Sessions are created and closed per HTTP request
+    #db_session = providers.Singleton(lambda: db.session)
 
     # If you have a UserRepository, you could also do:
     # user_repository = providers.Factory(UserRepository, session=db_session)
     # Repositories
     user_repository = providers.Singleton(
         UserRepositoryImpl,
-        session=db_session,
     )
     event_repository = providers.Singleton(
         EventRepositoryImpl,
-        session=db_session,
     )
 
     # Services

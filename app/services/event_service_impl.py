@@ -6,6 +6,7 @@ from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
 from app.services.event_service import EventService
 from app.util.validation_util import validate_user, validate_event
+from app.util.transaction_util import transactional, retry_conflicts
 
 from app.error_handler.exceptions import (
     EventNotFoundException,
@@ -41,7 +42,9 @@ class EventServiceImpl(EventService):
     def get_all(self) -> List[Event]:
         return self.event_repository.get_all()
 
-    def delete_by_title(self, title: str) -> None:
+    @retry_conflicts(max_retries=3, backoff_sec=0.1)
+    @transactional
+    def delete_by_title(self, title: str, session=None) -> None:
         event = self.event_repository.get_by_title(title)
         if not event:
             raise EventNotFoundException(f"Event with title '{title}' not found.")
@@ -50,7 +53,9 @@ class EventServiceImpl(EventService):
         except Exception as e:
             raise EventDeleteException(original_exception=e)
 
-    def create(self, data: dict) -> Event:
+    @retry_conflicts(max_retries=3, backoff_sec=0.1)
+    @transactional
+    def create(self, data: dict, session = None) -> Event:
         # 1) Ensure no duplicate title
         if self.event_repository.get_by_title(data['title']):
             raise EventAlreadyExistsException(data['title'])
@@ -70,7 +75,9 @@ class EventServiceImpl(EventService):
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
-    def update(self, event: Event) -> Event:
+    @retry_conflicts(max_retries=3, backoff_sec=0.1)
+    @transactional
+    def update(self, event: Event, session=None) -> Event:
         existing_event = self.event_repository.get_by_id(event.id)
         conflict = self.event_repository.get_by_title(event.title)
 

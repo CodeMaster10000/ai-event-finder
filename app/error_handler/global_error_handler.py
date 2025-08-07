@@ -31,7 +31,8 @@ def register_error_handlers(app):
         EventSaveException,
         EventDeleteException,
         UserNotInEventException,
-        UserAlreadyInEventException
+        UserAlreadyInEventException,
+        ConcurrencyException
     )
 
     @app.errorhandler(UserNotFoundException)
@@ -74,6 +75,10 @@ def register_error_handlers(app):
     def handle_user_already_in_event(exception):
         return jsonify({"error": {"code": "USER_ALREADY_IN_EVENT", "message": str(exception)}}), 409
 
+    @app.errorhandler(ConcurrencyException)
+    def handle_concurrency_exception(exception):
+        return jsonify({"error": {"code": "CONCURRENT_UPDATE", "message": str(exception)}}), 409
+
     # -------------------------
     # GLOBAL FALLBACK - DETAILED DEBUGGING
     # -------------------------
@@ -110,3 +115,4 @@ def register_error_handlers(app):
                 "message": f"Unexpected error: {type(e).__name__}"
             }
         }), 500
+

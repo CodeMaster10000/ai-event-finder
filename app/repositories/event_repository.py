@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Optional
+from sqlalchemy.orm import Session
 
 from app.models.event import Event
 
@@ -11,25 +12,14 @@ class EventRepository(ABC):
     Provides methods for querying, saving, deleting, and checking existence of Event entities.
     """
 
-    def __init__(self, session):
-        """
-        Initialize the repository with a SQLAlchemy session.
 
-        Args:
-            session (Session): The SQLAlchemy session to use for database operations.
-
-        Note:
-            Concrete implementations should pass the session to the base constructor
-            so it can be shared or reused consistently.
-        """
-        self.session = session
 
     # ------------------------
     # Retrieval Methods
     # ------------------------
 
     @abstractmethod
-    def get_all(self) -> List[Event]:
+    def get_all(self, session:Session) -> List[Event]:
         """
         Retrieve all events stored in the repository.
 
@@ -39,7 +29,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, event_id: int) -> Optional[Event]:
+    def get_by_id(self, event_id: int, session:Session) -> Optional[Event]:
         """
         Retrieve a single event by its unique ID.
 
@@ -52,7 +42,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_title(self, title: str) -> Optional[Event]:
+    def get_by_title(self, title: str, session:Session) -> Optional[Event]:
         """
         Retrieve all events that match a given title.
 
@@ -65,7 +55,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_organizer_id(self, organizer_id: int) -> List[Event]:
+    def get_by_organizer_id(self, organizer_id: int, session:Session) -> List[Event]:
         """
         Retrieve all events organized by a specific user.
 
@@ -78,7 +68,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_date(self, date: datetime) -> List[Event]:
+    def get_by_date(self, date: datetime, session:Session) -> List[Event]:
         """
         Retrieve all events scheduled on a specific date.
 
@@ -91,7 +81,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_location(self, location: str) -> List[Event]:
+    def get_by_location(self, location: str, session:Session) -> List[Event]:
         """
         Retrieve all events held at a specific location.
 
@@ -104,7 +94,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_category(self, category: str) -> List[Event]:
+    def get_by_category(self, category: str, session:Session) -> List[Event]:
         """
         Retrieve all events in a given category.
 
@@ -121,7 +111,7 @@ class EventRepository(ABC):
     # ------------------------
 
     @abstractmethod
-    def delete_by_id(self, event_id: int) -> None:
+    def delete_by_id(self, event_id: int, session:Session) -> None:
         """
         Delete an event from the repository by its ID.
 
@@ -131,7 +121,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def delete_by_title(self, title: str) -> None:
+    def delete_by_title(self, title: str, session:Session) -> None:
         """
         Delete all events with the specified title from the repository.
 
@@ -149,7 +139,7 @@ class EventRepository(ABC):
     # ------------------------
 
     @abstractmethod
-    def save(self, event: Event) -> Event:
+    def save(self, event: Event, session:Session) -> Event:
         """
         Save or update an event in the repository.
 
@@ -169,7 +159,7 @@ class EventRepository(ABC):
     # ------------------------
 
     @abstractmethod
-    def exists_by_id(self, event_id: int) -> bool:
+    def exists_by_id(self, event_id: int, session:Session) -> bool:
         """
         Check whether an event with the given ID exists.
 
@@ -182,7 +172,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def exists_by_title(self, title: str) -> bool:
+    def exists_by_title(self, title: str, session:Session) -> bool:
         """
         Check whether any events exist with the given title.
 
@@ -195,7 +185,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def exists_by_location(self, location: str) -> bool:
+    def exists_by_location(self, location: str, session:Session) -> bool:
         """
         Check whether any events exist at the given location.
 
@@ -208,7 +198,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def exists_by_category(self, category: str) -> bool:
+    def exists_by_category(self, category: str, session:Session) -> bool:
         """
         Check whether any events exist in the specified category.
 
@@ -221,7 +211,7 @@ class EventRepository(ABC):
         pass
 
     @abstractmethod
-    def exists_by_date(self, date: datetime) -> bool:
+    def exists_by_date(self, date: datetime, session:Session) -> bool:
         """
         Check whether any events are held on the given date.
 
