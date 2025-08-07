@@ -17,4 +17,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     VECTOR_DIM = int(os.getenv('VECTOR_DIM'))
 
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "hard-coded-test-key")
+    OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 print("Using DB user:", os.getenv("DB_USER"))

@@ -5,6 +5,7 @@ from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
 from app.services.app_service import AppService
+from app.services.embedding_service.embedding_service import EmbeddingService
 from app.util.validation_util import validate_user, validate_event
 from app.util.user_util import return_not_found_by_email_message
 from app.util.event_util import return_not_found_by_title_message
@@ -18,13 +19,14 @@ class AppServiceImpl(AppService):
     Orchestrates user–event interactions by delegating persistence
     to UserRepository and EventRepository.
     """
-    def __init__(self, user_repo:UserRepository, event_repo:EventRepository):
+    def __init__(self, user_repo:UserRepository, event_repo:EventRepository, embedding_service:EmbeddingService):
         """
         :param user_repo: Used to lookup users by email
         :param event_repo: Used to lookup and persist events by title
         """
         self.user_repo = user_repo
         self.event_repo = event_repo
+        self.embedding_service = embedding_service
 
     def add_participant_to_event(self, event_title: str, user_email: str) -> None:
         """
