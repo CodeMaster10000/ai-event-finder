@@ -4,7 +4,7 @@ DESCRIPTION_MAX_LENGTH = 500
 LOCATION_MAX_LENGTH = 50
 CATEGORY_MAX_LENGTH = 50
 
-#from app.models.event import Event
+
 
 def return_not_found_by_id_message(event_id) -> str:
     return f"Event not found with id {event_id}"
