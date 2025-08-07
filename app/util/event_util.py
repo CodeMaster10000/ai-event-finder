@@ -2,7 +2,6 @@
 
 """Event-Entity helper functions"""
 
-from app.constants import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,7 +26,6 @@ def format_event(event: "Event") -> str:
     Format an Event object into a string prompt to send to the embedding model.
     """
     # local import so we only load Event at call time
-    from app.models.event import Event
 
     fields = [
         event.title or "",

@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate, EXCLUDE, pre_load
+
+from app.constants import TITLE_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, LOCATION_MAX_LENGTH, CATEGORY_MAX_LENGTH
 from app.schemas.user_schema import UserSchema
-from app.util.event_util import (
-    TITLE_MAX_LENGTH, CATEGORY_MAX_LENGTH, LOCATION_MAX_LENGTH, DESCRIPTION_MAX_LENGTH)
 
 
 class CreateEventSchema(Schema):

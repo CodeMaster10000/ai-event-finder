@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict
 
-from app.configuration.config import Config
 from app.repositories.event_repository import EventRepository
 
 
