@@ -1,4 +1,0 @@
-FROM ollama/ollama
-
-# Pull model before starting the server
-CMD ollama pull nomic-embed-text && ollama serve
