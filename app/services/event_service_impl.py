@@ -78,7 +78,7 @@ class EventServiceImpl(EventService):
             raise EventAlreadyExistsException(conflict.title)
 
         if not existing_event:
-            raise EventNotFoundException(f"Event not found in the database.")
+            raise EventNotFoundException("Event not found in the database.")
 
         try:
             return self.event_repository.save(event)

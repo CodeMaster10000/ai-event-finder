@@ -2,8 +2,9 @@ from typing import List
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
+from app.util.user_util import return_not_found_by_name_message, return_not_found_by_email_message, \
+    return_not_found_by_id_message
 from app.util.validation_util import validate_user
-from app.util.user_util import *
 
 from app.error_handler.exceptions import (
     DuplicateEmailException,
