@@ -1,0 +1,8 @@
+FROM ollama/ollama
+
+COPY ./run-ollama-llm.sh /usr/local/bin/run-ollama-llm.sh
+RUN chmod +x /usr/local/bin/run-ollama-llm.sh
+
+EXPOSE 11434
+
+ENTRYPOINT ["/usr/local/bin/run-ollama-llm.sh"]

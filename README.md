@@ -35,8 +35,9 @@ HOST_DB_PORT=5432
 APP_PORT=5000
 HOST_APP_PORT=5000
 DB_NAME=event_database
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=nomic-embed-text
+OLLAMA_EMBEDDING_URL=http://localhost:11434
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+OLLAMA_LLM=llama3.1:latest
 VECTOR_DIM=768
 EMBEDDING_PROVIDER=local [cloud | local]
 

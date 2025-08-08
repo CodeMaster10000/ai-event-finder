@@ -1,0 +1,8 @@
+FROM ollama/ollama
+
+COPY ./run-ollama-embedder.sh /usr/local/bin/run-ollama-embedder.sh
+RUN chmod +x /usr/local/bin/run-ollama.sh
+
+EXPOSE 11434
+
+ENTRYPOINT ["/usr/local/bin/run-ollama-embedder"]

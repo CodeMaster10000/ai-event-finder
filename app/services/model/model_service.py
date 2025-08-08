@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict
 
 from app.repositories.event_repository import EventRepository
+from app.services.embedding_service.embedding_service import EmbeddingService
 
 
 class ModelService(ABC):
@@ -9,10 +10,14 @@ class ModelService(ABC):
     Abstract base class for chat-based event querying.
     """
 
-    def __init__(self, event_repository: EventRepository, sys_prompt: str):
+    def __init__(self,
+                 event_repository: EventRepository,
+                 embedding_service: EmbeddingService,
+                 sys_prompt: str):
         """Initialize with an EventRepository for vector search."""
         self.event_repository = event_repository
-        self.sys_prompt = sys_prompt
+        self.embedding_service = embedding_service
+        self.sys_prompt = "" # TODO: ADD SYSTEM PROMPT
 
     @abstractmethod
     def query_prompt(self, user_prompt: str) -> str:
@@ -29,7 +34,7 @@ class ModelService(ABC):
         """
         #TODO implement this here
 
-    def get_rag_data_and_create_context(self, user_prompt):
+    def get_rag_data_and_create_context(self, user_prompt) -> List[Dict[str, str]]:
         #TODO implement this here
         """
         Retrieves relevant event data using a Retrieval-Augmented Generation (RAG) approach

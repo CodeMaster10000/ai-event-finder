@@ -34,17 +34,29 @@ services:
     volumes:
       - .:/app
 
-  ollama:
+  ollama-embedder:
     build:
       context: .
-      dockerfile: Dockerfile.ollama
+      dockerfile: Dockerfile.ollama-embedder
     ports:
       - "11434:11434"
     volumes:
       - ollama-models:/root/.ollama
     restart: unless-stopped
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
 
-
+  ollama-llm:
+      build:
+        context: .
+        dockerfile: Dockerfile.ollama-llm
+      ports:
+        - "11435:11434"
+      volumes:
+        - ollama-models:/root/.ollama
+      restart: unless-stopped
+      environment:
+        OLLAMA_LLM: ${OLLAMA_LLM}
 
 volumes:
   postgres_data:
