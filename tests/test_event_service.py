@@ -17,6 +17,7 @@ from app.error_handler.exceptions import (
     EventSaveException,
     EventDeleteException,
     UserNotFoundException)
+from app.util.format_event_util import format_event
 
 
 @pytest.fixture
@@ -179,37 +180,150 @@ def test_get_all(event_service, mock_event_repo):
     assert result == events
 
 
-def test_create_event(event_service, mock_event_repo, mock_user_repo):
-    # Arrange
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+# def test_create_event(event_service, mock_event_repo, mock_user_repo):
+#     # Arrange
+#     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+#     mock_user_repo.get_by_email.return_value = organizer
+#     mock_event_repo.get_by_title.return_value = None
+#
+#     payload = {
+#         'title':           'Event 1',
+#         'description':     'Event description',
+#         'datetime':        datetime.now(),
+#         'location':        'Location 1',
+#         'category':        'category',
+#         'organizer_email': organizer.email
+#     }
+#     saved_event = Event(
+#         title=payload['title'],
+#         description=payload['description'],
+#         datetime=payload['datetime'],
+#         location=payload['location'],
+#         category=payload['category'],
+#         organizer_id=organizer.id
+#     )
+#     mock_event_repo.save.return_value = saved_event
+#
+#     # Act
+#     result = event_service.create(payload)
+#
+#     # Assert
+#     assert isinstance(result, Event)
+#     assert result.title == 'Event 1'
+#     assert result.organizer_id == organizer.id
+
+def test_create_formats_event_and_saves_embedding(event_service,
+                                                   mock_event_repo,
+                                                   mock_user_repo,
+                                                   mock_embedding_service):
+    # --- Arrange -----------------------------------
+    payload = {
+        'title': 'Test Event',
+        'description': 'An event for testing',
+        'datetime': datetime(2025, 8, 8, 12, 0),
+        'location': 'Testville',
+        'category': 'Testing',
+        'organizer_email': 'organizer@example.com'
+    }
+
+    # user lookup
+    organizer = User(id=42,
+                     name='Org',
+                     surname='Anizer',
+                     email='organizer@example.com',
+                     password='p@ss')
     mock_user_repo.get_by_email.return_value = organizer
+
+    # no duplicate
     mock_event_repo.get_by_title.return_value = None
 
-    payload = {
-        'title':           'Event 1',
-        'description':     'Event description',
-        'datetime':        datetime.now(),
-        'location':        'Location 1',
-        'category':        'category',
-        'organizer_email': organizer.email
-    }
-    saved_event = Event(
-        title=payload['title'],
-        description=payload['description'],
-        datetime=payload['datetime'],
-        location=payload['location'],
-        category=payload['category'],
-        organizer_id=organizer.id
-    )
-    mock_event_repo.save.return_value = saved_event
+    # embedding service returns a fixed vector
+    expected_vector = [0.11, 0.22, 0.33]
+    mock_embedding_service.create_embedding.return_value = expected_vector
 
-    # Act
+    # stub out save() to return its input Event instance
+    def save_side_effect(ev):
+        return ev
+    mock_event_repo.save.side_effect = save_side_effect
+
+    # --- Act ---------------------------------------
     result = event_service.create(payload)
 
-    # Assert
-    assert isinstance(result, Event)
-    assert result.title == 'Event 1'
-    assert result.organizer_id == organizer.id
+    # --- Assert ------------------------------------
+    # 1) get_by_title & get_by_email called correctly
+    mock_event_repo.get_by_title.assert_called_once_with('Test Event')
+    mock_user_repo.get_by_email.assert_called_once_with('organizer@example.com')
+
+    # 2) format_event was passed exactly the Event instance constructed
+    saved_event_arg = mock_event_repo.save.call_args.args[0]
+    expected_prompt = format_event(saved_event_arg)
+    mock_embedding_service.create_embedding.assert_called_once_with(expected_prompt)
+
+    # 3) the embedding was set on the Event BEFORE saving
+    assert hasattr(saved_event_arg, 'embedding')
+    assert saved_event_arg.embedding == expected_vector
+
+    # 4) save() was called exactly once, and we get back the same object
+    mock_event_repo.save.assert_called_once()
+    assert result is saved_event_arg
+
+def test_update_formats_event_and_saves_embedding(event_service,
+                                                  mock_event_repo,
+                                                  mock_embedding_service):
+    # --- Arrange -----------------------------------
+    # Create a dummy organizer (for format_event’s organizer field)
+    organizer = User(
+        id=2,
+        name='Org',
+        surname='User',
+        email='org@example.com',
+        password='secret'
+    )
+
+    # Build the Event we’re going to update
+    ev = Event(
+        id=1,
+        title='Updated Event',
+        description='Updated description',
+        datetime=datetime(2025,  8,  8, 13, 0),
+        location='New Location',
+        category='UpdatedCategory',
+        organizer_id=organizer.id
+    )
+    # Attach the organizer so format_event will include it
+    ev.organizer = organizer
+
+    # Stub repository to find our “existing” event and no conflicting title
+    mock_event_repo.get_by_id.return_value = ev
+    mock_event_repo.get_by_title.return_value = ev
+
+    # Stub embedding service
+    expected_vector = [0.4, 0.5, 0.6]
+    mock_embedding_service.create_embedding.return_value = expected_vector
+
+    # Make save() echo back the passed-in Event
+    mock_event_repo.save.side_effect = lambda e: e
+
+    # --- Act ---------------------------------------
+    result = event_service.update(ev)
+
+    # --- Assert ------------------------------------
+    # It should have re-queried the DB by id and title
+    mock_event_repo.get_by_id.assert_called_once_with(ev.id)
+    mock_event_repo.get_by_title.assert_called_once_with(ev.title)
+
+    # Compute the prompt the service should have used
+    expected_prompt = format_event(ev)
+    mock_embedding_service.create_embedding.assert_called_once_with(expected_prompt)
+
+    # The Event passed to save() must already have embedding set
+    saved_arg = mock_event_repo.save.call_args.args[0]
+    assert hasattr(saved_arg, 'embedding')
+    assert saved_arg.embedding == expected_vector
+
+    # And update() returns that same object
+    assert result is saved_arg
+
 
 
 def test_create_raises_on_duplicate_title(event_service, mock_event_repo, mock_user_repo):
