@@ -35,7 +35,11 @@ services:
       - .:/app
 
   ollama:
-    image: ollama/ollama
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    environment:
+      - OLLAMA_MODEL=bge-large
     ports:
       - "11434:11434"
     volumes:
