@@ -8,18 +8,19 @@ class CloudEmbeddingService(EmbeddingService):
         Args:
             app (Flask, optional): Flask app instance for config access.
         """
-        # Here you can initialize API keys, endpoints from app config or env variables
+        # Example: Initialize API keys, endpoints, headers from config/env
+        # self.api_key = app.config.get("CLOUD_API_KEY") if app else os.getenv("CLOUD_API_KEY")
         pass
 
-    def create_embedding(self, event_data: dict) -> list[float]:
+    def create_embedding(self, text: str) -> list[float]:
         """
         Placeholder method for creating embeddings in the cloud.
 
         Args:
-            event_data (dict): Event data to embed.
+            text (str): Text prompt to embed.
 
         Returns:
             list[float]: Embedding vector (empty for now).
         """
-        # TODO: Implement cloud embedding logic
+        # TODO: Implement cloud embedding logic (e.g., OpenAI, Azure, Cohere, etc.)
         raise NotImplementedError("Cloud embedding service is not implemented yet.")
