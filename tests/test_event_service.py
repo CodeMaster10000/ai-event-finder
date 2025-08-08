@@ -28,8 +28,12 @@ def mock_user_repo():
     return MagicMock()
 
 @pytest.fixture
-def event_service(mock_event_repo, mock_user_repo):
-    return EventServiceImpl(event_repository=mock_event_repo, user_repository=mock_user_repo)
+def mock_embedding_service():
+    return MagicMock()
+
+@pytest.fixture
+def event_service(mock_event_repo, mock_user_repo, mock_embedding_service):
+    return EventServiceImpl(event_repository=mock_event_repo, user_repository=mock_user_repo, embedding_service=mock_embedding_service)
 
 
 def test_get_by_title_success(event_service, mock_event_repo):
@@ -388,3 +392,46 @@ def test_update_wraps_save_errors(event_service, mock_event_repo):
     with pytest.raises(EventSaveException) as ei:
         event_service.update(event)
     assert isinstance(ei.value.original_exception, ValueError)
+
+def test_create_event_calls_embedding(event_service, mock_event_repo, mock_user_repo, mock_embedding_service):
+    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+    mock_user_repo.get_by_email.return_value = organizer
+    mock_event_repo.get_by_title.return_value = None
+
+    payload = {
+        'title': 'Event 1',
+        'description': 'desc',
+        'datetime': datetime.now(),
+        'location': 'L1',
+        'category': 'cat',
+        'organizer_email': organizer.email
+    }
+    saved = Event(
+        id=None, title=payload['title'], description=payload['description'],
+        datetime=payload['datetime'], location='L1', category='cat',
+        organizer_id=organizer.id
+    )
+    mock_event_repo.save.return_value = saved
+    # define what embedding_service should return
+    mock_embedding_service.create_embedding.return_value = [0.1, 0.2, 0.3]
+
+    result = event_service.create(payload)
+
+    mock_event_repo.save.assert_called_once()
+    mock_embedding_service.create_embedding.assert_called_once_with(saved)
+    assert hasattr(result, 'embedding')
+    assert result.embedding == [0.1, 0.2, 0.3]
+
+def test_update_success_calls_embedding(event_service, mock_event_repo, mock_user_repo, mock_embedding_service):
+    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+    ev = Event(1, 'E', None, datetime.now(), 'd', 1, 'L', 'C')
+    mock_event_repo.get_by_id.return_value = ev
+    mock_event_repo.get_by_title.return_value = ev
+    mock_event_repo.save.return_value = ev
+    mock_embedding_service.create_embedding.return_value = ['v']
+
+    result = event_service.update(ev)
+
+    mock_event_repo.save.assert_called_once_with(ev)
+    mock_embedding_service.create_embedding.assert_called_once_with(ev)
+    assert result.embedding == ['v']
