@@ -5,7 +5,7 @@ from flask import Flask
 from app.extensions import db
 from app.models.event import Event, guest_list
 from app.models.user import User
-from app.util.event_util import (
+from app.constants import (
     TITLE_MAX_LENGTH,
     DESCRIPTION_MAX_LENGTH,
     LOCATION_MAX_LENGTH,

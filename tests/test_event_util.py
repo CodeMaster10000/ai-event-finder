@@ -1,13 +1,15 @@
 import pytest
 from app.util.event_util import (
-    TITLE_MAX_LENGTH,
-    DESCRIPTION_MAX_LENGTH,
-    LOCATION_MAX_LENGTH,
-    CATEGORY_MAX_LENGTH,
     return_not_found_by_id_message,
     return_not_found_by_title_message,
     return_not_found_by_category_message,
     return_not_found_by_location_message,
+)
+from app.constants import (
+    TITLE_MAX_LENGTH,
+    DESCRIPTION_MAX_LENGTH,
+    LOCATION_MAX_LENGTH,
+    CATEGORY_MAX_LENGTH,
 )
 
 def test_length_constants():
