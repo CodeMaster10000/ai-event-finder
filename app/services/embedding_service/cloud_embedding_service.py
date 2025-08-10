@@ -1,26 +1,44 @@
+from typing import List
+from openai import OpenAI
+
 from .embedding_service import EmbeddingService
+from app.configuration.config import Config
+from app.util.format_event_util import format_event
+from app.models.event import Event
 
 class CloudEmbeddingService(EmbeddingService):
-    def __init__(self, app=None):
-        """
-        Placeholder Cloud Embedding Service.
+    """
+    OpenAI embeddings (text-embedding-3-*, dimensions=1024).
+    """
 
-        Args:
-            app (Flask, optional): Flask app instance for config access.
-        """
-        # Example: Initialize API keys, endpoints, headers from config/env
-        # self.api_key = app.config.get("CLOUD_API_KEY") if app else os.getenv("CLOUD_API_KEY")
-        pass
+    def __init__(self) -> None:
+        self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+        self.model = Config.OPENAI_EMBEDDING_MODEL
+        self.dim = Config.UNIFIED_VECTOR_DIM  # 1024
 
-    def create_embedding(self, text: str) -> list[float]:
-        """
-        Placeholder method for creating embeddings in the cloud.
+    def _embed_text(self, text: str) -> List[float]:
+        if not text or not text.strip():
+            raise ValueError("Cannot embed empty text.")
+        try:
+            resp = self.client.embeddings.create(
+                model=self.model,
+                input=text,
+                dimensions=self.dim,  # request 1024-d output
+            )
+        except Exception as e:
+            raise RuntimeError(f"OpenAI embedding request failed: {e}") from e
 
-        Args:
-            text (str): Text prompt to embed.
+        data = getattr(resp, "data", None) or []
+        if not data or not hasattr(data[0], "embedding"):
+            raise RuntimeError("OpenAI returned no embedding data.")
 
-        Returns:
-            list[float]: Embedding vector (empty for now).
-        """
-        # TODO: Implement cloud embedding logic (e.g., OpenAI, Azure, Cohere, etc.)
-        raise NotImplementedError("Cloud embedding service is not implemented yet.")
+        emb = data[0].embedding
+        if len(emb) != self.dim:
+            raise ValueError(f"Expected {self.dim}-dim embedding, got {len(emb)}")
+        return list(emb)
+
+    def create_embedding(self, event_data: Event) -> List[float]:
+        return self._embed_text(format_event(event_data))
+
+    def create_query_embedding(self, query: str) -> List[float]:
+        return self._embed_text(query)

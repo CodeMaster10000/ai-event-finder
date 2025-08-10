@@ -68,7 +68,7 @@ dependencies = [
 
   # ─── extras for RAG & PostgresVector ──────────────────────────────────────
   "ollama==0.4.9",
-  "openai",
+  "openai>=1.0.0,<2.0.0",
   "psycopg2-binary",
   "pgvector",
 
