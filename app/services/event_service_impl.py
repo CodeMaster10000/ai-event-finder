@@ -5,9 +5,10 @@ from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
 from app.services.event_service import EventService
+from app.util.event_util import format_event
 from app.util.validation_util import validate_user, validate_event
 from app.util.transaction_util import transactional, retry_conflicts
-
+from app.extensions import db
 from app.error_handler.exceptions import (
     EventNotFoundException,
     EventSaveException,
@@ -21,73 +22,101 @@ class EventServiceImpl(EventService):
         self.user_repository = user_repository
 
     def get_by_title(self, title: str) -> Event:
-        event = self.event_repository.get_by_title(title)
+        event = self.event_repository.get_by_title(title, session=db.session)
         validate_event(event, f"No event with title '{title}")
         return event
 
     def get_by_location(self, location: str) -> List[Event]:
-        return self.event_repository.get_by_location(location)
+        return self.event_repository.get_by_location(location, session=db.session)
 
     def get_by_category(self, category: str) -> List[Event]:
-        return self.event_repository.get_by_category(category)
+        return self.event_repository.get_by_category(category, session=db.session)
 
     def get_by_organizer(self, email: str) -> List[Event]:
         organizer = self.user_repository.get_by_email(email)
         validate_user(organizer, f"No user found with email {email}")
-        return self.event_repository.get_by_organizer_id(organizer.id)
+        return self.event_repository.get_by_organizer_id(organizer.id,session=db.session)
 
     def get_by_date(self, date: datetime) -> List[Event]:
-        return self.event_repository.get_by_date(date)
+        return self.event_repository.get_by_date(date,session=db.session)
 
     def get_all(self) -> List[Event]:
-        return self.event_repository.get_all()
+        return self.event_repository.get_all(session=db.session)
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
     def delete_by_title(self, title: str, session=None) -> None:
-        event = self.event_repository.get_by_title(title)
+        event = self.event_repository.get_by_title(title, session)
         if not event:
             raise EventNotFoundException(f"Event with title '{title}' not found.")
         try:
-            self.event_repository.delete_by_title(title)
+            self.event_repository.delete_by_title(title, session)
         except Exception as e:
             raise EventDeleteException(original_exception=e)
 
-    @retry_conflicts(max_retries=3, backoff_sec=0.1)
-    @transactional
-    def create(self, data: dict, session = None) -> Event:
+    # TRANSACTIONAL - SPLIT INTO 2 TRANSACTIONS / @transactional helper method
+
+    def create(self, data: dict) -> Event:
         # 1) Ensure no duplicate title
-        if self.event_repository.get_by_title(data['title']):
+        if self.event_repository.get_by_title(data['title'], db.session):
+            # end the read txn and bail
+            if db.session.in_transaction():
+                db.session.rollback()
             raise EventAlreadyExistsException(data['title'])
 
         # 2) Resolve organizer email → User
         email = data.get('organizer_email')
-        organizer = self.user_repository.get_by_email(email)
+        organizer = self.user_repository.get_by_email(email, db.session)
         validate_user(organizer, f"No user found with email {email}")
 
         # 3) Build the Event model, dropping organizer_email
         payload = {k: v for k, v in data.items() if k != 'organizer_email'}
         event = Event(**payload, organizer_id=organizer.id)
 
+        formatted = format_event(event)
+
+        # close read-only txn before external I/O
+        if db.session.in_transaction():
+            db.session.rollback()
+
+        event.embedding = self.embedding_service.create_embedding(formatted)
+
         # 4) Persist it
         try:
-            return self.event_repository.save(event)
+            saved = self._persist(event, recheck_title=True, title_for_recheck=data['title'])
+            return saved
+        except Exception as e:
+            raise EventSaveException(original_exception=e)
+
+    def update(self, event: Event) -> Event:
+        existing_event = self.event_repository.get_by_id(event.id, db.session)
+        conflict = self.event_repository.get_by_title(event.title, db.session)
+        if conflict is not None and existing_event is not None and conflict.id != existing_event.id:
+            raise EventAlreadyExistsException(conflict.title)
+        if not existing_event:
+            raise EventNotFoundException("Event not found in the database.")
+
+        formatted = format_event(event)
+
+        # end the read-only txn before external I/O
+        if db.session.in_transaction():
+            db.session.rollback()
+
+        event.embedding = self.embedding_service.create_embedding(formatted)
+        try:
+            updated = self._persist(event)  # no extra recheck needed here
+            return updated
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
-    def update(self, event: Event, session=None) -> Event:
-        existing_event = self.event_repository.get_by_id(event.id)
-        conflict = self.event_repository.get_by_title(event.title)
+    def _persist(self, event: Event, *, session=None, recheck_title: bool = False,
+                 title_for_recheck: str | None = None) -> Event:
+        # Optional TOCTOU recheck (used by create)
+        if recheck_title and title_for_recheck:
+            if self.event_repository.get_by_title(title_for_recheck, session):
+                raise EventAlreadyExistsException(title_for_recheck)
 
-        if conflict is not None and existing_event is not None and conflict.id != existing_event.id:
-            raise EventAlreadyExistsException(conflict.title)
+        return self.event_repository.save(event, session)
 
-        if not existing_event:
-            raise EventNotFoundException("Event not found in the database.")
-
-        try:
-            return self.event_repository.save(event)
-        except Exception as e:
-            raise EventSaveException(original_exception=e)

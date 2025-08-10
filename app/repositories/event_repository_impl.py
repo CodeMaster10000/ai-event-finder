@@ -21,7 +21,7 @@ class EventRepositoryImpl(EventRepository):
         return session.query(Event).filter_by(organizer_id=organizer_id).all()
 
     def get_by_date(self, date: datetime, session:Session) -> list[type[Event]]:
-        return session.query(Event).filter(func.date(Event.datetime) == date.date()) \
+        return session.query(Event).filter(date.date() == func.date(Event.datetime)) \
             .order_by(Event.datetime.asc()).all()
 
     def get_by_location(self, location: str, session:Session) -> list[type[Event]]:
@@ -34,17 +34,14 @@ class EventRepositoryImpl(EventRepository):
         event = session.get(Event, event_id)
         if event:
             session.delete(event)
-            #session.commit()
 
     def delete_by_title(self, title: str, session:Session) -> None:
         event = session.query(Event).filter_by(title=title).first()
         if event:
             session.delete(event)
-            #session.commit()
 
     def save(self, event: Event, session:Session) -> Event:
         session.add(event)
-        #session.commit()
         return event
 
     def exists_by_id(self, event_id: int, session:Session) -> bool:
@@ -60,4 +57,4 @@ class EventRepositoryImpl(EventRepository):
         return session.query(Event).filter_by(category=category).first() is not None
 
     def exists_by_date(self, date: datetime, session:Session) -> bool:
-        return session.query(Event).filter(func.date(Event.datetime) == date.date()).first() is not None
+        return session.query(Event).filter(date.date() == func.date(Event.datetime)).first() is not None

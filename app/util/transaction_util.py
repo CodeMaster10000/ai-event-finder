@@ -30,6 +30,7 @@ def retry_conflicts(max_retries: int = 3, backoff_sec: float = 0.1):
         return wrapped
     return decorator
 
+
 def transactional(fn):
     """
     Decorator to wrap a function in a database transaction using the request-scoped session.
@@ -38,15 +39,31 @@ def transactional(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
         session = db.session
+        outermost = not session.in_transaction()  # True if no txn yet
+
         try:
-            with session.begin():
+            if outermost:
+                # We are the outer boundary → start/commit/rollback here
+                with session.begin():
+                    return fn(*args, session=session, **kwargs)
+            else:
+                # A transaction already exists → just join it
                 return fn(*args, session=session, **kwargs)
+
         except StaleDataError as e:
-            # version-check failed: optimistic lock conflict
-            session.rollback()
-            raise ConcurrencyException("Resource was updated by another transaction.") from e
+            # Only the outermost boundary should translate/rollback.
+            if outermost:
+                session.rollback()
+                raise ConcurrencyException(
+                    "Resource was updated by another transaction."
+                ) from e
+            # Inner calls just bubble up; outer layer handles it
+            raise
+
         except Exception:
-            # any other error rolls back the transaction
-            session.rollback()
+            # Only the outermost boundary should roll-back here.
+            if outermost:
+                session.rollback()
             raise
     return wrapped
+
