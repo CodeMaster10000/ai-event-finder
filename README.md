@@ -37,8 +37,10 @@ HOST_APP_PORT=5000
 DB_NAME=event_database
 OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=nomic-embed-text
-VECTOR_DIM=768
 EMBEDDING_PROVIDER=local [cloud | local]
+OPENAI_API_KEY=hard-coded-test-key
+OPENAI_EMBEDDING_MODEL=text-embedding-3-large
+UNIFIED_VECTOR_DIM=1024
 
 ## Example for flaskenv. File
 FLASK_APP=run.py

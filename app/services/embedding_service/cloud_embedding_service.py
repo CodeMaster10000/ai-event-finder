@@ -1,44 +1,38 @@
-from typing import List
 from openai import OpenAI
-
 from .embedding_service import EmbeddingService
 from app.configuration.config import Config
-from app.util.format_event_util import format_event
-from app.models.event import Event
+from app.error_handler.exceptions import EmbeddingServiceException
+
 
 class CloudEmbeddingService(EmbeddingService):
     """
-    OpenAI embeddings (text-embedding-3-*, dimensions=1024).
+    OpenAI cloud embedding using text-embedding-3-* with a unified dimension.
+    Accepts plain text and returns a list[float], same shape as LocalEmbeddingService.
     """
 
-    def __init__(self) -> None:
-        self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
-        self.model = Config.OPENAI_EMBEDDING_MODEL
-        self.dim = Config.UNIFIED_VECTOR_DIM  # 1024
+    def create_embedding(self, text: str) -> list[float]:
+        if not isinstance(text, str) or not text.strip():
+            raise EmbeddingServiceException("Input text must be a non-empty string.")
 
-    def _embed_text(self, text: str) -> List[float]:
-        if not text or not text.strip():
-            raise ValueError("Cannot embed empty text.")
+        client = OpenAI(api_key=Config.OPENAI_API_KEY)
         try:
-            resp = self.client.embeddings.create(
-                model=self.model,
+            resp = client.embeddings.create(
+                model=Config.OPENAI_EMBEDDING_MODEL,
                 input=text,
-                dimensions=self.dim,  # request 1024-d output
+                dimensions=Config.UNIFIED_VECTOR_DIM,
             )
         except Exception as e:
-            raise RuntimeError(f"OpenAI embedding request failed: {e}") from e
+            raise EmbeddingServiceException("OpenAI embedding request failed.", original_exception=e)
 
-        data = getattr(resp, "data", None) or []
-        if not data or not hasattr(data[0], "embedding"):
-            raise RuntimeError("OpenAI returned no embedding data.")
+        try:
+            emb = resp.data[0].embedding
+        except Exception as e:
+            raise EmbeddingServiceException("OpenAI returned an unexpected embedding payload.", original_exception=e)
 
-        emb = data[0].embedding
-        if len(emb) != self.dim:
-            raise ValueError(f"Expected {self.dim}-dim embedding, got {len(emb)}")
+        # (optional but safe) enforce expected size
+        if len(emb) != Config.UNIFIED_VECTOR_DIM:
+            raise EmbeddingServiceException(
+                f"Expected {Config.UNIFIED_VECTOR_DIM}-dim embedding, got {len(emb)}"
+            )
+
         return list(emb)
-
-    def create_embedding(self, event_data: Event) -> List[float]:
-        return self._embed_text(format_event(event_data))
-
-    def create_query_embedding(self, query: str) -> List[float]:
-        return self._embed_text(query)

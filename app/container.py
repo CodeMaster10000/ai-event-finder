@@ -1,7 +1,10 @@
+import os
 from dependency_injector import containers, providers
+from app.error_handler.exceptions import InvalidEmbeddingProviderException
 from app.extensions import db
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
+from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
 from app.services.event_service_impl import EventServiceImpl
 from app.services.user_service_impl import UserServiceImpl
 from app.services.app_service_impl import AppServiceImpl
@@ -15,8 +18,14 @@ class Container(containers.DeclarativeContainer):
     user_repository  = providers.Singleton(UserRepositoryImpl,  session=db_session)
     event_repository = providers.Singleton(EventRepositoryImpl, session=db_session)
 
-    # OpenAI embedder (1024-d)
-    cloud_embedding_service = providers.Singleton(CloudEmbeddingService)
+    _embedding_provider = os.getenv("EMBEDDING_PROVIDER", "local").lower()
+    if _embedding_provider not in ("local", "cloud"):
+        raise InvalidEmbeddingProviderException(_embedding_provider)
+
+    if _embedding_provider == "cloud":
+        embedding_service = providers.Singleton(CloudEmbeddingService)
+    else:
+        embedding_service = providers.Singleton(LocalEmbeddingService)
 
     user_service = providers.Singleton(UserServiceImpl, user_repository=user_repository)
 
@@ -25,7 +34,7 @@ class Container(containers.DeclarativeContainer):
         EventServiceImpl,
         event_repository=event_repository,
         user_repository=user_repository,
-        embedding_service=cloud_embedding_service,
+        embedding_service=embedding_service,
     )
 
     # Required by app.routes.app_route (guest list ops)

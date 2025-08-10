@@ -64,13 +64,3 @@ class EventRepositoryImpl(EventRepository):
 
     def exists_by_date(self, date: datetime) -> bool:
         return self.session.query(Event).filter(func.date(Event.datetime) == date.date()).first() is not None
-
-    def search_by_embedding(self, vector: List[float], top_k: int) -> List[Event]:
-        top_k = max(1, int(top_k))
-        return (
-            self.session.query(Event)
-            .filter(Event.openai_embedding != None)  # exclude NULL vectors
-            .order_by(Event.openai_embedding.cosine_distance(vector))
-            .limit(top_k)
-            .all()
-        )
