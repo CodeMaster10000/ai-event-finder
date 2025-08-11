@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-MODEL="${OLLAMA_MODEL:-bge-large}"
+MODEL="${OLLAMA_EMBEDDING_MODEL}"
 
 echo "Starting Ollama server..."
 ollama serve &

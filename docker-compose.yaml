@@ -39,7 +39,7 @@ services:
       context: .
       dockerfile: Dockerfile.ollama
     environment:
-      - OLLAMA_MODEL=bge-large
+      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL}
     ports:
       - "11434:11434"
     volumes:
