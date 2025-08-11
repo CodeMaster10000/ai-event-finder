@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-MODEL="${OLLAMA_EMBEDDING_MODEL}"
+EMBEDDING_MODEL="${EMBEDDING_MODEL_NAME}"
+LLM_MODEL="${LLM_MODEL_NAME}"
+
+if [ -z "$EMBEDDING_MODEL" ]; then
+  echo "EMBEDDING_MODEL_NAME not set"
+  exit 1
+fi
+
+
+if [ -z "$LLM_MODEL" ]; then
+  echo "LLM_MODEL_NAME not set"
+  exit 1
+fi
 
 echo "Starting Ollama server..."
 ollama serve &
@@ -13,8 +25,12 @@ until ollama list > /dev/null 2>&1; do
 done
 
 echo "Ollama server is up."
-echo "Pulling model: $MODEL"
-ollama pull "$MODEL"
+echo "Pulling embedding model: $EMBEDDING_MODEL"
+ollama pull "$EMBEDDING_MODEL"
+
+echo "Pulling Large Language model: $LLM_MODEL"
+ollama pull "$LLM_MODEL"
+
 
 # Keep container running
 wait

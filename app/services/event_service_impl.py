@@ -1,11 +1,12 @@
 from typing import List
 from datetime import datetime
-
 from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
 from app.services.event_service import EventService
 from app.util.validation_util import validate_user, validate_event
+from app.services.embedding_service.embedding_service import EmbeddingService
+from app.util.format_event_util import format_event
 
 from app.error_handler.exceptions import (
     EventNotFoundException,
@@ -15,7 +16,8 @@ from app.error_handler.exceptions import (
 )
 
 class EventServiceImpl(EventService):
-    def __init__(self, event_repository: EventRepository, user_repository: UserRepository):
+    def __init__(self, event_repository: EventRepository, user_repository: UserRepository, embedding_service: EmbeddingService):
+        self.embedding_service = embedding_service
         self.event_repository = event_repository
         self.user_repository = user_repository
 
@@ -64,9 +66,13 @@ class EventServiceImpl(EventService):
         payload = {k: v for k, v in data.items() if k != 'organizer_email'}
         event = Event(**payload, organizer_id=organizer.id)
 
+        formatted = format_event(event)
+        event.embedding = self.embedding_service.create_embedding(formatted)
+
         # 4) Persist it
         try:
-            return self.event_repository.save(event)
+            saved = (self.event_repository.save(event))
+            return saved
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
@@ -80,7 +86,11 @@ class EventServiceImpl(EventService):
         if not existing_event:
             raise EventNotFoundException("Event not found in the database.")
 
+        formatted = format_event(event)
+        event.embedding = self.embedding_service.create_embedding(formatted)
+
         try:
-            return self.event_repository.save(event)
+            updated = self.event_repository.save(event)
+            return updated
         except Exception as e:
             raise EventSaveException(original_exception=e)

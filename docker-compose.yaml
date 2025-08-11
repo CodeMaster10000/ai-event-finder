@@ -39,9 +39,10 @@ services:
       context: .
       dockerfile: Dockerfile.ollama
     environment:
-      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL}
+      - EMBEDDING_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL}
+      - LLM_MODEL_NAME=${OLLAMA_LLM_MODEL}
     ports:
-      - "11434:11434"
+      - "${HOST_OLLAMA_PORT}:${OLLAMA_PORT}"
     volumes:
       - ollama-models:/root/.ollama
     restart: unless-stopped
