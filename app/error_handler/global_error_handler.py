@@ -4,6 +4,8 @@ import traceback
 from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
 
+from app.error_handler.exceptions import EmbeddingServiceException
+
 
 def register_error_handlers(app):
     """
@@ -65,6 +67,20 @@ def register_error_handlers(app):
     @app.errorhandler(UserAlreadyInEventException)
     def handle_user_already_in_event(exception):
         return jsonify({"error": {"code": "USER_ALREADY_IN_EVENT", "message": str(exception)}}), 409
+
+    @app.errorhandler(EmbeddingServiceException)
+    def handle_embedding_service_error(exception: EmbeddingServiceException):
+        # log provider/root cause if present (shows full stack in server logs)
+        if getattr(exception, "original_exception", None):
+            logger.exception("Embedding service error", exc_info=exception.original_exception)
+
+        return jsonify({
+            "error": {
+                "code": "EMBEDDING_SERVICE_ERROR",
+                "message": str(exception),
+            }
+        }), getattr(exception, "status_code", 500)
+
 
     # -------------------------
     # GLOBAL FALLBACK - DETAILED DEBUGGING

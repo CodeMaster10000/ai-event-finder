@@ -1,10 +1,8 @@
 from flask_restx import Namespace, Resource, fields
-from flask import request, abort
+from flask import request
 from dependency_injector.wiring import inject, Provide
-from marshmallow import ValidationError
 
 from app.container import Container
-from app.error_handler.payload_validation_exception_handler import InvalidUserData
 from app.services.user_service import UserService
 from app.schemas.user_schema import CreateUserSchema, UserSchema
 from app.models.user import User
@@ -43,11 +41,7 @@ class UserBaseResource(Resource):
              user_service: UserService = Provide[Container.user_service]):
         """Create or update a user"""
         json_data = request.get_json()
-        try:
-            data = create_user_schema.load(json_data)
-        except ValidationError as err:
-            # err.messages is a dict of field -> list of errors
-            raise InvalidUserData(err.messages)
+        data = create_user_schema.load(json_data)
 
         user = User(**data)
         saved_user = user_service.save(user)

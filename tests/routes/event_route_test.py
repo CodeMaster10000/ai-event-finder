@@ -5,7 +5,6 @@ from flask_restx import Api
 from dependency_injector import providers
 from marshmallow import ValidationError
 
-from app.error_handler.exceptions import UserNotFoundException
 from app.routes.event_route import event_ns
 from app.container import Container
 from app.util.test_jwt_token_util import generate_test_token
