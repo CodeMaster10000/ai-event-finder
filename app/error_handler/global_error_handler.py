@@ -11,14 +11,6 @@ def register_error_handlers(app):
     """
     
     logger = logging.getLogger(__name__)
-    
-    # -------------------------
-    # JWT ERROR HANDLERS (these work with Flask-JWT-Extended)
-    # -------------------------
-
-    # -------------------------
-    # FLASK APP ERROR HANDLERS
-    # -------------------------
 
     # Custom exception handlers (your existing ones)
     from app.error_handler.exceptions import (

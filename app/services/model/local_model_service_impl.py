@@ -16,10 +16,9 @@ class LocalModelService(ModelService):
     def __init__(
         self,
         event_repository: EventRepository,
-        sys_prompt: str,
         embedding_service: EmbeddingService
     ):
-        super().__init__(event_repository, sys_prompt, embedding_service)
+        super().__init__(event_repository, embedding_service)
 
     def query_prompt(self, user_prompt: str) -> str:
         """
@@ -34,6 +33,7 @@ class LocalModelService(ModelService):
         messages = self.build_messages(self.sys_prompt, rag_context, user_prompt)
 
         client = Client(host=Config.OLLAMA_URL)
+
         resp = client.chat(
             model=Config.OLLAMA_LLM,
             messages=messages,
@@ -55,8 +55,7 @@ class LocalModelService(ModelService):
         - user:   the original user prompt
         """
         msgs = [
-                {"role": "system", "content": sys_prompt},
-                {"role": "system", "content": f"{context}"},
+                {"role": "system", "content": f"{sys_prompt}\n\n{context}"},
                 {"role": "user", "content": user_prompt}
         ]
         return msgs

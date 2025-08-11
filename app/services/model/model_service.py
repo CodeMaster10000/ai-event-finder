@@ -12,8 +12,7 @@ class ModelService(ABC):
 
     def __init__(self,
                  event_repository: EventRepository,
-                 embedding_service: EmbeddingService,
-                 sys_prompt: str):
+                 embedding_service: EmbeddingService):
         """Initialize with an EventRepository for vector search."""
         self.event_repository = event_repository
         self.embedding_service = embedding_service
