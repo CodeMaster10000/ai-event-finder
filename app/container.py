@@ -20,9 +20,9 @@ class Container(containers.DeclarativeContainer):
     user_repository  = providers.Singleton(UserRepositoryImpl,  session=db_session)
     event_repository = providers.Singleton(EventRepositoryImpl, session=db_session)
 
-    _embedding_provider = os.getenv("EMBEDDING_PROVIDER", "local").lower()
+    provider = os.getenv("PROVIDER", "local").lower()
 
-    if _embedding_provider == "cloud":
+    if provider == "cloud":
         embedding_service = providers.Singleton(CloudEmbeddingService)
         openai_client = providers.Singleton(OpenAI, api_key=Config.OPENAI_API_KEY)
     else:

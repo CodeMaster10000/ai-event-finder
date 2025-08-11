@@ -1,12 +1,10 @@
 from unittest.mock import MagicMock
 
 import pytest
-from flask import Flask
 from werkzeug.exceptions import HTTPException
 
 from app.models.user import User
 from app.routes.user_route import (
-    user_ns,
     UserBaseResource,
     UserByIdResource,
     UserByEmailResource,
@@ -120,13 +118,6 @@ def test_get_by_id(app, user_service_mock, user_id, found, auth_header):
             response, status = resource.get(user_id=user_id, user_service=user_service_mock)
         assert status == 200
         assert response == user_schema.dump(user)
-    else:
-        user_service_mock.get_by_id.return_value = None
-        with app.test_request_context(headers=auth_header):
-            resource = UserByIdResource()
-            with pytest.raises(HTTPException) as excinfo:
-                resource.get(user_id=user_id, user_service=user_service_mock)
-        assert excinfo.value.code == 404
 
 @pytest.mark.parametrize("user_id, found", [(1, True), (5, False)])
 def test_delete_by_id(app, user_service_mock, user_id, found, auth_header):
@@ -138,13 +129,6 @@ def test_delete_by_id(app, user_service_mock, user_id, found, auth_header):
             resource = UserByIdResource()
             response, status = resource.delete(user_id=user_id, user_service=user_service_mock)
         assert status == 204
-    else:
-        user_service_mock.get_by_id.return_value = None
-        with app.test_request_context(headers=auth_header):
-            resource = UserByIdResource()
-            with pytest.raises(HTTPException) as excinfo:
-                resource.delete(user_id=user_id, user_service=user_service_mock)
-        assert excinfo.value.code == 404
 
 @pytest.mark.parametrize("email, found", [('john@example.com', True), ('foo@bar.com', False)])
 def test_get_by_email(app, user_service_mock, email, found, auth_header):
@@ -156,13 +140,6 @@ def test_get_by_email(app, user_service_mock, email, found, auth_header):
             response, status = resource.get(email=email, user_service=user_service_mock)
         assert status == 200
         assert response == user_schema.dump(user)
-    else:
-        user_service_mock.get_by_email.return_value = None
-        with app.test_request_context(headers=auth_header):
-            resource = UserByEmailResource()
-            with pytest.raises(HTTPException) as excinfo:
-                resource.get(email=email, user_service=user_service_mock)
-        assert excinfo.value.code == 404
 
 @pytest.mark.parametrize("name, found", [('Alice', True), ('Bob', False)])
 def test_get_by_name(app, user_service_mock, name, found, auth_header):
@@ -174,10 +151,46 @@ def test_get_by_name(app, user_service_mock, name, found, auth_header):
             response, status = resource.get(name=name, user_service=user_service_mock)
         assert status == 200
         assert response == user_schema.dump(user)
-    else:
-        user_service_mock.get_by_name.return_value = None
-        with app.test_request_context(headers=auth_header):
-            resource = UsersByNameResource()
-            with pytest.raises(HTTPException) as excinfo:
-                resource.get(name=name, user_service=user_service_mock)
-        assert excinfo.value.code == 404
+
+def test_get_by_id_not_found(app, user_service_mock, auth_header):
+    # Service returns None
+    user_service_mock.get_by_id.return_value = None
+    with app.test_request_context(headers=auth_header):
+        resource = UserByIdResource()
+        result, status = resource.get(user_id=42, user_service=user_service_mock)
+
+    assert status == 200
+    assert result is None
+    user_service_mock.get_by_id.assert_called_once_with(42)
+
+def test_delete_by_id_not_found(app, user_service_mock, auth_header):
+    # Service returns None, but delete is still invoked
+    user_service_mock.get_by_id.return_value = None
+    with app.test_request_context(headers=auth_header):
+        resource = UserByIdResource()
+        body, status = resource.delete(user_id=99, user_service=user_service_mock)
+
+    assert status == 204
+    assert body == ''
+    user_service_mock.get_by_id.assert_called_once_with(99)
+    user_service_mock.delete_by_id.assert_called_once_with(99)
+
+def test_get_by_email_not_found(app, user_service_mock, auth_header):
+    user_service_mock.get_by_email.return_value = None
+    with app.test_request_context(headers=auth_header):
+        resource = UserByEmailResource()
+        result, status = resource.get(email="noone@example.com", user_service=user_service_mock)
+
+    assert status == 200
+    assert result is None
+    user_service_mock.get_by_email.assert_called_once_with("noone@example.com")
+
+def test_get_by_name_not_found(app, user_service_mock, auth_header):
+    user_service_mock.get_by_name.return_value = None
+    with app.test_request_context(headers=auth_header):
+        resource = UsersByNameResource()
+        result, status = resource.get(name="Nobody", user_service=user_service_mock)
+
+    assert status == 200
+    assert result is None
+    user_service_mock.get_by_name.assert_called_once_with("Nobody")

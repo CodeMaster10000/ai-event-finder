@@ -5,9 +5,6 @@ from dependency_injector.wiring import inject, Provide
 from app.container import Container
 from app.services.event_service import EventService
 from app.schemas.event_schema import CreateEventSchema, EventSchema
-from marshmallow import ValidationError
-from app.models.event import Event
-from app.services.user_service import UserService
 from app.util.logging_util import log_calls
 from datetime import datetime
 from flask_jwt_extended import jwt_required

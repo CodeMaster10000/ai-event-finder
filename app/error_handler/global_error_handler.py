@@ -6,6 +6,8 @@ from werkzeug.exceptions import HTTPException
 
 from app.error_handler.exceptions import EmbeddingServiceException
 
+from app.error_handler.exceptions import InvalidUserData
+
 
 def register_error_handlers(app):
     """
@@ -75,6 +77,12 @@ def register_error_handlers(app):
     @app.errorhandler(UserAlreadyInEventException)
     def handle_user_already_in_event(exception):
         return jsonify({"error": {"code": "USER_ALREADY_IN_EVENT", "message": str(exception)}}), 409
+
+    @app.error_handler(InvalidUserData)
+    def handle_invalid_user_data(exception):
+        return jsonify({"error": {"code": "INVALID_USER_DATA", "message": str(exception)}}), 400
+
+
 
     @app.errorhandler(EmbeddingServiceException)
     def handle_embedding_error(exception):
