@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict
 
 from app.repositories.event_repository import EventRepository
+from app.services.embedding_service.embedding_service import EmbeddingService
 
 
 class ModelService(ABC):
@@ -9,10 +10,38 @@ class ModelService(ABC):
     Abstract base class for chat-based event querying.
     """
 
-    def __init__(self, event_repository: EventRepository, sys_prompt: str):
+    DEFAULT_SYS_PROMPT = (
+        "You are an Event Assistant for a RAG-backed event finder.\n\n"
+        "You will receive:\n"
+        "- Context: a bullet list of events from the database (only use this information).\n"
+        "- User: a single question about events.\n\n"
+        "Your job:\n"
+        "1) Answer ONLY using the Context — never invent events, details, venues, or times.\n"
+        "2) Prefer upcoming events; if none, say so.\n"
+        "3) Show up to k top suggestions with: title, date, location, category, and a short reason.\n"
+        "4) Be concise, friendly, and deterministic. Avoid markdown tables.\n\n"
+        "Formatting:\n"
+        "- Start with a short summary.\n"
+        "- Then list each event in this format:\n"
+        "  1. <Title of the event>:\n"
+        "     - Date & Time: <DD Mon YYYY, HH:MM>\n"
+        "     - Location: <Location>\n"
+        "     - Category: <Event Category>\n"
+        "     - Organizer: <Name Surname, Email>\n"
+        "     - Short Reason: <Why it matches the user query>\n\n"
+        "Safety:\n"
+        "- Disambiguate same-title events by date/location.\n"
+        "- Never mention internal implementation details."
+    )
+
+    def __init__(self,
+                 event_repository: EventRepository,
+                 embedding_service: EmbeddingService,
+                 sys_prompt: str | None = None):
         """Initialize with an EventRepository for vector search."""
         self.event_repository = event_repository
-        self.sys_prompt = sys_prompt
+        self.embedding_service = embedding_service
+        self.sys_prompt = sys_prompt or self.DEFAULT_SYS_PROMPT
 
     @abstractmethod
     def query_prompt(self, user_prompt: str) -> str:
@@ -29,7 +58,7 @@ class ModelService(ABC):
         """
         #TODO implement this here
 
-    def get_rag_data_and_create_context(self, user_prompt):
+    def get_rag_data_and_create_context(self, user_prompt) -> List[Dict[str, str]]:
         #TODO implement this here
         """
         Retrieves relevant event data using a Retrieval-Augmented Generation (RAG) approach
