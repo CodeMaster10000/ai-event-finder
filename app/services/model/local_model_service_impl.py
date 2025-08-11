@@ -18,9 +18,10 @@ class LocalModelService(ModelService):
         self,
         event_repository: EventRepository,
         embedding_service: EmbeddingService,
-        client: Client # DI-provided ollama client
+        client: Client, # DI-provided Ollama LLM client
+        sys_prompt: str | None = None,
     ):
-        super().__init__(event_repository, embedding_service)
+        super().__init__(event_repository, embedding_service, sys_prompt=sys_prompt)
         self.client = client
 
     def query_prompt(self, user_prompt: str) -> str:

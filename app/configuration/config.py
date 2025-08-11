@@ -13,7 +13,7 @@ class Config:
 
     RAG_TOP_K = 5
 
-    LLM_OPTIONS = {
+    OLLAMA_LLM_OPTIONS = {
         "temperature": 0.3, # how random next token is
         "top_p": 0.9, #
         "top_k": 30,

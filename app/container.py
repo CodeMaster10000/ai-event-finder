@@ -1,6 +1,7 @@
 import os
 from dependency_injector import containers, providers
 from openai import OpenAI
+from ollama import Client as OllamaClient
 
 from app.configuration.config import Config
 from app.extensions import db
@@ -11,6 +12,7 @@ from app.services.event_service_impl import EventServiceImpl
 from app.services.user_service_impl import UserServiceImpl
 from app.services.app_service_impl import AppServiceImpl
 from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
+from app.services.model.local_model_service_impl import LocalModelService
 
 class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(packages=["app.routes", "app.services"])
@@ -29,7 +31,19 @@ class Container(containers.DeclarativeContainer):
             client=openai_client,
         )
     else:
+        ollama_client = providers.Singleton(
+            OllamaClient,
+            host=Config.OLLAMA_URL,
+        )
+
         embedding_service = providers.Singleton(LocalEmbeddingService)
+
+        model_service = providers.Singleton(
+            LocalModelService,
+            event_repository=event_repository,
+            embedding_service=embedding_service,
+            client=ollama_client,
+        )
 
     user_service = providers.Singleton(UserServiceImpl, user_repository=user_repository)
 
