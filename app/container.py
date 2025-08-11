@@ -23,8 +23,11 @@ class Container(containers.DeclarativeContainer):
     provider = os.getenv("PROVIDER", "local").lower()
 
     if provider == "cloud":
-        embedding_service = providers.Singleton(CloudEmbeddingService)
         openai_client = providers.Singleton(OpenAI, api_key=Config.OPENAI_API_KEY)
+        embedding_service = providers.Singleton(
+            CloudEmbeddingService,
+            client=openai_client,
+        )
     else:
         embedding_service = providers.Singleton(LocalEmbeddingService)
 
