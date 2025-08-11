@@ -13,12 +13,15 @@ class LocalModelService(ModelService):
     Implementation of the ModelService using a local Ollama embedder + chat LLM,
     plus PGVector-based retrieval of relevant events.
     """
+
     def __init__(
         self,
         event_repository: EventRepository,
-        embedding_service: EmbeddingService
+        embedding_service: EmbeddingService,
+        client: Client # DI-provided ollama client
     ):
         super().__init__(event_repository, embedding_service)
+        self.client = client
 
     def query_prompt(self, user_prompt: str) -> str:
         """
@@ -32,12 +35,10 @@ class LocalModelService(ModelService):
         # 2) assemble messages
         messages = self.build_messages(self.sys_prompt, rag_context, user_prompt)
 
-        client = Client(host=Config.OLLAMA_URL)
-
-        resp = client.chat(
+        resp = self.client.chat(
             model=Config.OLLAMA_LLM,
             messages=messages,
-            options=Config.LLM_OPTIONS
+            options=Config.OLLAMA_LLM_OPTIONS
         )
         # Ollama python client returns: {"message": {"content": "..."}}
         return resp["message"]["content"].strip()
