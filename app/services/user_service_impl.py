@@ -20,24 +20,24 @@ class UserServiceImpl(UserService):
         self.user_repository = user_repository
 
     def get_by_id(self, user_id: int) -> User:
-        user = self.user_repository.get_by_id(user_id, session=db.session)
+        user = self.user_repository.get_by_id(user_id, db.session)
         validate_user(user, return_not_found_by_id_message(user_id))
         return user
 
     def get_by_email(self, email: str) -> User:
-        user = self.user_repository.get_by_email(email, session=db.session)
+        user = self.user_repository.get_by_email(email, db.session)
 
         validate_user(user, return_not_found_by_email_message(email))
         return user
 
 
     def get_by_name(self, name: str) -> User:
-        user = self.user_repository.get_by_name(name, session=db.session)
+        user = self.user_repository.get_by_name(name, db.session)
         validate_user(user, return_not_found_by_name_message(name))
         return user
 
     def get_all(self) -> List[User]:
-        return self.user_repository.get_all(session=db.session)
+        return self.user_repository.get_all(db.session)
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
@@ -76,11 +76,11 @@ class UserServiceImpl(UserService):
             raise UserDeleteException(user_id=user_id, original_exception=e)
 
     def exists_by_id(self, user_id: int) -> bool:
-        user = self.user_repository.get_by_id(user_id, session=db.session)
+        user = self.user_repository.get_by_id(user_id, db.session)
         validate_user(user, return_not_found_by_id_message(user_id))
         return True
 
     def exists_by_name(self, name: str) -> bool:
-        user = self.user_repository.get_by_name(name, session=db.session)
+        user = self.user_repository.get_by_name(name, db.session)
         validate_user(user, return_not_found_by_name_message(name))
         return True

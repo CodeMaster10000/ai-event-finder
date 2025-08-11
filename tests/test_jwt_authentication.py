@@ -10,7 +10,6 @@ from app.models.event import Event
 from app.extensions import db
 
 
-# fixtures
 @pytest.fixture
 def test_user():
     return User(id=1, name="Test", surname="User", email="test@example.com", password="testpass")
@@ -48,7 +47,10 @@ def app(mock_event_service):
     # app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost/ai_event_test"
 
     with app.app_context():
+        db.create_all()
         yield app
+        db.session.remove()
+        db.drop_all()
 
 
 @pytest.fixture

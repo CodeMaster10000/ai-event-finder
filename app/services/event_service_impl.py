@@ -5,7 +5,7 @@ from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
 from app.services.event_service import EventService
-from app.util.event_util import format_event
+from app.util.format_event_util import format_event
 from app.util.validation_util import validate_user, validate_event
 from app.util.transaction_util import transactional, retry_conflicts
 from app.extensions import db
@@ -22,26 +22,26 @@ class EventServiceImpl(EventService):
         self.user_repository = user_repository
 
     def get_by_title(self, title: str) -> Event:
-        event = self.event_repository.get_by_title(title, session=db.session)
+        event = self.event_repository.get_by_title(title, db.session)
         validate_event(event, f"No event with title '{title}")
         return event
 
     def get_by_location(self, location: str) -> List[Event]:
-        return self.event_repository.get_by_location(location, session=db.session)
+        return self.event_repository.get_by_location(location, db.session)
 
     def get_by_category(self, category: str) -> List[Event]:
-        return self.event_repository.get_by_category(category, session=db.session)
+        return self.event_repository.get_by_category(category, db.session)
 
     def get_by_organizer(self, email: str) -> List[Event]:
-        organizer = self.user_repository.get_by_email(email, session=db.session)
+        organizer = self.user_repository.get_by_email(email, db.session)
         validate_user(organizer, f"No user found with email {email}")
-        return self.event_repository.get_by_organizer_id(organizer.id,session=db.session)
+        return self.event_repository.get_by_organizer_id(organizer.id,db.session)
 
     def get_by_date(self, date: datetime) -> List[Event]:
-        return self.event_repository.get_by_date(date,session=db.session)
+        return self.event_repository.get_by_date(date,db.session)
 
     def get_all(self) -> List[Event]:
-        return self.event_repository.get_all(session=db.session)
+        return self.event_repository.get_all(db.session)
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional

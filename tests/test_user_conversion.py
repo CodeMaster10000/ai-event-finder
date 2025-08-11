@@ -45,7 +45,7 @@ def test_dto_to_entity_to_dto_roundtrip(raw_payload):
     #   - Password never shows up in the dumped output
     assert "password" not in dumped
     #   - The fields you expect are present
-    assert set(dumped.keys()) == {"id", "name", "surname", "email"}
+    assert set(dumped.keys()) == {"name", "surname", "email"}
 
 def test_invalid_password_rejected():
     bad = {

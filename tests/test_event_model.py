@@ -81,7 +81,7 @@ def test_repr_without_db():
     """
     dt = datetime(2025, 8, 1, 12, 0)
     e = Event(id=123, title="Sample", datetime=dt, description=None, organizer_id=1, location="X", category="Y")
-    assert repr(e) == f"<Event 123 – Sample @ {dt}>"
+    assert repr(e) == f"<Event 123 – Sample @ {dt.isoformat()}>"
 
 
 def test_persistence_and_relationships(session):
@@ -100,7 +100,7 @@ def test_persistence_and_relationships(session):
     session.commit()
 
     # __repr__ with real id
-    assert repr(ev) == f"<Event {ev.id} – Party @ {dt}>"
+    assert repr(ev) == f"<Event {ev.id} – Party @ {dt.isoformat()}>"
 
     # Add guest
     guest = User(name="Guest", surname="User", email="guest@example.com", password="pw")

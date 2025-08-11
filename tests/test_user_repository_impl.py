@@ -11,7 +11,7 @@ from tests.util.test_util import test_cfg
 # App fixture
 @pytest.fixture
 def app():
-    app = create_app(test_cfg)  # make sure "testing" uses a test DB
+    app = create_app(test_cfg)  # test DB
     with app.app_context():
         _db.drop_all()
         _db.create_all()
@@ -19,7 +19,8 @@ def app():
         _db.session.remove()
         _db.drop_all()
 
-# DB session fixture
+
+# DB session fixture (scoped_session)
 @pytest.fixture
 def db_session(app):
     connection = _db.engine.connect()
@@ -28,19 +29,22 @@ def db_session(app):
     session_factory = sessionmaker(bind=connection)
     session = scoped_session(session_factory)
 
-    yield session
+    yield session  # use either session() or session directly (both work with scoped_session)
 
     session.remove()
     transaction.rollback()
     connection.close()
 
+
 # User repository fixture
 @pytest.fixture
-def user_repo(db_session):
-    return UserRepositoryImpl(db_session())
+def user_repo():
+    return UserRepositoryImpl()
 
-# Testing the save method
-def test_save_user(user_repo):
+
+# ---------- Tests ----------
+
+def test_save_user(user_repo, db_session):
     user = User(
         name="Alice",
         surname="Smith",
@@ -48,16 +52,17 @@ def test_save_user(user_repo):
         password="hashed-password"
     )
 
-    saved_user = user_repo.save(user)
-    user_repo.session.commit()
+    saved_user = user_repo.save(user, db_session())
+    db_session.commit()
 
     assert saved_user.id is not None  # ID should be auto-generated
-    fetched_user = user_repo.get_by_id(saved_user.id)
+    fetched_user = user_repo.get_by_id(saved_user.id, db_session())
     assert fetched_user is not None
     assert fetched_user.name == "Alice"
     assert fetched_user.email == "alice@example.com"
 
-def test_delete_user_by_id(user_repo):
+
+def test_delete_user_by_id(user_repo, db_session):
     user = User(
         name="Alice",
         surname="Smith",
@@ -65,17 +70,17 @@ def test_delete_user_by_id(user_repo):
         password="hashed-password"
     )
 
-    saved_user = user_repo.save(user)
-    user_repo.session.commit()
-
+    saved_user = user_repo.save(user, db_session())
+    db_session.commit()
     assert saved_user.id is not None
 
-    user_repo.delete_by_id(saved_user.id)
-    user_repo.session.commit()
+    user_repo.delete_by_id(saved_user.id, db_session())
+    db_session.commit()
 
-    assert user_repo.get_by_id(saved_user.id) is None
+    assert user_repo.get_by_id(saved_user.id, db_session()) is None
 
-def test_exists_by_id(user_repo):
+
+def test_exists_by_id(user_repo, db_session):
     user = User(
         name="Alice",
         surname="Smith",
@@ -83,14 +88,15 @@ def test_exists_by_id(user_repo):
         password="hashed-password"
     )
 
-    saved_user = user_repo.save(user)
-    user_repo.session.commit()
+    saved_user = user_repo.save(user, db_session())
+    db_session.commit()
 
-    assert saved_user.id is not None  # ID should be auto-generated
-    fetched_user = user_repo.exists_by_id(saved_user.id)
-    assert fetched_user is True
+    assert saved_user.id is not None
+    assert user_repo.exists_by_id(saved_user.id, db_session()) is True
+    assert user_repo.exists_by_id(999999, db_session()) is False
 
-def test_get_all_users(user_repo):
+
+def test_get_all_users(user_repo, db_session):
     user1 = User(
         name="Alice",
         surname="Smith",
@@ -105,18 +111,18 @@ def test_get_all_users(user_repo):
         password="hashed-password123"
     )
 
-    saved_user1 = user_repo.save(user1)
-    saved_user2 = user_repo.save(user2)
-    user_repo.session.commit()
+    saved_user1 = user_repo.save(user1, db_session())
+    saved_user2 = user_repo.save(user2, db_session())
+    db_session.commit()
 
-    fetched_users = user_repo.get_all()
+    fetched_users = user_repo.get_all(db_session())
 
     saved_ids = {saved_user1.id, saved_user2.id}
-    fetched_ids = {user.id for user in fetched_users}
-
+    fetched_ids = {u.id for u in fetched_users}
     assert saved_ids.issubset(fetched_ids)
 
-def test_exists_by_name(user_repo):
+
+def test_exists_by_name(user_repo, db_session):
     user = User(
         name="Alice",
         surname="Smith",
@@ -124,29 +130,15 @@ def test_exists_by_name(user_repo):
         password="hashed-password"
     )
 
-    saved_user = user_repo.save(user)
-    user_repo.session.commit()
-
-    assert saved_user.id is not None  # ID should be auto-generated
-    fetched_user = user_repo.exists_by_name(saved_user.name)
-    assert fetched_user is True
-
-def test_get_by_name(user_repo):
-    user = User(
-        name="Alice",
-        surname="Smith",
-        email="alice@example.com",
-        password="hashed-password"
-    )
-
-    saved_user = user_repo.save(user)
-    user_repo.session.commit()
+    saved_user = user_repo.save(user, db_session())
+    db_session.commit()
 
     assert saved_user.id is not None
-    fetched_user = user_repo.get_by_name("Alice")
-    assert fetched_user is not None
+    assert user_repo.exists_by_name(saved_user.name, db_session()) is True
+    assert user_repo.exists_by_name("Nope", db_session()) is False
 
-def test_get_by_email(user_repo):
+
+def test_get_by_name(user_repo, db_session):
     user = User(
         name="Alice",
         surname="Smith",
@@ -154,11 +146,27 @@ def test_get_by_email(user_repo):
         password="hashed-password"
     )
 
-    saved_user = user_repo.save(user)
-    user_repo.session.commit()
+    saved_user = user_repo.save(user, db_session())
+    db_session.commit()
 
     assert saved_user.id is not None
-    fetched_user = user_repo.get_by_email("alice@example.com")
+    fetched_user = user_repo.get_by_name("Alice", db_session())
     assert fetched_user is not None
+    assert fetched_user.id == saved_user.id
 
 
+def test_get_by_email(user_repo, db_session):
+    user = User(
+        name="Alice",
+        surname="Smith",
+        email="alice@example.com",
+        password="hashed-password"
+    )
+
+    saved_user = user_repo.save(user, db_session())
+    db_session.commit()
+
+    assert saved_user.id is not None
+    fetched_user = user_repo.get_by_email("alice@example.com", db_session())
+    assert fetched_user is not None
+    assert fetched_user.id == saved_user.id
