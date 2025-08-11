@@ -12,13 +12,12 @@ from app.services.user_service_impl import UserServiceImpl
 from app.services.app_service_impl import AppServiceImpl
 from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
 
-
 class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(packages=["app.routes", "app.services"])
 
     db_session = providers.Singleton(lambda: db.session)
 
-    user_repository = providers.Singleton(UserRepositoryImpl, session=db_session)
+    user_repository  = providers.Singleton(UserRepositoryImpl,  session=db_session)
     event_repository = providers.Singleton(EventRepositoryImpl, session=db_session)
 
     provider = os.getenv("PROVIDER", "local").lower()

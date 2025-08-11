@@ -1,9 +1,9 @@
 from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from typing import List, Optional
+from app.models.event import Event
 
 
 class EventRepositoryImpl(EventRepository):

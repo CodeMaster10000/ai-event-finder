@@ -26,6 +26,10 @@ class Config:
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    VECTOR_DIM = int(os.getenv('VECTOR_DIM'))
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "hard-coded-test-key")
+    OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+
+    # One shared size we standardize on for the DB vector column (e.g., 1024)
+    UNIFIED_VECTOR_DIM = int(os.getenv("UNIFIED_VECTOR_DIM", 1024))
 
 print("Using DB user:", os.getenv("DB_USER"))
