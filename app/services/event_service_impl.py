@@ -33,7 +33,7 @@ class EventServiceImpl(EventService):
         return self.event_repository.get_by_category(category, session=db.session)
 
     def get_by_organizer(self, email: str) -> List[Event]:
-        organizer = self.user_repository.get_by_email(email)
+        organizer = self.user_repository.get_by_email(email, session=db.session)
         validate_user(organizer, f"No user found with email {email}")
         return self.event_repository.get_by_organizer_id(organizer.id,session=db.session)
 
@@ -60,8 +60,7 @@ class EventServiceImpl(EventService):
         # 1) Ensure no duplicate title
         if self.event_repository.get_by_title(data['title'], db.session):
             # end the read txn and bail
-            if db.session.in_transaction():
-                db.session.rollback()
+            db.session.rollback()
             raise EventAlreadyExistsException(data['title'])
 
         # 2) Resolve organizer email → User
@@ -76,8 +75,7 @@ class EventServiceImpl(EventService):
         formatted = format_event(event)
 
         # close read-only txn before external I/O
-        if db.session.in_transaction():
-            db.session.rollback()
+        db.session.rollback()
 
         event.embedding = self.embedding_service.create_embedding(formatted)
 
@@ -85,6 +83,8 @@ class EventServiceImpl(EventService):
         try:
             saved = self._persist(event, recheck_title=True, title_for_recheck=data['title'])
             return saved
+        except EventAlreadyExistsException:
+            raise
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
@@ -99,13 +99,14 @@ class EventServiceImpl(EventService):
         formatted = format_event(event)
 
         # end the read-only txn before external I/O
-        if db.session.in_transaction():
-            db.session.rollback()
+        db.session.rollback()
 
         event.embedding = self.embedding_service.create_embedding(formatted)
         try:
-            updated = self._persist(event)  # no extra recheck needed here
+            updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)  # no extra recheck needed here
             return updated
+        except EventAlreadyExistsException:
+            raise
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
@@ -115,8 +116,9 @@ class EventServiceImpl(EventService):
                  title_for_recheck: str | None = None) -> Event:
         # Optional TOCTOU recheck (used by create)
         if recheck_title and title_for_recheck:
-            if self.event_repository.get_by_title(title_for_recheck, session):
-                raise EventAlreadyExistsException(title_for_recheck)
+            with session.no_autoflush:
+                if self.event_repository.get_by_title(title_for_recheck, session):
+                    raise EventAlreadyExistsException(title_for_recheck)
 
         return self.event_repository.save(event, session)
 
