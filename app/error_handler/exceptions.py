@@ -123,12 +123,6 @@ class EmbeddingServiceException(Exception):
         self.original_exception = original_exception
         super().__init__(message)
 
-class InvalidEmbeddingProviderException(Exception):
-    """Raised when EMBEDDING_PROVIDER is not one of the supported values."""
-    def __init__(self, provider: str):
-        self.provider = provider
-        super().__init__(f"Unsupported EMBEDDING_PROVIDER '{provider}'. Allowed: 'local' or 'cloud'.")
-
 
 
 

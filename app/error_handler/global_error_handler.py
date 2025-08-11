@@ -4,7 +4,7 @@ import traceback
 from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.error_handler.exceptions import EmbeddingServiceException, InvalidEmbeddingProviderException
+from app.error_handler.exceptions import EmbeddingServiceException
 
 
 def register_error_handlers(app):
@@ -79,10 +79,6 @@ def register_error_handlers(app):
     @app.errorhandler(EmbeddingServiceException)
     def handle_embedding_error(exception):
         return jsonify({"error": {"code": "EMBEDDING_SERVICE_ERROR", "message": str(exception)}}), 500
-
-    @app.errorhandler(InvalidEmbeddingProviderException)
-    def handle_invalid_embedding_provider(exception):
-        return jsonify({"error": {"code": "INVALID_EMBEDDING_PROVIDER", "message": str(exception)}}), 500
 
     # -------------------------
     # GLOBAL FALLBACK - DETAILED DEBUGGING

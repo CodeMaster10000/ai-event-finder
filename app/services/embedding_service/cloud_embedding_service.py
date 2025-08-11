@@ -10,13 +10,15 @@ class CloudEmbeddingService(EmbeddingService):
     Accepts plain text and returns a list[float], same shape as LocalEmbeddingService.
     """
 
+    def __init__(self, client: OpenAI):
+        self.client = client
+
     def create_embedding(self, text: str) -> list[float]:
         if not isinstance(text, str) or not text.strip():
             raise EmbeddingServiceException("Input text must be a non-empty string.")
 
-        client = OpenAI(api_key=Config.OPENAI_API_KEY)
         try:
-            resp = client.embeddings.create(
+            resp = self.client.embeddings.create(
                 model=Config.OPENAI_EMBEDDING_MODEL,
                 input=text,
                 dimensions=Config.UNIFIED_VECTOR_DIM,

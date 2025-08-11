@@ -1,6 +1,8 @@
 import os
 from dependency_injector import containers, providers
-from app.error_handler.exceptions import InvalidEmbeddingProviderException
+from openai import OpenAI
+
+from app.configuration.config import Config
 from app.extensions import db
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
@@ -19,11 +21,10 @@ class Container(containers.DeclarativeContainer):
     event_repository = providers.Singleton(EventRepositoryImpl, session=db_session)
 
     _embedding_provider = os.getenv("EMBEDDING_PROVIDER", "local").lower()
-    if _embedding_provider not in ("local", "cloud"):
-        raise InvalidEmbeddingProviderException(_embedding_provider)
 
     if _embedding_provider == "cloud":
         embedding_service = providers.Singleton(CloudEmbeddingService)
+        openai_client = providers.Singleton(OpenAI, api_key=Config.OPENAI_API_KEY)
     else:
         embedding_service = providers.Singleton(LocalEmbeddingService)
 
