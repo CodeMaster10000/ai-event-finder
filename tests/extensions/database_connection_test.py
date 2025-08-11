@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import text
 from app import create_app
 from app.extensions import db
-from tests.util.test_util import test_cfg
+from tests.util.util_test import test_cfg
 
 @pytest.fixture
 def app():
