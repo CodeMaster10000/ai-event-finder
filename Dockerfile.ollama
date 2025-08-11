@@ -5,4 +5,4 @@ RUN chmod +x /usr/local/bin/run-ollama.sh
 
 EXPOSE 11434
 
-CMD ["/usr/local/bin/run-ollama"]
+ENTRYPOINT ["/usr/local/bin/run-ollama.sh"]

@@ -20,12 +20,10 @@ class LocalEmbeddingService(EmbeddingService):
         Returns:
             list[float]: The embedding vector as a list of floats.
         """
-        base_url = Config.OLLAMA_URL
-        model = Config.OLLAMA_MODEL
 
         response = requests.post(
-            f"{base_url}/api/embeddings",
-            json={"model": model, "prompt": text},
+            f"{Config.OLLAMA_URL}/api/embeddings",
+            json={"model": Config.OLLAMA_MODEL, "prompt": text},
         )
         response.raise_for_status()
         result = response.json()

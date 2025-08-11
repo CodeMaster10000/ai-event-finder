@@ -1,6 +1,3 @@
-from werkzeug.exceptions import HTTPException
-
-
 class UserNotFoundException(Exception):
     """
     This exception will be raised when no user exists for the given identifier.
@@ -117,20 +114,6 @@ class EventSaveException(Exception):
         super().__init__("Unable to save event due to an internal error.")
         self.original_exception = original_exception
 
-class InvalidUserData(HTTPException):
-    def __init__(self):
-
-        # Pass your errors into the .description so that Flask’s error handler
-        # will include them in the response.
-        super().__init__("Invalid input data")
-class EmbeddingServiceException(Exception):
-    """
-    Raised for any embedding-related failure (bad input, provider error, shape mismatch, etc.).
-    `original_exception` can carry the underlying SDK/HTTP error if present.
-    """
-    def __init__(self, message: str, original_exception: Exception | None = None):
-        self.original_exception = original_exception
-        super().__init__(message)
 
 
 
