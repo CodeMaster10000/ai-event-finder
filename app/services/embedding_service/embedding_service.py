@@ -1,36 +1,26 @@
 from abc import ABC, abstractmethod
-from app.models.event import Event
 
 class EmbeddingService(ABC):
     """
-    Abstract base class for generating vector embeddings from event data.
-
-    This service defines the interface for embedding generation and is intended
-    to be implemented by concrete embedding backends such as local embedding
-    models (e.g., SentenceTransformers) or cloud-based embedding providers
-    (e.g., OpenAI, Azure, Cohere).
+    Abstract base class for generating vector embeddings from string input.
 
     Implementations should:
-    - Accept an Event Object with event attributes (e.g., title, description, location, etc.)
-    - Convert these attributes into a suitable format for the embedding model
+    - Accept a plain string (e.g., a prompt, event description, etc.)
     - Generate and return a numerical embedding as a list of floats
 
-    Note:
-        This abstraction allows the rest of the application (e.g., event creation service)
-        to remain decoupled from the specific embedding implementation and switch between
-        local and cloud backends with minimal change.
+    This abstraction allows embedding providers (local or cloud-based) to be
+    swapped without modifying application logic.
     """
 
     @abstractmethod
-    def create_embedding(self, event_data: Event) -> list[float]:
+    def create_embedding(self, text: str) -> list[float]:
         """
-        Generate an embedding vector from event data.
+        Generate an embedding vector from input text.
 
         Args:
-            event_data (dict): Dictionary containing event fields like title, description,
-                               datetime, location, category, etc.
+            text (str): The input text to embed (e.g., prompt, formatted event)
 
         Returns:
-            list[float]: A numerical vector embedding of the event.
+            list[float]: A numerical vector embedding of the input.
         """
         pass
