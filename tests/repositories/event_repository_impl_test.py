@@ -7,7 +7,7 @@ from app.extensions import db as _db
 from app.models.event import Event
 from app.models.user import User
 from app.repositories.event_repository_impl import EventRepositoryImpl
-from tests.util.test_util import test_cfg
+from tests.util.util_test import test_cfg
 
 
 # App fixture
