@@ -12,14 +12,20 @@ class Config:
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "nomic-embed-text")
     OLLAMA_LLM = os.getenv("OLLAMA_LLM", "llama3.1")
 
-    RAG_TOP_K = 5
+    RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+
+    OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
+    OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
+    OLLAMA_TOP_K = int(os.getenv("OLLAMA_TOP_K", 30))
+    OLLAM_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
+    OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
 
     OLLAMA_LLM_OPTIONS = {
-        "temperature": 0.3, # how random next token is
-        "top_p": 0.9, #
-        "top_k": 30,
-        "num_predict": 256,
-        "seed": 42
+        "temperature": OLLAMA_TEMPERATURE,
+        "top_p": OLLAMA_TOP_P,
+        "top_k": OLLAMA_TOP_K,
+        "num_predict": OLLAM_NUM_PREDICT,
+        "seed": OLLAMA_SEED
     }
 
     SQLALCHEMY_DATABASE_URI = (
