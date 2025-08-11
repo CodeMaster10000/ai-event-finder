@@ -123,6 +123,14 @@ class InvalidUserData(HTTPException):
         # Pass your errors into the .description so that Flask’s error handler
         # will include them in the response.
         super().__init__("Invalid input data")
+class EmbeddingServiceException(Exception):
+    """
+    Raised for any embedding-related failure (bad input, provider error, shape mismatch, etc.).
+    `original_exception` can carry the underlying SDK/HTTP error if present.
+    """
+    def __init__(self, message: str, original_exception: Exception | None = None):
+        self.original_exception = original_exception
+        super().__init__(message)
 
 
 
