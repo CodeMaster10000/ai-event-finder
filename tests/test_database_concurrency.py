@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy.exc import IntegrityError
-
+from datetime import datetime, UTC
 from app import create_app
 from app.extensions import db
 from app.models.user import User
@@ -12,7 +12,6 @@ from app.util.transaction_util import transactional, retry_conflicts
 from app.error_handler.exceptions import (
     ConcurrencyException,
     EventAlreadyExistsException,
-    EventSaveException,
     UserAlreadyInEventException,
 )
 
@@ -227,7 +226,7 @@ def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Sess
                 s2 = Session()
                 e = Event(title="Clash", description="rival", organizer_id=organizer.id)
                 from datetime import datetime as _dt
-                e.datetime = _dt.utcnow()
+                e.datetime = datetime.now(UTC)
                 s2.add(e)
                 s2.commit()
                 s2.close()
@@ -282,29 +281,24 @@ def test_retry_conflicts_rolls_back_between_attempts(app):
         assert db.session.query(User).filter_by(email="ok@x.com").count() == 1
 
 
-
 def test_request_session_isolation_across_requests(app):
-    """
-    Prove isolation across requests without relying on implicit teardown:
-    write + flush in request A, then explicit rollback; request B shouldn't see it.
-    """
     email = "iso@x.com"
 
-    # Request A: open txn, insert, flush, then rollback explicitly
     with app.test_request_context():
         real = db.session() if callable(db.session) else db.session
-        tx = real.begin()  # start a real transaction boundary
-        try:
-            db.session.add(User(name="Iso", surname="L", email=email, password="pw"))
-            db.session.flush()  # visible to this txn
-            assert db.session.query(User).filter_by(email=email).count() == 1
-        finally:
-            tx.rollback()  # guarantee we don't persist anything
 
-        # After rollback inside the same request, it’s gone
+        # open a savepoint for the “temporary write”
+        with real.begin_nested() as sp:
+            db.session.add(User(name="Iso", surname="L", email=email, password="pw"))
+            db.session.flush()
+            assert db.session.query(User).filter_by(email=email).count() == 1
+            # roll back just the savepoint
+            sp.rollback()
+
+        # after rolling back the savepoint, the row is gone in this request
         assert db.session.query(User).filter_by(email=email).count() == 0
 
-    # Request B: completely separate request context → should not see rolled-back data
+    # a separate request never sees it either
     with app.test_request_context():
         assert db.session.query(User).filter_by(email=email).count() == 0
 
@@ -327,7 +321,7 @@ def test_app_service_duplicate_invite_mapping_branch(app, monkeypatch):
 
         from datetime import datetime as _dt
         e = Event(title="E", description="d", organizer_id=u.id)
-        e.datetime = _dt.utcnow()
+        e.datetime = datetime.now(UTC)
         db.session.add(e)
         db.session.commit()
 
@@ -364,7 +358,7 @@ def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Sess
         db.session.commit()
 
         base = Event(title="BaseTitle", description="orig", organizer_id=organizer.id)
-        base.datetime = _dt.utcnow()
+        base.datetime = datetime.now(UTC)
         db.session.add(base)
         db.session.commit()
         eid = base.id
@@ -381,7 +375,7 @@ def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Sess
                 # Introduce a race: insert another event with the target "Clash" title
                 s2 = Session()
                 rival = Event(title="Clash", description="rival", organizer_id=organizer.id)
-                rival.datetime = _dt.utcnow()
+                rival.datetime = datetime.now(UTC)
                 s2.add(rival)
                 s2.commit()
                 s2.close()
