@@ -1,19 +1,36 @@
-#!/usr/bin/sh
+#!/usr/bin/env bash
+set -e
 
+EMBEDDING_MODEL="${EMBEDDING_MODEL_NAME}"
+LLM_MODEL="${LLM_MODEL_NAME}"
+
+if [ -z "$EMBEDDING_MODEL" ]; then
+  echo "EMBEDDING_MODEL_NAME not set"
+  exit 1
+fi
+
+
+if [ -z "$LLM_MODEL" ]; then
+  echo "LLM_MODEL_NAME not set"
+  exit 1
+fi
+
+echo "Starting Ollama server..."
 ollama serve &
 
-# Wait for Ollama to be ready (up to 20s)
-echo "Waiting for Ollama server to be ready..."
-for i in $(seq 1 20); do
-    if curl -s http://localhost:11434 > /dev/null; then
-        echo "Ollama is up!"
-        break
-    fi
+# Wait for Ollama server to be ready by checking if `ollama list` works
+echo "Waiting for Ollama server to become available..."
+until ollama list > /dev/null 2>&1; do
     sleep 1
 done
 
-echo "Pulling model: nomic-embed-text"
-ollama pull nomic-embed-text
+echo "Ollama server is up."
+echo "Pulling embedding model: $EMBEDDING_MODEL"
+ollama pull "$EMBEDDING_MODEL"
 
-# Keep the container running (because `ollama serve` is in the background)
-tail -f /dev/null
+echo "Pulling Large Language model: $LLM_MODEL"
+ollama pull "$LLM_MODEL"
+
+
+# Keep container running
+wait
