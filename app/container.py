@@ -7,13 +7,11 @@ from app.configuration.config import Config
 from app.extensions import db
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
+from app.services.app_service_impl import AppServiceImpl
+from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
 from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
 from app.services.event_service_impl import EventServiceImpl
 from app.services.user_service_impl import UserServiceImpl
-from app.services.app_service_impl import AppServiceImpl
-from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
-from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
-from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
 
 
 class Container(containers.DeclarativeContainer):
