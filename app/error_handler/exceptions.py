@@ -124,7 +124,12 @@ class EmbeddingServiceException(Exception):
         self.original_exception = original_exception
         super().__init__(message)
 
-
+class EmbeddingVectorException(Exception):
+    """
+    Raised when encountering embedding vector fails (like wrong vector_dim)
+    """
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 
