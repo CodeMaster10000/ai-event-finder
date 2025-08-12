@@ -49,17 +49,14 @@ class ModelService(ABC):
         Embed the user prompt, retrieve relevant events, tune hyperparameters, append systemprompt, construct messages,
         and return the assistant's text response.
         """
-        #TODO implement this here
         ...
 
     def build_messages(self, context: str, user_prompt: str, sys_prompt) -> List[Dict[str, str]]:
         """
         Assemble the chat messages with system, assistant, and user roles.
         """
-        #TODO implement this here
 
     def get_rag_data_and_create_context(self, user_prompt) -> List[Dict[str, str]]:
-        #TODO implement this here
         """
         Retrieves relevant event data using a Retrieval-Augmented Generation (RAG) approach
         and constructs a context-aware message list for downstream processing (e.g., LLM input).
