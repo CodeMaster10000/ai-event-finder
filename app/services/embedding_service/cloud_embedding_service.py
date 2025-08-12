@@ -31,7 +31,6 @@ class CloudEmbeddingService(EmbeddingService):
         except Exception as e:
             raise EmbeddingServiceException("OpenAI returned an unexpected embedding payload.", original_exception=e)
 
-        # (optional but safe) enforce expected size
         if len(emb) != Config.UNIFIED_VECTOR_DIM:
             raise EmbeddingServiceException(
                 f"Expected {Config.UNIFIED_VECTOR_DIM}-dim embedding, got {len(emb)}"
