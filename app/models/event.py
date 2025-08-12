@@ -26,7 +26,7 @@ class Event(db.Model):
     description = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
 
     # Unified 1024-d vector for OpenAI and Ollama embeddings
-    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=True)
+    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=False)
 
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizer    = db.relationship('User', back_populates='organized_events', lazy='joined')
