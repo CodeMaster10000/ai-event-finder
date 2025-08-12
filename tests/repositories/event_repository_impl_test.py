@@ -1,14 +1,14 @@
 import pytest
 from datetime import datetime, timedelta
-from sqlalchemy.orm import scoped_session, sessionmaker
-
+from sqlalchemy.orm import scoped_session, sessionmaker, Session
+from unittest.mock import MagicMock
 from app import create_app
 from app.extensions import db as _db
 from app.models.event import Event
 from app.models.user import User
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from tests.util.util_test import test_cfg
-
+from app.configuration.config import Config
 
 # App fixture
 @pytest.fixture
@@ -335,30 +335,52 @@ def test_exists_by_date(event_repo, events_fixture, now):
     assert event_repo.exists_by_date(datetime(1999,1,1)) is False
 
 
+#----------------------------------------
+#    Testing the search_by_embedding method.
+#---------------------------------------
+class _ScalarResultStub:
+    def __init__(self, items): self._items = items
+    def all(self): return self._items
 
-@pytest.fixture(scope="session")
-def app():
-    app = create_app({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "postgresql://postgres:postgres@localhost:5433/testdb"
-    })
-    with app.app_context():
-        _db.create_all()  # or run migrations externally
-        yield app
-        _db.session.remove()
-        _db.drop_all()
+class _ExecuteResultStub:
+    def __init__(self, items): self._items = items
+    def scalars(self): return _ScalarResultStub(self._items)
 
-def test_similarity_order(app):
-    with app.app_context():
-        # 3 simple vectors
-        e1 = Event(title="v0", embedding=[0.0]*1024, organizer_id=1)
-        e2 = Event(title="v1", embedding=[1.0] + [0.0]*1023, organizer_id=1)
-        e3 = Event(title="v2", embedding=[2.0] + [0.0]*1023, organizer_id=1)
-        _db.session.add_all([e1, e2, e3]); _db.session.commit()
+def test_search_by_embedding_unit_mock_with_embeddings():
+    repo = EventRepositoryImpl(session=MagicMock(spec=Session))
+    session = MagicMock(spec=Session)
 
-        repo = app.container.event_repository()  # or instantiate with db.session
-        q = [0.9] + [0.0]*1023
-        res = repo.search_by_embedding(q, k=3, session=_db.session, probes=20)
+    D = Config.UNIFIED_VECTOR_DIM  # should be 1024
+    # Fake events (as if DB mapped them). Add embeddings.
+    e1 = Event(id=1, title="closest")  # other required fields aren’t used here
+    e1.embedding = [1.0] + [0.0]*(D-1)
+    e2 = Event(id=2, title="second")
+    e2.embedding = [2.0] + [0.0]*(D-1)
 
-        # L2 to 0.9 puts e2 closest, then e3 or e1 depending on exact values
-        assert res[0].title == "v1"
+    # 1st execute: SET LOCAL ivfflat.probes (we ignore its return)
+    # 2nd execute: SELECT ... ORDER BY embedding <-> :q → returns our Events
+    session.execute.side_effect = [
+        MagicMock(),
+        _ExecuteResultStub([e1, e2]),
+    ]
+
+    q = [0.9] + [0.0]*(D-1)
+    out = repo.search_by_embedding(q, k=2, probes=10, session=session)
+
+    # Assertions
+    assert isinstance(out, list) and all(isinstance(x, Event) for x in out)
+    assert [e.title for e in out] == ["closest", "second"]
+    assert len(out[0].embedding) == D and out[0].embedding[0] == 1.0
+    assert len(out[1].embedding) == D and out[1].embedding[0] == 2.0
+
+    # We also set probes and executed the SELECT with k=2
+    set_call, select_call = session.execute.call_args_list
+
+    # set_call is (args, kwargs) for the SET LOCAL
+    assert "SET LOCAL ivfflat.probes" in str(set_call[0][0])
+
+    # select_call is (args, kwargs) for the SELECT
+    args, kwargs = select_call
+    params = args[1]  # second positional arg is the dict {"q": vec, "k": 2}
+    assert params["k"] == 2
+

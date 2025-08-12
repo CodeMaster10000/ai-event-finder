@@ -1,11 +1,12 @@
 from datetime import datetime
-from sqlalchemy import func, text, select
+from sqlalchemy import func, text, select, bindparam
 from sqlalchemy.orm import Session
-
+from pgvector.sqlalchemy import Vector
 from app.repositories.event_repository import EventRepository
 from typing import List, Optional, Sequence, cast
 from app.models.event import Event
 from app.extensions import db
+from app.configuration.config import Config
 class EventRepositoryImpl(EventRepository):
 
     def __init__(self, session: Session):
@@ -40,12 +41,18 @@ class EventRepositoryImpl(EventRepository):
         if probes is not None:
             session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
 
-        stmt = select(Event).from_statement(text("""
-            SELECT e.*
-            FROM events e
-            WHERE e.embedding IS NOT NULL
-            ORDER BY e.embedding <-> :q LIMIT :k
-            """))
+        stmt = select(Event).from_statement(
+            text("""
+                 SELECT e.*
+                 FROM events e
+                 WHERE e.embedding IS NOT NULL
+                 ORDER BY e.embedding <-> :q 
+                 LIMIT :k
+                 """).bindparams(
+                bindparam("q", value=vec, type_=Vector(Config.UNIFIED_VECTOR_DIM)),
+                bindparam("k", value=int(k)),
+            )
+        )
 
         # IMPORTANT: .scalars().all() → List[Event]
         res = session.execute(stmt, {"q": vec, "k": int(k)}).scalars().all()
