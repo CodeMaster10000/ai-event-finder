@@ -333,3 +333,32 @@ def test_exists_by_date(event_repo, events_fixture, now):
 
     assert event_repo.exists_by_date(target_date) is True
     assert event_repo.exists_by_date(datetime(1999,1,1)) is False
+
+
+
+@pytest.fixture(scope="session")
+def app():
+    app = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "postgresql://postgres:postgres@localhost:5433/testdb"
+    })
+    with app.app_context():
+        _db.create_all()  # or run migrations externally
+        yield app
+        _db.session.remove()
+        _db.drop_all()
+
+def test_similarity_order(app):
+    with app.app_context():
+        # 3 simple vectors
+        e1 = Event(title="v0", embedding=[0.0]*1024, organizer_id=1)
+        e2 = Event(title="v1", embedding=[1.0] + [0.0]*1023, organizer_id=1)
+        e3 = Event(title="v2", embedding=[2.0] + [0.0]*1023, organizer_id=1)
+        _db.session.add_all([e1, e2, e3]); _db.session.commit()
+
+        repo = app.container.event_repository()  # or instantiate with db.session
+        q = [0.9] + [0.0]*1023
+        res = repo.search_by_embedding(q, k=3, session=_db.session, probes=20)
+
+        # L2 to 0.9 puts e2 closest, then e3 or e1 depending on exact values
+        assert res[0].title == "v1"
