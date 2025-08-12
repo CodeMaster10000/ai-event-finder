@@ -9,6 +9,24 @@ load_dotenv(dotenv_path=env_path)
 class Config:
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
     OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-large")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "nomic-embed-text")
+    OLLAMA_LLM = os.getenv("OLLAMA_LLM", "llama3.1")
+
+    RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+
+    OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
+    OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
+    OLLAMA_TOP_K = int(os.getenv("OLLAMA_TOP_K", 30))
+    OLLAM_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
+    OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
+
+    OLLAMA_LLM_OPTIONS = {
+        "temperature": OLLAMA_TEMPERATURE,
+        "top_p": OLLAMA_TOP_P,
+        "top_k": OLLAMA_TOP_K,
+        "num_predict": OLLAM_NUM_PREDICT,
+        "seed": OLLAMA_SEED
+    }
 
     SQLALCHEMY_DATABASE_URI = (
         f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"

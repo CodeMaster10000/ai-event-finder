@@ -1,10 +1,9 @@
 from unittest.mock import MagicMock
 
 import pytest
-from dependency_injector import providers
 
-from app import create_app, Container
-from app.routes.app_route import ParticipantResource, ListParticipantsResource, PromptResource
+from app import create_app
+from app.routes.app_route import ParticipantResource, ListParticipantsResource
 from app.services.app_service import AppService
 from app.services.model.model_service import ModelService
 from app.util.test_jwt_token_util import generate_test_token

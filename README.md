@@ -48,6 +48,15 @@ OPENAI_API_KEY=hard-coded-test-key
 OPENAI_EMBEDDING_MODEL=text-embedding-3-large
 UNIFIED_VECTOR_DIM=1024
 
+RAG_TOP_K=5
+
+# llm hyperparameters
+OLLAMA_TEMPERATURE=0.3
+OLLAMA_TOP_P=0.9
+OLLAMA_TOP_K=30
+OLLAMA_NUM_PREDICT=236
+OLLAMA_SEED=42
+
 ## Example for flaskenv. File
 FLASK_APP=run.py
 FLASK_ENV=development

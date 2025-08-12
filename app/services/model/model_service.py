@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import List, Dict
 
 from app.repositories.event_repository import EventRepository
+from app.services.embedding_service.embedding_service import EmbeddingService
+from app.util.model_util import DEFAULT_SYS_PROMPT
 
 
 class ModelService(ABC):
@@ -9,10 +11,14 @@ class ModelService(ABC):
     Abstract base class for chat-based event querying.
     """
 
-    def __init__(self, event_repository: EventRepository, sys_prompt: str):
+    def __init__(self,
+                 event_repository: EventRepository,
+                 embedding_service: EmbeddingService,
+                 sys_prompt: str | None = None):
         """Initialize with an EventRepository for vector search."""
         self.event_repository = event_repository
-        self.sys_prompt = sys_prompt
+        self.embedding_service = embedding_service
+        self.sys_prompt = sys_prompt or DEFAULT_SYS_PROMPT
 
     @abstractmethod
     def query_prompt(self, user_prompt: str) -> str:
@@ -20,17 +26,14 @@ class ModelService(ABC):
         Embed the user prompt, retrieve relevant events, tune hyperparameters, append systemprompt, construct messages,
         and return the assistant's text response.
         """
-        #TODO implement this here
         ...
 
     def build_messages(self, context: str, user_prompt: str, sys_prompt) -> List[Dict[str, str]]:
         """
         Assemble the chat messages with system, assistant, and user roles.
         """
-        #TODO implement this here
 
-    def get_rag_data_and_create_context(self, user_prompt):
-        #TODO implement this here
+    def get_rag_data_and_create_context(self, user_prompt) -> List[Dict[str, str]]:
         """
         Retrieves relevant event data using a Retrieval-Augmented Generation (RAG) approach
         and constructs a context-aware message list for downstream processing (e.g., LLM input).

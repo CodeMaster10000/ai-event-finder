@@ -114,6 +114,15 @@ class EventSaveException(Exception):
         super().__init__("Unable to save event due to an internal error.")
         self.original_exception = original_exception
 
+class EmbeddingServiceException(Exception):
+    """
+    Raised for any embedding-related failure (bad input, provider error, shape mismatch, etc.).
+    `status_code` lets callers signal 4xx vs 5xx. `original_exception` can carry the root cause.
+    """
+    def __init__(self, message: str, status_code: int = 500, original_exception: Exception | None = None):
+        self.status_code = int(status_code)
+        self.original_exception = original_exception
+        super().__init__(message)
 
 class EmbeddingVectorException(Exception):
     """
