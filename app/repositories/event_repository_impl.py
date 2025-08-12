@@ -1,11 +1,11 @@
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, text, select
 from sqlalchemy.orm import Session
+
 from app.repositories.event_repository import EventRepository
-from typing import List, Optional
+from typing import List, Optional, Sequence, cast
 from app.models.event import Event
-
-
+from app.extensions import db
 class EventRepositoryImpl(EventRepository):
 
     def __init__(self, session: Session):
@@ -32,6 +32,24 @@ class EventRepositoryImpl(EventRepository):
 
     def get_by_category(self, category: str) -> List[Event]:
         return self.session.query(Event).filter_by(category=category).all()
+
+    def search_by_embedding(self, query_vector: Sequence[float], k: int = 10,
+                            probes: Optional[int] = 10, session: Session = db.session) -> list[Event]:
+        vec = [float(x) for x in query_vector]
+
+        if probes is not None:
+            session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
+
+        stmt = select(Event).from_statement(text("""
+            SELECT e.*
+            FROM events e
+            WHERE e.embedding IS NOT NULL
+            ORDER BY e.embedding <-> :q LIMIT :k
+            """))
+
+        # IMPORTANT: .scalars().all() → List[Event]
+        res = session.execute(stmt, {"q": vec, "k": int(k)}).scalars().all()
+        return cast(list[Event], res)
 
     def delete_by_id(self, event_id: int) -> None:
         event = self.session.get(Event, event_id)
