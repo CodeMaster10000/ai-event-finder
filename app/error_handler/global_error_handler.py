@@ -5,20 +5,13 @@ from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
 
 
+
 def register_error_handlers(app):
     """
     Error handlers compatible with Flask-RESTX
     """
     
     logger = logging.getLogger(__name__)
-    
-    # -------------------------
-    # JWT ERROR HANDLERS (these work with Flask-JWT-Extended)
-    # -------------------------
-
-    # -------------------------
-    # FLASK APP ERROR HANDLERS
-    # -------------------------
 
     # Custom exception handlers (your existing ones)
     from app.error_handler.exceptions import (
@@ -32,7 +25,8 @@ def register_error_handlers(app):
         EventDeleteException,
         UserNotInEventException,
         UserAlreadyInEventException,
-        ConcurrencyException
+        ConcurrencyException,
+        EmbeddingServiceException
     )
 
     @app.errorhandler(UserNotFoundException)
@@ -78,6 +72,20 @@ def register_error_handlers(app):
     @app.errorhandler(ConcurrencyException)
     def handle_concurrency_exception(exception):
         return jsonify({"error": {"code": "CONCURRENT_UPDATE", "message": str(exception)}}), 409
+
+    @app.errorhandler(EmbeddingServiceException)
+    def handle_embedding_service_error(exception: EmbeddingServiceException):
+        # log provider/root cause if present (shows full stack in server logs)
+        if getattr(exception, "original_exception", None):
+            logger.exception("Embedding service error", exc_info=exception.original_exception)
+
+        return jsonify({
+            "error": {
+                "code": "EMBEDDING_SERVICE_ERROR",
+                "message": str(exception),
+            }
+        }), getattr(exception, "status_code", 500)
+
 
     # -------------------------
     # GLOBAL FALLBACK - DETAILED DEBUGGING

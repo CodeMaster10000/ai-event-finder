@@ -1,26 +1,39 @@
+from openai import OpenAI
 from .embedding_service import EmbeddingService
+from app.configuration.config import Config
+from app.error_handler.exceptions import EmbeddingServiceException
+
 
 class CloudEmbeddingService(EmbeddingService):
-    def __init__(self, app=None):
-        """
-        Placeholder Cloud Embedding Service.
+    """
+    OpenAI cloud embedding using text-embedding-3-* with a unified dimension.
+    Accepts plain text and returns a list[float], same shape as LocalEmbeddingService.
+    """
 
-        Args:
-            app (Flask, optional): Flask app instance for config access.
-        """
-        # Example: Initialize API keys, endpoints, headers from config/env
-        # self.api_key = app.config.get("CLOUD_API_KEY") if app else os.getenv("CLOUD_API_KEY")
-        pass
+    def __init__(self, client: OpenAI):
+        self.client = client
 
     def create_embedding(self, text: str) -> list[float]:
-        """
-        Placeholder method for creating embeddings in the cloud.
+        if not isinstance(text, str) or not text.strip():
+            raise EmbeddingServiceException("Input text must be a non-empty string.")
 
-        Args:
-            text (str): Text prompt to embed.
+        try:
+            resp = self.client.embeddings.create(
+                model=Config.OPENAI_EMBEDDING_MODEL,
+                input=text,
+                dimensions=Config.UNIFIED_VECTOR_DIM,
+            )
+        except Exception as e:
+            raise EmbeddingServiceException("OpenAI embedding request failed.", original_exception=e)
 
-        Returns:
-            list[float]: Embedding vector (empty for now).
-        """
-        # TODO: Implement cloud embedding logic (e.g., OpenAI, Azure, Cohere, etc.)
-        raise NotImplementedError("Cloud embedding service is not implemented yet.")
+        try:
+            emb = resp.data[0].embedding
+        except Exception as e:
+            raise EmbeddingServiceException("OpenAI returned an unexpected embedding payload.", original_exception=e)
+
+        if len(emb) != Config.UNIFIED_VECTOR_DIM:
+            raise EmbeddingServiceException(
+                f"Expected {Config.UNIFIED_VECTOR_DIM}-dim embedding, got {len(emb)}"
+            )
+
+        return list(emb)

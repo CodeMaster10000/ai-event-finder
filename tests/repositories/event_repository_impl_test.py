@@ -1,14 +1,14 @@
 import pytest
 from datetime import datetime, timedelta
-from sqlalchemy.orm import scoped_session, sessionmaker
-
+from sqlalchemy.orm import scoped_session, sessionmaker, Session
+from unittest.mock import MagicMock
 from app import create_app
 from app.extensions import db as _db
 from app.models.event import Event
 from app.models.user import User
 from app.repositories.event_repository_impl import EventRepositoryImpl
-from tests.util.test_util import test_cfg
-
+from tests.util.util_test import test_cfg
+from app.configuration.config import Config
 
 # ---------- App & DB setup ----------
 
@@ -23,6 +23,7 @@ def app():
         _db.drop_all()
 
 
+# DB session fixture
 @pytest.fixture
 def db_session(app):
     connection = _db.engine.connect()
@@ -44,6 +45,8 @@ def event_repo():
     # repo methods now take `session` per call; no session in constructor
     return EventRepositoryImpl()
 
+
+# Organizer (user) fixture
 @pytest.fixture
 def organizer_user(db_session):
     user = User(
@@ -56,10 +59,14 @@ def organizer_user(db_session):
     db_session.commit()
     return user
 
+
+# Datetime timestamp now fixture
 @pytest.fixture
 def now():
     return datetime(2025, 1, 1, 10, 0, 0)
 
+
+# Events fixture
 @pytest.fixture
 def events_fixture(event_repo, db_session, organizer_user, now):
     event_data = [
@@ -117,7 +124,11 @@ def events_fixture(event_repo, db_session, organizer_user, now):
     return created_events
 
 
-# ---------- Tests ----------
+# ----------------------------------------
+# Test: get_all() -> List[Event]
+# Verify that all events stored in the database are returned correctly.
+# Ensure the returned list matches the expected number of saved events.
+# ----------------------------------------
 
 def test_get_all_events(event_repo, events_fixture, db_session):
     fetched = event_repo.get_all(db_session)
@@ -160,6 +171,7 @@ def test_get_by_date(event_repo, events_fixture, now, db_session):
     expected_events = [e for e in events_fixture if e.datetime.date() == target_date]
     fetched_events = event_repo.get_by_date(datetime.combine(target_date, datetime.min.time()), db_session)
     assert len(fetched_events) == len(expected_events)
+
     for event in fetched_events:
         assert event.datetime.date() == target_date
 
@@ -247,3 +259,55 @@ def test_exists_by_date(event_repo, events_fixture, now, db_session):
     target_date = datetime.combine(events_fixture[0].datetime.date(), datetime.min.time())
     assert event_repo.exists_by_date(target_date, db_session) is True
     assert event_repo.exists_by_date(datetime(1999, 1, 1), db_session) is False
+
+
+
+#----------------------------------------
+#    Testing the search_by_embedding method.
+#---------------------------------------
+class _ScalarResultStub:
+    def __init__(self, items): self._items = items
+    def all(self): return self._items
+
+class _ExecuteResultStub:
+    def __init__(self, items): self._items = items
+    def scalars(self): return _ScalarResultStub(self._items)
+
+def test_search_by_embedding_unit_mock_with_embeddings():
+    repo = EventRepositoryImpl(session=MagicMock(spec=Session))
+    session = MagicMock(spec=Session)
+
+    D = Config.UNIFIED_VECTOR_DIM  # should be 1024
+    # Fake events (as if DB mapped them). Add embeddings.
+    e1 = Event(id=1, title="closest")  # other required fields aren’t used here
+    e1.embedding = [1.0] + [0.0]*(D-1)
+    e2 = Event(id=2, title="second")
+    e2.embedding = [2.0] + [0.0]*(D-1)
+
+    # 1st execute: SET LOCAL ivfflat.probes (we ignore its return)
+    # 2nd execute: SELECT ... ORDER BY embedding <-> :q → returns our Events
+    session.execute.side_effect = [
+        MagicMock(),
+        _ExecuteResultStub([e1, e2]),
+    ]
+
+    q = [0.9] + [0.0]*(D-1)
+    out = repo.search_by_embedding(q, k=2, probes=10, session=session)
+
+    # Assertions
+    assert isinstance(out, list) and all(isinstance(x, Event) for x in out)
+    assert [e.title for e in out] == ["closest", "second"]
+    assert len(out[0].embedding) == D and out[0].embedding[0] == 1.0
+    assert len(out[1].embedding) == D and out[1].embedding[0] == 2.0
+
+    # We also set probes and executed the SELECT with k=2
+    set_call, select_call = session.execute.call_args_list
+
+    # set_call is (args, kwargs) for the SET LOCAL
+    assert "SET LOCAL ivfflat.probes" in str(set_call[0][0])
+
+    # select_call is (args, kwargs) for the SELECT
+    args, kwargs = select_call
+    params = args[1]  # second positional arg is the dict {"q": vec, "k": 2}
+    assert params["k"] == 2
+

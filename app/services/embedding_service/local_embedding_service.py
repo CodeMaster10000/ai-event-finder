@@ -2,6 +2,7 @@ import requests
 
 from app.configuration.config import Config
 from .embedding_service import EmbeddingService
+from ...error_handler.exceptions import EmbeddingServiceException
 
 
 class LocalEmbeddingService(EmbeddingService):
@@ -20,13 +21,18 @@ class LocalEmbeddingService(EmbeddingService):
         Returns:
             list[float]: The embedding vector as a list of floats.
         """
-        base_url = Config.OLLAMA_URL
-        model = Config.OLLAMA_MODEL
+        if not isinstance(text, str) or not text.strip():
+            raise EmbeddingServiceException("Input text must be a non-empty string.")
 
         response = requests.post(
-            f"{base_url}/api/embeddings",
-            json={"model": model, "prompt": text},
+            f"{Config.OLLAMA_URL}/api/embeddings",
+            json={"model": Config.OLLAMA_MODEL, "prompt": text},
         )
         response.raise_for_status()
         result = response.json()
-        return result["embedding"]
+        embedding = result["embedding"]
+        if len(embedding) != Config.UNIFIED_VECTOR_DIM:
+            raise EmbeddingServiceException(
+                f"Expected {Config.UNIFIED_VECTOR_DIM}-dim embedding, got {len(embedding)}"
+            )
+        return embedding

@@ -1,22 +1,23 @@
 import os
 
 from dependency_injector import containers, providers
+from openai import OpenAI
+from ollama import Client as OllamaClient
 
+from app.configuration.config import Config
 from app.extensions import db
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
-from app.services.app_service_impl import AppServiceImpl
+from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
 from app.services.event_service_impl import EventServiceImpl
 from app.services.user_service_impl import UserServiceImpl
+from app.services.app_service_impl import AppServiceImpl
 from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
-from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
+from app.services.model.local_model_service_impl import LocalModelService
 
 
 class Container(containers.DeclarativeContainer):
-    # Automatically wire dependencies into your routes and services modules
-    wiring_config = containers.WiringConfiguration(
-        packages=["app.routes", "app.services"]
-    )
+    wiring_config = containers.WiringConfiguration(packages=["app.routes", "app.services"])
 
     # Sessions are created and closed per HTTP request
     #db_session = providers.Singleton(lambda: db.session)
@@ -31,24 +32,32 @@ class Container(containers.DeclarativeContainer):
         EventRepositoryImpl,
     )
 
-    # Services
+    provider = os.getenv("PROVIDER", "local").lower()
 
-    # Service provider
-    user_service = providers.Singleton(
-        UserServiceImpl,
-        user_repository=user_repository
-    )
-    # Determine embedding provider before container definition
-    _embedding_provider = os.getenv("EMBEDDING_PROVIDER", "local").lower()
-    if _embedding_provider not in ("local", "cloud"):
-        raise ValueError(f"Unknown EMBEDDING_PROVIDER: {_embedding_provider}")
-
-    if _embedding_provider == "cloud":
-        embedding_service = providers.Singleton(CloudEmbeddingService)
+    if provider == "cloud":
+        openai_client = providers.Singleton(OpenAI, api_key=Config.OPENAI_API_KEY)
+        embedding_service = providers.Singleton(
+            CloudEmbeddingService,
+            client=openai_client,
+        )
     else:
+        ollama_client = providers.Singleton(
+            OllamaClient,
+            host=Config.OLLAMA_URL,
+        )
+
         embedding_service = providers.Singleton(LocalEmbeddingService)
 
+        model_service = providers.Singleton(
+            LocalModelService,
+            event_repository=event_repository,
+            embedding_service=embedding_service,
+            client=ollama_client,
+        )
 
+    user_service = providers.Singleton(UserServiceImpl, user_repository=user_repository)
+
+    # Inject embedder so events are embedded on create/update
     event_service = providers.Singleton(
         EventServiceImpl,
         event_repository=event_repository,
@@ -56,8 +65,11 @@ class Container(containers.DeclarativeContainer):
         embedding_service=embedding_service,
     )
 
-
+    # Required by app.routes.app_route (guest list ops)
     app_service = providers.Singleton(
-        AppServiceImpl, user_repo=user_repository, event_repo=event_repository,
+        AppServiceImpl,
+        user_repo=user_repository,
+        event_repo=event_repository,
     )
+
 

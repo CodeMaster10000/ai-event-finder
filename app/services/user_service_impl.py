@@ -58,7 +58,6 @@ class UserServiceImpl(UserService):
         conflict = self.user_repository.get_by_email(user.email, session)
         if conflict and conflict.id != user.id:
             raise DuplicateEmailException(email=user.email)
-
         try:
             return self.user_repository.save(user, session)
         except Exception as e:

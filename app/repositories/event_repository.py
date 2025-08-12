@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional
 from sqlalchemy.orm import Session
+from typing import List, Optional, Sequence
 
 from app.models.event import Event
 
@@ -105,7 +105,12 @@ class EventRepository(ABC):
             List[Event]: A list of events in the category.
         """
         pass
-
+    @abstractmethod
+    def search_by_embedding(self, query_vector: Sequence[float], k: int, session:Session) -> List[Event]:
+        """
+        Find the top-K events whose embeddings are most similar to `query_vec`.
+        Returns only Event models (no scores), ordered by increasing distance.
+        """
     # ------------------------
     # Deletion Methods
     # ------------------------

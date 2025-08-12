@@ -1,4 +1,4 @@
-# tests/test_user_schema.py
+# tests/user_schema_test.py
 import pytest
 from marshmallow import ValidationError
 

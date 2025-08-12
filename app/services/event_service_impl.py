@@ -1,6 +1,5 @@
 from typing import List
 from datetime import datetime
-
 from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
@@ -9,6 +8,9 @@ from app.util.format_event_util import format_event
 from app.util.validation_util import validate_user, validate_event
 from app.util.transaction_util import transactional, retry_conflicts
 from app.extensions import db
+from app.services.embedding_service.embedding_service import EmbeddingService
+from app.util.format_event_util import format_event
+
 from app.error_handler.exceptions import (
     EventNotFoundException,
     EventSaveException,
@@ -17,7 +19,8 @@ from app.error_handler.exceptions import (
 )
 
 class EventServiceImpl(EventService):
-    def __init__(self, event_repository: EventRepository, user_repository: UserRepository):
+    def __init__(self, event_repository: EventRepository, user_repository: UserRepository, embedding_service: EmbeddingService):
+        self.embedding_service = embedding_service
         self.event_repository = event_repository
         self.user_repository = user_repository
 
@@ -72,11 +75,11 @@ class EventServiceImpl(EventService):
         payload = {k: v for k, v in data.items() if k != 'organizer_email'}
         event = Event(**payload, organizer_id=organizer.id)
 
-        formatted = format_event(event)
 
         # close read-only txn before external I/O
         db.session.rollback()
 
+        formatted = format_event(event)
         event.embedding = self.embedding_service.create_embedding(formatted)
 
         # 4) Persist it
@@ -96,12 +99,13 @@ class EventServiceImpl(EventService):
         if not existing_event:
             raise EventNotFoundException("Event not found in the database.")
 
-        formatted = format_event(event)
 
         # end the read-only txn before external I/O
         db.session.rollback()
 
         event.embedding = self.embedding_service.create_embedding(formatted)
+        formatted = format_event(event)
+
         try:
             updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)  # no extra recheck needed here
             return updated

@@ -14,7 +14,6 @@ from app.extensions import db
 def test_user():
     return User(id=1, name="Test", surname="User", email="test@example.com", password="testpass")
 
-
 @pytest.fixture
 def test_event():
     return Event(

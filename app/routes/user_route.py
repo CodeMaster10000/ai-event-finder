@@ -1,12 +1,10 @@
-import logging
-
 from flask_restx import Namespace, Resource, fields
-from flask import request, abort
+from flask import request
 from dependency_injector.wiring import inject, Provide
+
 from app.container import Container
 from app.services.user_service import UserService
 from app.schemas.user_schema import CreateUserSchema, UserSchema
-from marshmallow import ValidationError
 from app.models.user import User
 from app.util.logging_util import log_calls
 from flask_jwt_extended import jwt_required
@@ -37,21 +35,14 @@ class UserBaseResource(Resource):
     })
 
     @user_ns.expect(user_create_input)
-
     @inject
     @jwt_required()
     def post(self,
              user_service: UserService = Provide[Container.user_service]):
         """Create or update a user"""
         json_data = request.get_json()
-        if not json_data:
-            abort(400, description="JSON body required")
-        try:
-            data = create_user_schema.load(json_data)
-        except ValidationError as err:
-            abort(400, description=err.messages)
+        data = create_user_schema.load(json_data)
 
-        # Instantiate User model from validated data
         user = User(**data)
         saved_user = user_service.save(user)
         return user_schema.dump(saved_user), 201
@@ -66,8 +57,6 @@ class UserByIdResource(Resource):
             user_service: UserService = Provide[Container.user_service]):
         """Get a user by ID"""
         user = user_service.get_by_id(user_id)
-        if not user:
-            abort(404, description=f"User {user_id} not found")
         return user_schema.dump(user), 200
 
     @inject
@@ -77,8 +66,6 @@ class UserByIdResource(Resource):
                user_service: UserService = Provide[Container.user_service]):
         """Delete a user by ID"""
         user = user_service.get_by_id(user_id)
-        if not user:
-            abort(404, description=f"User {user_id} not found")
         user_service.delete_by_id(user_id)
         return '', 204
 
@@ -92,8 +79,6 @@ class UserByEmailResource(Resource):
             user_service: UserService = Provide[Container.user_service]):
         """Get a user by email"""
         user = user_service.get_by_email(email)
-        if not user:
-            abort(404, description=f"User with email {email} not found")
         return user_schema.dump(user), 200
 
 @log_calls("app.routes")
@@ -106,8 +91,6 @@ class UsersByNameResource(Resource):
             user_service: UserService = Provide[Container.user_service]):
         """Get a user by name"""
         user = user_service.get_by_name(name)
-        if not user:
-            abort(404, description=f"User with name {name} not found")
         return user_schema.dump(user), 200
 
 @log_calls("app.routes")

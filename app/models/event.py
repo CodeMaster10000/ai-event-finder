@@ -1,6 +1,4 @@
-import os
 from datetime import datetime
-
 from pgvector.sqlalchemy import Vector
 
 from app.configuration.config import Config
@@ -12,7 +10,6 @@ from app.constants import (
     CATEGORY_MAX_LENGTH,
 )
 
-# MANY-TO-MANY association table for guest lists
 guest_list = db.Table(
     'guest_list',
     db.Column('event_id', db.Integer, db.ForeignKey('events.id'), primary_key=True),
@@ -45,24 +42,16 @@ class Event(db.Model):
     embedding    = db.Column(Vector(Config.VECTOR_DIM), nullable=True)
     version      = db.Column(db.Integer, nullable=False, default=1)
 
-    # ONE-TO-MANY: organizer
+    # Unified 1024-d vector for OpenAI and Ollama embeddings
+    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=False)
+
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    organizer    = db.relationship(
-        'User',
-        back_populates='organized_events',
-        lazy='joined',
-    )
+    organizer    = db.relationship('User', back_populates='organized_events', lazy='joined')
 
     location     = db.Column(db.String(LOCATION_MAX_LENGTH), nullable=True)
     category     = db.Column(db.String(CATEGORY_MAX_LENGTH), nullable=True)
 
-    # MANY-TO-MANY: guests
-    guests = db.relationship(
-        'User',
-        secondary=guest_list,
-        back_populates='events_attending',
-        lazy='dynamic',
-    )
+    guests = db.relationship('User', secondary=guest_list, back_populates='events_attending', lazy='dynamic')
 
     __mapper_args__ = {
         "version_id_col": version

@@ -1,11 +1,12 @@
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, text, select, bindparam
 from sqlalchemy.orm import Session
-from app.models.event import Event
+from pgvector.sqlalchemy import Vector
 from app.repositories.event_repository import EventRepository
-from typing import List, Optional
-
-
+from typing import List, Optional, Sequence, cast
+from app.models.event import Event
+from app.extensions import db
+from app.configuration.config import Config
 class EventRepositoryImpl(EventRepository):
 
     def get_all(self, session:Session) -> list[type[Event]]:
@@ -34,6 +35,35 @@ class EventRepositoryImpl(EventRepository):
         event = session.get(Event, event_id)
         if event:
             session.delete(event)
+
+    def search_by_embedding(self, query_vector: Sequence[float], k: int = 10,
+                            probes: Optional[int] = 10, session: Session = db.session) -> list[Event]:
+        vec = [float(x) for x in query_vector]
+
+        if probes is not None:
+            session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
+
+        stmt = select(Event).from_statement(
+            text("""
+                 SELECT e.*
+                 FROM events e
+                 WHERE e.embedding IS NOT NULL
+                 ORDER BY e.embedding <-> :q 
+                 LIMIT :k
+                 """).bindparams(
+                bindparam("q", value=vec, type_=Vector(Config.UNIFIED_VECTOR_DIM)),
+                bindparam("k", value=int(k)),
+            )
+        )
+
+        # IMPORTANT: .scalars().all() → List[Event]
+        res = session.execute(stmt, {"q": vec, "k": int(k)}).scalars().all()
+        return cast(list[Event], res)
+
+    def delete_by_id(self, event_id: int) -> None:
+        event = self.session.get(Event, event_id)
+
+
 
     def delete_by_title(self, title: str, session:Session) -> None:
         event = session.query(Event).filter_by(title=title).first()
