@@ -39,7 +39,6 @@ class Event(db.Model):
     title        = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
     datetime     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     description  = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
-    embedding    = db.Column(Vector(Config.VECTOR_DIM), nullable=True)
     version      = db.Column(db.Integer, nullable=False, default=1)
 
     # Unified 1024-d vector for OpenAI and Ollama embeddings

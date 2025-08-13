@@ -60,10 +60,10 @@ class EventRepositoryImpl(EventRepository):
         res = session.execute(stmt, {"q": vec, "k": int(k)}).scalars().all()
         return cast(list[Event], res)
 
-    def delete_by_id(self, event_id: int) -> None:
-        event = self.session.get(Event, event_id)
-
-
+    def delete_by_id(self, event_id: int, session:Session) -> None:
+        event = session.get(Event, event_id)
+        if event:
+            session.delete(event)
 
     def delete_by_title(self, title: str, session:Session) -> None:
         event = session.query(Event).filter_by(title=title).first()

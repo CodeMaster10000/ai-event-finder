@@ -1,5 +1,5 @@
 from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
-
+from app.util.format_event_util import format_event
 def test_real_embedding_call():
     event_data = {
         "title": "OpenAI Conference",
@@ -11,7 +11,7 @@ def test_real_embedding_call():
     }
 
     service = LocalEmbeddingService()
-    embedding = service.create_embedding(event_data)
+    embedding = service.create_embedding(format_event(event_data))
 
     print(f"Embedding vector (length {len(embedding)}):")
     print(embedding)

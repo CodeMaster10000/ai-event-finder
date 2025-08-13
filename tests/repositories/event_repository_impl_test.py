@@ -69,6 +69,7 @@ def now():
 # Events fixture
 @pytest.fixture
 def events_fixture(event_repo, db_session, organizer_user, now):
+
     event_data = [
         {
             "title": "Tech Conference 2025",
@@ -106,7 +107,7 @@ def events_fixture(event_repo, db_session, organizer_user, now):
             "category": "Entertainment",
         }
     ]
-
+    dummy_vector = [0.0] * Config.UNIFIED_VECTOR_DIM
     created_events = []
     for e in event_data:
         event = Event(
@@ -115,9 +116,10 @@ def events_fixture(event_repo, db_session, organizer_user, now):
             description=e["description"],
             organizer_id=organizer_user.id,
             location=e["location"],
-            category=e["category"]
+            category=e["category"],
+            embedding=dummy_vector
         )
-        saved_event = event_repo.save(event, db_session)
+        saved_event = event_repo.save(event, db_session())
         db_session.commit()
         created_events.append(saved_event)
 
@@ -131,7 +133,7 @@ def events_fixture(event_repo, db_session, organizer_user, now):
 # ----------------------------------------
 
 def test_get_all_events(event_repo, events_fixture, db_session):
-    fetched = event_repo.get_all(db_session)
+    fetched = event_repo.get_all(db_session())
     assert len(fetched) == len(events_fixture)
 
     saved_ids = {e.id for e in events_fixture}
@@ -201,13 +203,15 @@ def test_get_by_category(event_repo, events_fixture, db_session):
 
 
 def test_save_event(event_repo, organizer_user, now, db_session):
+    dummy_vector = [0.0] * Config.UNIFIED_VECTOR_DIM
     new_event = Event(
         title="New Test Event",
         datetime=now + timedelta(days=2),
         description="Test description",
         organizer_id=organizer_user.id,
         location="Test Location",
-        category="Test Category"
+        category="Test Category",
+        embedding=dummy_vector
     )
     saved = event_repo.save(new_event, db_session)
     db_session.commit()
@@ -265,49 +269,47 @@ def test_exists_by_date(event_repo, events_fixture, now, db_session):
 #----------------------------------------
 #    Testing the search_by_embedding method.
 #---------------------------------------
+
 class _ScalarResultStub:
-    def __init__(self, items): self._items = items
-    def all(self): return self._items
+    def __init__(self, items):
+        self._items = items
+    def all(self):
+        return self._items
 
 class _ExecuteResultStub:
-    def __init__(self, items): self._items = items
-    def scalars(self): return _ScalarResultStub(self._items)
+    def __init__(self, items):
+        self._items = items
+    def scalars(self):
+        return _ScalarResultStub(self._items)
 
 def test_search_by_embedding_unit_mock_with_embeddings():
-    repo = EventRepositoryImpl(session=MagicMock(spec=Session))
-    session = MagicMock(spec=Session)
+    # Create a mock session
+    fake_session = MagicMock(spec=Session)
 
-    D = Config.UNIFIED_VECTOR_DIM  # should be 1024
-    # Fake events (as if DB mapped them). Add embeddings.
-    e1 = Event(id=1, title="closest")  # other required fields aren’t used here
-    e1.embedding = [1.0] + [0.0]*(D-1)
-    e2 = Event(id=2, title="second")
-    e2.embedding = [2.0] + [0.0]*(D-1)
+    D = Config.UNIFIED_VECTOR_DIM
+    e1 = Event(id=1, title="closest"); e1.embedding = [1.0] + [0.0] * (D - 1)
+    e2 = Event(id=2, title="second");  e2.embedding = [2.0] + [0.0] * (D - 1)
 
-    # 1st execute: SET LOCAL ivfflat.probes (we ignore its return)
-    # 2nd execute: SELECT ... ORDER BY embedding <-> :q → returns our Events
-    session.execute.side_effect = [
+    # First execute: SET LOCAL probes → ignored
+    # Second execute: SELECT query → returns events
+    fake_session.execute.side_effect = [
         MagicMock(),
         _ExecuteResultStub([e1, e2]),
     ]
 
-    q = [0.9] + [0.0]*(D-1)
-    out = repo.search_by_embedding(q, k=2, probes=10, session=session)
+    repo = EventRepositoryImpl()
+
+    q = [0.9] + [0.0] * (D - 1)
+    out = repo.search_by_embedding(q, k=2, probes=10, session=fake_session)
 
     # Assertions
-    assert isinstance(out, list) and all(isinstance(x, Event) for x in out)
+    assert isinstance(out, list)
     assert [e.title for e in out] == ["closest", "second"]
     assert len(out[0].embedding) == D and out[0].embedding[0] == 1.0
     assert len(out[1].embedding) == D and out[1].embedding[0] == 2.0
 
-    # We also set probes and executed the SELECT with k=2
-    set_call, select_call = session.execute.call_args_list
-
-    # set_call is (args, kwargs) for the SET LOCAL
-    assert "SET LOCAL ivfflat.probes" in str(set_call[0][0])
-
-    # select_call is (args, kwargs) for the SELECT
-    args, kwargs = select_call
-    params = args[1]  # second positional arg is the dict {"q": vec, "k": 2}
+    # Verify calls
+    set_call, select_call = fake_session.execute.call_args_list
+    assert "SET LOCAL ivfflat.probes" in str(set_call.args[0])  # first call text
+    params = select_call.args[1]  # second positional arg is dict {"q": vec, "k": 2}
     assert params["k"] == 2
-

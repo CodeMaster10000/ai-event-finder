@@ -106,7 +106,7 @@ class EventRepository(ABC):
         """
         pass
     @abstractmethod
-    def search_by_embedding(self, query_vector: Sequence[float], k: int, session:Session) -> List[Event]:
+    def search_by_embedding(self, query_vector: Sequence[float], k: int, probes:Optional[int], session:Session) -> List[Event]:
         """
         Find the top-K events whose embeddings are most similar to `query_vec`.
         Returns only Event models (no scores), ordered by increasing distance.
