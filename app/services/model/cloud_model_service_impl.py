@@ -1,4 +1,6 @@
-from typing import List, cast
+from __future__ import annotations
+
+from typing import List, Dict, Any, cast, Optional
 
 from openai import OpenAI
 from openai.types.chat import (
@@ -19,6 +21,12 @@ class CloudModelService(ModelService):
     ModelService implementation that:
       - uses your existing EmbeddingService + EventRepository for RAG
       - calls an OpenAI-hosted chat LLM for generation
+
+    Public API preserved:
+      - __init__(event_repository, embedding_service, client, sys_prompt=None)
+      - query_prompt(user_prompt) -> str
+      - build_messages(sys_prompt, context, user_prompt) -> List[ChatCompletionMessageParam]
+      - get_rag_data_and_create_context(user_prompt) -> str
     """
 
     def __init__(
@@ -26,10 +34,15 @@ class CloudModelService(ModelService):
         event_repository: EventRepository,
         embedding_service: EmbeddingService,
         client: OpenAI,  # DI-provided OpenAI client
-        sys_prompt: str | None = None, #optional system prompt
+        sys_prompt: Optional[str] = None,
     ):
-        super().__init__(event_repository, embedding_service, sys_prompt=sys_prompt) # calls the ModelService constructor
-        self.client = client # stores the openai client on the instance
+        # Calls the ModelService constructor (keeps existing behavior)
+        super().__init__(event_repository, embedding_service, sys_prompt=sys_prompt)
+        self.client = client
+
+    # ---------------------------
+    # Public API
+    # ---------------------------
 
     def query_prompt(self, user_prompt: str) -> str:
         """
@@ -45,19 +58,13 @@ class CloudModelService(ModelService):
             self.sys_prompt, rag_context, user_prompt
         )
 
-        # 3) call OpenAI
-        resp = self.client.chat.completions.create(
-            model=Config.OPENAI_MODEL,  # or annotate OPENAI_MODEL: str in Config
-            messages=messages,
-            **getattr(Config, "OPENAI_GEN_OPTS", {}),
-        )
-
-        # OpenAI response shape: choices[0].message.content
-        return resp.choices[0].message.content.strip()
+        # 3) call OpenAI (non-streaming by default; safe against duplicate kwargs)
+        text = self._generate_text(messages)
+        return text
 
     def build_messages(
         self,
-        sys_prompt: str | None,
+        sys_prompt: Optional[str],
         context: str,
         user_prompt: str,
     ) -> List[ChatCompletionMessageParam]:
@@ -67,7 +74,7 @@ class CloudModelService(ModelService):
         - user:   the original user prompt
         """
         sys_text = (sys_prompt or "").strip()
-        ctx_text = (context or "").strip()
+        ctx_text = (context or "no events retrieved").strip()
 
         system_msg: ChatCompletionSystemMessageParam = {
             "role": "system",
@@ -96,3 +103,36 @@ class CloudModelService(ModelService):
         # 3) format events
         formatted = [format_event(e) for e in events]
         return "\n".join(formatted)
+
+    # ---------------------------
+    # Internals
+    # ---------------------------
+
+    def _generate_text(self, messages: List[ChatCompletionMessageParam]) -> str:
+        """
+        Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
+        Returns plain string content (non-streaming aggregation if you ever enable streaming).
+        """
+        model = getattr(Config, "OPENAI_MODEL", "gpt-4o-mini")
+
+        # Start from config opts; ensure it's a dict
+        cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_GEN_OPTS", {}) or {})
+
+        # We always return a final string from this method.
+        # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
+        # (If you later want streaming, create a separate method that yields chunks.)
+        cfg_opts.pop("stream", None)
+
+        # Optional: set a sane default timeout if supported via 'timeout' in your HTTP client config.
+        # (OpenAI SDK uses 'max_retries' and timeouts in client config; leaving here for clarity.)
+        # cfg_opts.setdefault("timeout", 60)
+
+        resp = self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            **cfg_opts,
+        )
+
+        # Defensive extraction
+        msg = (resp.choices[0].message.content if resp.choices and resp.choices[0].message else None) or ""
+        return msg.strip()

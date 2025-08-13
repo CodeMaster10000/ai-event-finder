@@ -36,7 +36,6 @@ class UserBaseResource(Resource):
 
     @user_ns.expect(user_create_input)
     @inject
-    @jwt_required()
     def post(self,
              user_service: UserService = Provide[Container.user_service]):
         """Create or update a user"""
