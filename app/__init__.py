@@ -13,6 +13,7 @@ from app.error_handler.auth_exception_handlers import register_auth_error_handle
 from app.error_handler.global_error_handler import register_error_handlers
 from app.extensions import db, jwt
 from app.models.user import User  # Importing all the necessary models (Users, Events, etc.)
+from app.routes.app_route import app_ns
 from app.routes.event_route import event_ns
 from app.routes.login_route import auth_ns
 from app.routes.user_route import user_ns
@@ -43,7 +44,7 @@ def create_api(app: Flask):
     api.add_namespace(user_ns, path="/users")
     api.add_namespace(event_ns, path="/events")
     api.add_namespace(auth_ns, path="/auth")
-
+    api.add_namespace(app_ns, path="/app")
 
 # Main app factory function for Flask to create the app instance
 def create_app(test_config: dict | None = None):
