@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from pgvector.sqlalchemy import Vector
 
 from app.configuration.config import Config
@@ -22,11 +22,11 @@ class Event(db.Model):
 
     id          = db.Column(db.Integer, primary_key=True)
     title       = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
-    datetime    = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    datetime    = db.Column(db.DateTime, nullable=False, default=datetime.now(UTC))
     description = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
 
     # Unified 1024-d vector for OpenAI and Ollama embeddings
-    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=False)
+    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=True)
 
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizer    = db.relationship('User', back_populates='organized_events', lazy='joined')

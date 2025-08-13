@@ -40,13 +40,13 @@ class EventRepositoryImpl(EventRepository):
 
         if probes is not None:
             session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
-
+        # Sorting events by cosine distance to our query
         stmt = select(Event).from_statement(
             text("""
                  SELECT e.*
                  FROM events e
                  WHERE e.embedding IS NOT NULL
-                 ORDER BY e.embedding <-> :q 
+                 ORDER BY e.embedding <=> :q 
                  LIMIT :k
                  """).bindparams(
                 bindparam("q", value=vec, type_=Vector(Config.UNIFIED_VECTOR_DIM)),
