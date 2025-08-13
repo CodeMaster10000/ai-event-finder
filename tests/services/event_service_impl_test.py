@@ -22,7 +22,6 @@ from app.error_handler.exceptions import (
     EventDeleteException,
     UserNotFoundException)
 from app.extensions import db
-import app.__init__ as app_init_mod   # ✅ this was missing
 from app.util.format_event_util import format_event
 
 

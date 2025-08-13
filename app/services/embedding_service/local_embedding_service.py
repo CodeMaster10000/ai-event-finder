@@ -26,7 +26,7 @@ class LocalEmbeddingService(EmbeddingService):
 
         response = requests.post(
             f"{Config.OLLAMA_URL}/api/embeddings",
-            json={"model": Config.OLLAMA_MODEL, "prompt": text},
+            json={"model": Config.OLLAMA_EMBEDDING_MODEL, "prompt": text},
         )
         response.raise_for_status()
         result = response.json()

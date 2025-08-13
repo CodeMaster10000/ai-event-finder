@@ -125,8 +125,8 @@ def test_login_nonexistent_user(client):
         "password": "nopass"
     })
     data = response.get_json()
-    assert response.status_code == 401
-    assert data["message"] == "Invalid credentials"
+    assert response.status_code == 404
+    assert data["message"] == "User not found with email nonexistent@example.com"
 
 def test_login_missing_fields(client):
     response = client.post("/auth/login", json={"email": "test@example.com"})

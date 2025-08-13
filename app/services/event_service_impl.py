@@ -92,8 +92,11 @@ class EventServiceImpl(EventService):
             raise EventSaveException(original_exception=e)
 
     def update(self, event: Event) -> Event:
-        existing_event = self.event_repository.get_by_id(event.id, db.session)
-        conflict = self.event_repository.get_by_title(event.title, db.session)
+        new_title = event.title
+        with db.session.no_autoflush:
+
+            existing_event = self.event_repository.get_by_id(event.id, db.session)
+            conflict = self.event_repository.get_by_title(event.title, db.session)
         if conflict is not None and existing_event is not None and conflict.id != existing_event.id:
             raise EventAlreadyExistsException(conflict.title)
         if not existing_event:
@@ -102,9 +105,8 @@ class EventServiceImpl(EventService):
         # end the read-only txn before external I/O
         formatted = format_event(event)
         db.session.rollback()
-
         event.embedding = self.embedding_service.create_embedding(formatted)
-
+        event.title = new_title
         try:
             updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)  # no extra recheck needed here
             return updated
@@ -125,5 +127,7 @@ class EventServiceImpl(EventService):
                 if found and getattr(found, "id", None) != getattr(event, "id", None):
                     raise EventAlreadyExistsException(title_for_recheck)
 
+        # Now save the event
         return self.event_repository.save(event, session)
+
 
