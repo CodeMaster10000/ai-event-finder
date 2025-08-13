@@ -14,6 +14,7 @@ from app.services.user_service_impl import UserServiceImpl
 from app.services.app_service_impl import AppServiceImpl
 from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
 from app.services.model.local_model_service_impl import LocalModelService
+from app.services.model.cloud_model_service_impl import CloudModelService
 
 
 class Container(containers.DeclarativeContainer):
@@ -31,6 +32,12 @@ class Container(containers.DeclarativeContainer):
         openai_client = providers.Singleton(OpenAI, api_key=Config.OPENAI_API_KEY)
         embedding_service = providers.Singleton(
             CloudEmbeddingService,
+            client=openai_client,
+        )
+        model_service = providers.Singleton(
+            CloudModelService,
+            event_repository=event_repository,
+            embedding_service=embedding_service,
             client=openai_client,
         )
     else:
