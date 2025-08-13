@@ -31,7 +31,7 @@ class Config:
 
     # CLOUD
     OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE"))
-    OPENAI_P = float(os.getenv("OPENAI_PREDICT"))
+    OPENAI_P = float(os.getenv("OPENAI_P"))
     FREQUENCY_PENALTY = float(os.getenv("OPENAI_FREQUENCY_PENALTY"))
     PRESENCE_PENALTY = float(os.getenv("OPENAI_PRESENCE_PENALTY"))
     MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS"))
