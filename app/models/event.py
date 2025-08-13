@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from pgvector.sqlalchemy import Vector
 
 from app.configuration.config import Config
@@ -17,32 +17,17 @@ guest_list = db.Table(
 )
 
 class Event(db.Model):
-    """
-    Represents an event in the database.
-
-    Attributes:
-        id (int):                  Primary key.
-        title (str):               Title (max length = TITLE_MAX_LENGTH).
-        datetime (datetime):       When the event takes place.
-        description (str):         Description (max length = DESCRIPTION_MAX_LENGTH).
-        embedding (vector):        Vector embedding (dim = Config.VECTOR_DIM).
-        organizer_id (int):        FK to User who organized.
-        organizer (User):          Relationship to the organizer.
-        location (str):            Location (max length = LOCATION_MAX_LENGTH).
-        category (str):            Category (max length = CATEGORY_MAX_LENGTH).
-        guests (List[User]):       Users invited to the event.
-        version (int):             Optimistic lock version counter (auto-incremented on update).
-    """
+    """Event with a single unified 1024-dim embedding column for semantic search."""
     __tablename__ = 'events'
 
-    id           = db.Column(db.Integer, primary_key=True)
-    title        = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
-    datetime     = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    description  = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
+    id          = db.Column(db.Integer, primary_key=True)
+    title       = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
+    datetime    = db.Column(db.DateTime, nullable=False, default=datetime.now(UTC))
+    description = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
     version      = db.Column(db.Integer, nullable=False, default=1)
 
     # Unified 1024-d vector for OpenAI and Ollama embeddings
-    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=False)
+    embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=True)
 
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizer    = db.relationship('User', back_populates='organized_events', lazy='joined')
