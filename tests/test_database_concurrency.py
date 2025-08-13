@@ -11,7 +11,6 @@ from app.models.event import Event
 from app.util.transaction_util import transactional, retry_conflicts
 from app.error_handler.exceptions import (
     ConcurrencyException,
-    EventAlreadyExistsException,
     UserAlreadyInEventException,
 )
 
@@ -198,23 +197,25 @@ def test_http_conflict_mapping_returns_409(app):
     assert data["error"]["code"] == "CONCURRENT_UPDATE"
 
 # ---------- New / fixed tests ----------
-
-def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Session, monkeypatch):
+def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Session):
     """
     EventService.create: (1) no active DB txn during external call,
     (2) TOCTOU title re-check blocks a race introduced between phases.
     """
+    from datetime import datetime, UTC
+    from app.extensions import db
+    from app.models.user import User
+    from app.models.event import Event
     from app.services.event_service_impl import EventServiceImpl
     from app.repositories.event_repository_impl import EventRepositoryImpl
     from app.repositories.user_repository_impl import UserRepositoryImpl
+    from app.error_handler.exceptions import EventAlreadyExistsException
 
     with app.app_context():
         # Seed organizer
         organizer = User(name="Org", surname="One", email="org@x.com", password="pw")
         db.session.add(organizer)
         db.session.commit()
-
-        svc = EventServiceImpl(EventRepositoryImpl(), UserRepositoryImpl())
 
         # Stub embedding: assert no txn, then create rival event in separate Session
         class StubEmbed:
@@ -225,18 +226,70 @@ def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Sess
                 # Competing event with the same title in another session (race)
                 s2 = Session()
                 e = Event(title="Clash", description="rival", organizer_id=organizer.id)
-                from datetime import datetime as _dt
                 e.datetime = datetime.now(UTC)
                 s2.add(e)
                 s2.commit()
                 s2.close()
                 return [0.1, 0.2, 0.3]
 
-        svc.embedding_service = StubEmbed()
+        svc = EventServiceImpl(EventRepositoryImpl(), UserRepositoryImpl(), StubEmbed())
 
         data = {"title": "Clash", "description": "d", "organizer_email": "org@x.com"}
         with pytest.raises(EventAlreadyExistsException):
             svc.create(data)
+
+# test_split_phase_update_has_no_txn_during_external_call_and_toctou
+def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Session):
+    """
+    EventService.update: (1) no active DB txn during external call,
+    (2) if another event with the target title is inserted between phases,
+        the persist step re-raises the expected domain error.
+    """
+    from datetime import datetime, UTC
+    from app.extensions import db
+    from app.models.user import User
+    from app.models.event import Event
+    from app.services.event_service_impl import EventServiceImpl
+    from app.repositories.event_repository_impl import EventRepositoryImpl
+    from app.repositories.user_repository_impl import UserRepositoryImpl
+    from app.error_handler.exceptions import EventAlreadyExistsException
+    from app.configuration.config import Config
+
+    with app.app_context():
+        # Seed organizer + base event
+        organizer = User(name="Org", surname="One", email="org@x.com", password="pw")
+        db.session.add(organizer)
+        db.session.commit()
+
+        base = Event(title="BaseTitle", description="orig", organizer_id=organizer.id)
+        base.datetime = datetime.now(UTC)
+        db.session.add(base)
+        db.session.commit()
+        eid = base.id
+
+        # Stub embedding: assert no txn, then create competitor with target title
+        class StubEmbed:
+            def create_embedding(self, payload):
+                real = db.session() if callable(db.session) else db.session
+                assert real.get_transaction() is None  # no txn during external I/O
+
+                s2 = Session()
+                rival = Event(title="Clash", description="rival", organizer_id=organizer.id)
+                rival.datetime = datetime.now(UTC)
+                s2.add(rival)
+                s2.commit()
+                s2.close()
+                return [0.0] * Config.UNIFIED_VECTOR_DIM
+
+        svc = EventServiceImpl(EventRepositoryImpl(), UserRepositoryImpl(), StubEmbed())
+
+        # Prepare an update that changes the title to "Clash"
+        ev = db.session.get(Event, eid)
+        ev.title = "Clash"
+
+        with pytest.raises(EventAlreadyExistsException):
+            svc.update(ev)
+
 
 
 def test_transactional_joins_outer_and_rolls_back_once(app):
@@ -336,57 +389,4 @@ def test_app_service_duplicate_invite_mapping_branch(app, monkeypatch):
         with pytest.raises(UserAlreadyInEventException):
             svc.add_participant_to_event("E", "u@v.com")
 
-def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Session):
-    """
-    EventService.update: (1) no active DB txn during external call,
-    (2) if another event with the target title is inserted between phases,
-        the persist step re-raises the expected domain error.
-    """
-    from datetime import datetime as _dt
-    from app.models.user import User
-    from app.models.event import Event
-    from app.services.event_service_impl import EventServiceImpl
-    from app.repositories.event_repository_impl import EventRepositoryImpl
-    from app.repositories.user_repository_impl import UserRepositoryImpl
-    from app.error_handler.exceptions import EventAlreadyExistsException
-    from app.configuration.config import Config
 
-    with app.app_context():
-        # Seed organizer + base event
-        organizer = User(name="Org", surname="One", email="org@x.com", password="pw")
-        db.session.add(organizer)
-        db.session.commit()
-
-        base = Event(title="BaseTitle", description="orig", organizer_id=organizer.id)
-        base.datetime = datetime.now(UTC)
-        db.session.add(base)
-        db.session.commit()
-        eid = base.id
-
-        svc = EventServiceImpl(EventRepositoryImpl(), UserRepositoryImpl())
-
-        # Stub embedding: assert no txn, then create a competitor with the target title
-        class StubEmbed:
-            def create_embedding(self, payload):
-                real = db.session() if callable(db.session) else db.session
-                # No DB transaction should be active during external work
-                assert real.get_transaction() is None
-
-                # Introduce a race: insert another event with the target "Clash" title
-                s2 = Session()
-                rival = Event(title="Clash", description="rival", organizer_id=organizer.id)
-                rival.datetime = datetime.now(UTC)
-                s2.add(rival)
-                s2.commit()
-                s2.close()
-                return [0.0] * Config.VECTOR_DIM
-
-        svc.embedding_service = StubEmbed()
-
-        # Prepare an update that changes the title to "Clash"
-        ev = db.session.get(Event, eid)
-        ev.title = "Clash"
-
-        # Expect the persist phase to surface the domain conflict
-        with pytest.raises(EventAlreadyExistsException):
-            svc.update(ev)

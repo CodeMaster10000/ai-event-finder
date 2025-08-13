@@ -4,10 +4,12 @@ Unit tests for the EventServiceImpl class.
 These tests mock the EventRepository to verify business logic in isolation,
 including proper exception handling and delegation of operations.
 """
-
+import flask_migrate
 import pytest
 from unittest.mock import MagicMock
 from datetime import datetime
+
+from flask import Flask
 from sqlalchemy.orm import Session
 from unittest.mock import ANY
 from app.models.event import Event
@@ -19,19 +21,49 @@ from app.error_handler.exceptions import (
     EventSaveException,
     EventDeleteException,
     UserNotFoundException)
+from app.extensions import db
+import app.__init__ as app_init_mod   # ✅ this was missing
 from app.util.format_event_util import format_event
 
 
 # -------------------------------
 # Fixtures
 # -------------------------------
+@pytest.fixture(scope="session")
+def app():
+    """
+    Minimal Flask app for unit tests.
+    - No create_app()
+    - No Flask-Migrate
+    - In-memory SQLite
+    """
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+
+    db.init_app(app)
+
+    with app.app_context():
+        # Import models so create_all() knows what to create
+        from app.models.user import User   # noqa: F401
+        from app.models.event import Event # noqa: F401
+
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
+
+
 
 @pytest.fixture
 def fake_session():
     s = MagicMock(spec=Session)
     s.commit = MagicMock()
     s.rollback = MagicMock()
-
+    s.remove= MagicMock()
     class _NoAutoflush:
         def __enter__(self): return None
         def __exit__(self, *a): return False
@@ -376,46 +408,91 @@ def test_update_wraps_save_errors(event_service, mock_event_repo, patch_db_sessi
         event_service.update(event)
 
     assert isinstance(ei.value.original_exception, ValueError)
+def test_create_event_calls_embedding(app, event_service, mock_event_repo, mock_user_repo, mock_embedding_service, patch_db_session):
+    with app.app_context():
+        # Arrange
+        organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+        mock_user_repo.get_by_email.return_value = organizer
+        # create(): pre-check -> None (no duplicate)
+        mock_event_repo.get_by_title.side_effect = [None, None]  # pre-check + TOCTOU recheck
 
-def test_create_event_calls_embedding(event_service, mock_event_repo, mock_user_repo, mock_embedding_service):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    mock_user_repo.get_by_email.return_value = organizer
-    mock_event_repo.get_by_title.return_value = None
+        payload = {
+            'title': 'Event 1',
+            'description': 'desc',
+            'datetime': datetime.now(),
+            'location': 'L1',
+            'category': 'cat',
+            'organizer_email': organizer.email
+        }
 
-    payload = {
-        'title': 'Event 1',
-        'description': 'desc',
-        'datetime': datetime.now(),
-        'location': 'L1',
-        'category': 'cat',
-        'organizer_email': organizer.email
-    }
-    saved = Event(
-        id=None, title=payload['title'], description=payload['description'],
-        datetime=payload['datetime'], location='L1', category='cat',
-        organizer_id=organizer.id
-    )
-    mock_event_repo.save.return_value = saved
-    # define what embedding_service should return
-    mock_embedding_service.create_embedding.return_value = [0.1, 0.2, 0.3]
+        # Let save() return the SAME object it was given (avoids identity surprises)
+        def _save(e, session):
+            e.id = 42
+            return e
+        mock_event_repo.save.side_effect = _save
 
-    result = event_service.create(payload)
+        mock_embedding_service.create_embedding.return_value = [0.1, 0.2, 0.3]
 
-    mock_event_repo.save.assert_called_once()
-    mock_embedding_service.create_embedding.assert_called_once_with(saved)
-    assert hasattr(result, 'embedding')
-    assert result.embedding == [0.1, 0.2, 0.3]
+        # We need the expected formatted text the service will produce
+        expected_event_pre_save = Event(
+            title=payload['title'],
+            description=payload['description'],
+            datetime=payload['datetime'],
+            location=payload['location'],
+            category=payload['category'],
+            organizer_id=organizer.id
+        )
+        expected_formatted = format_event(expected_event_pre_save)
 
-def test_update_success_calls_embedding(event_service, mock_event_repo, mock_user_repo, mock_embedding_service):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    ev = Event(1, 'E', None, datetime.now(), 'd', 1, 'L', 'C')
-    mock_event_repo.get_by_id.return_value = ev
-    mock_event_repo.get_by_title.return_value = ev
-    mock_event_repo.save.return_value = ev
-    mock_embedding_service.create_embedding.return_value = ['v']
+        # Act
+        result = event_service.create(payload)
 
-    result = event_service.update(ev)
+        # Assert repository interactions respecting sessions & TOCTOU
+        a0, _ = mock_event_repo.get_by_title.call_args_list[0]
+        a1, _ = mock_event_repo.get_by_title.call_args_list[1]
+        assert a0 == (payload['title'], patch_db_session)  # direct read session
+        assert a1 == (payload['title'], ANY)               # decorator session in _persist
 
-    mock_event_repo.save.assert_called_once_with(ev)
-    mock_embedding_service.create_embedding.assert_called_once_with(ev)
-    assert result.embedding == ['v']
+        mock_event_repo.save.assert_called_once()
+        # Embedding service called with the formatted string (NOT the Event object)
+        mock_embedding_service.create_embedding.assert_called_once_with(expected_formatted)
+
+        assert hasattr(result, 'embedding')
+        assert result.embedding == [0.1, 0.2, 0.3]
+        assert result.id == 42
+
+def test_update_success_calls_embedding(app, event_service, mock_event_repo, mock_user_repo, mock_embedding_service, patch_db_session):
+    with app.app_context():
+        # Arrange: existing event
+        ev = Event(
+            id=1,
+            title="OpenAI Conference",
+            description="Annual conference on artificial intelligence.",
+            location="San Francisco, CA",
+            category="Technology",
+            datetime=datetime(2025, 8, 6, 9, 0, 0),
+            organizer_id=1
+        )
+        mock_event_repo.get_by_id.return_value = ev
+        # conflict check: same title returns THIS event (no conflict)
+        mock_event_repo.get_by_title.return_value = ev
+
+        def _save(e, session):
+            return e
+        mock_event_repo.save.side_effect = _save
+
+        mock_embedding_service.create_embedding.return_value = ['v']
+
+        expected_formatted = format_event(ev)
+
+        # Act
+        result = event_service.update(ev)
+
+        # Assert: pre-checks use direct session, persist uses decorator session
+        mock_event_repo.get_by_id.assert_called_once_with(ev.id, patch_db_session)
+        a0, _ = mock_event_repo.get_by_title.call_args_list[0]
+        assert a0 == (ev.title, patch_db_session)
+
+        mock_event_repo.save.assert_called_once_with(ev, ANY)
+        mock_embedding_service.create_embedding.assert_called_once_with(expected_formatted)
+        assert result.embedding == ['v']

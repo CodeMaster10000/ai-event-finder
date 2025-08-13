@@ -77,9 +77,9 @@ class EventServiceImpl(EventService):
 
 
         # close read-only txn before external I/O
+        formatted = format_event(event)
         db.session.rollback()
 
-        formatted = format_event(event)
         event.embedding = self.embedding_service.create_embedding(formatted)
 
         # 4) Persist it
@@ -99,12 +99,11 @@ class EventServiceImpl(EventService):
         if not existing_event:
             raise EventNotFoundException("Event not found in the database.")
 
-
         # end the read-only txn before external I/O
+        formatted = format_event(event)
         db.session.rollback()
 
         event.embedding = self.embedding_service.create_embedding(formatted)
-        formatted = format_event(event)
 
         try:
             updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)  # no extra recheck needed here
@@ -121,7 +120,9 @@ class EventServiceImpl(EventService):
         # Optional TOCTOU recheck (used by create)
         if recheck_title and title_for_recheck:
             with session.no_autoflush:
-                if self.event_repository.get_by_title(title_for_recheck, session):
+                found = self.event_repository.get_by_title(title_for_recheck, session)
+                # Only a conflict if it's a different event
+                if found and getattr(found, "id", None) != getattr(event, "id", None):
                     raise EventAlreadyExistsException(title_for_recheck)
 
         return self.event_repository.save(event, session)
