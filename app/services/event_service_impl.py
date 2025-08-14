@@ -4,13 +4,12 @@ from app.models.event import Event
 from app.repositories.event_repository import EventRepository
 from app.repositories.user_repository import UserRepository
 from app.services.event_service import EventService
-from app.util.format_event_util import format_event
 from app.util.validation_util import validate_user, validate_event
 from app.util.transaction_util import transactional, retry_conflicts
 from app.extensions import db
 from app.services.embedding_service.embedding_service import EmbeddingService
 from app.util.format_event_util import format_event
-
+from sqlalchemy import inspect
 from app.error_handler.exceptions import (
     EventNotFoundException,
     EventSaveException,
@@ -92,25 +91,50 @@ class EventServiceImpl(EventService):
             raise EventSaveException(original_exception=e)
 
     def update(self, event: Event) -> Event:
+        # Capture the new title separately for early uniqueness check
         new_title = event.title
-        with db.session.no_autoflush:
 
+        # Avoid autoflush while we run read-side checks
+        with db.session.no_autoflush:
             existing_event = self.event_repository.get_by_id(event.id, db.session)
-            conflict = self.event_repository.get_by_title(event.title, db.session)
+            conflict = self.event_repository.get_by_title(new_title, db.session)
+
         if conflict is not None and existing_event is not None and conflict.id != existing_event.id:
             raise EventAlreadyExistsException(conflict.title)
         if not existing_event:
             raise EventNotFoundException("Event not found in the database.")
 
-        # end the read-only txn before external I/O
+        # ---- Build a patch of user changes BEFORE rollback ----
+        state = inspect(event)
+        pending_changes = {}
+        for attr in state.attrs:
+            # keep only attributes the user actually changed
+            if attr.history.has_changes():
+                key = attr.key
+                # we'll set embedding explicitly after the external call
+                if key == "embedding":
+                    continue
+                pending_changes[key] = getattr(event, key)
+
+        # Prepare the formatted payload from the edited state
         formatted = format_event(event)
+
+        # End the read-only transaction before the external I/O
         db.session.rollback()
+
+        # External call (no DB txn open)
         event.embedding = self.embedding_service.create_embedding(formatted)
-        event.title = new_title
+
+        # Re-apply the user's pending changes that rollback may have expired
+        for key, value in pending_changes.items():
+            setattr(event, key, value)
+
         try:
-            updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)  # no extra recheck needed here
+            # Re-check title inside the short write txn (TOCTOU guard) and persist
+            updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)
             return updated
         except EventAlreadyExistsException:
+            # bubble up domain conflict unchanged
             raise
         except Exception as e:
             raise EventSaveException(original_exception=e)

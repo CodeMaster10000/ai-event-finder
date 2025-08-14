@@ -20,11 +20,7 @@ from app.services.model.cloud_model_service_impl import CloudModelService
 class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(packages=["app.routes", "app.services"])
 
-    # Sessions are created and closed per HTTP request
-    #db_session = providers.Singleton(lambda: db.session)
 
-    # If you have a UserRepository, you could also do:
-    # user_repository = providers.Factory(UserRepository, session=db_session)
     # Repositories
     user_repository = providers.Singleton(
         UserRepositoryImpl,

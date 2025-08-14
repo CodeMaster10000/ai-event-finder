@@ -13,8 +13,6 @@ class User(db.Model):
         email (str):                 User's email address (max length = EMAIL_MAX_LENGTH).
         password (str):              Hashed password (max length = PASSWORD_MAX_LENGTH).
         version (int):               Optimistic lock version counter (auto-incremented on update).
-        events_attending (List[Event]): Events this user is invited to.
-        organized_events (List[Event]): Events this user has organized.
     """
 
     id = db.Column(db.Integer, primary_key=True)
