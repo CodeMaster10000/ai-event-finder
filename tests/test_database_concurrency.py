@@ -1,6 +1,7 @@
 # tests/test_concurrency.py
 import pytest
 from sqlalchemy.orm import sessionmaker
+import concurrent.futures
 from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, UTC
@@ -354,6 +355,33 @@ def test_request_session_isolation_across_requests(app):
     # a separate request never sees it either
     with app.test_request_context():
         assert db.session.query(User).filter_by(email=email).count() == 0
+
+
+def _session_id_for_request(app, name):
+    """Simulates one request, returns the id() of its db.Session."""
+    with app.test_request_context():
+        session = db.session()  # actual Session instance
+        # Do a trivial operation to make sure it's active
+        u = User(name=name, surname="X", email=f"{name}@test.com", password="pw")
+        session.add(u)
+        session.flush()
+        return id(session)
+
+
+def test_parallel_request_scoped_sessions_are_different(app):
+    """
+    Simulate multiple requests running in parallel and ensure
+    that each request gets its own independent Session instance.
+    """
+    names = ["req1", "req2", "req3", "req4"]
+
+    with app.app_context():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(names)) as executor:
+            results = list(executor.map(lambda n: _session_id_for_request(app, n), names))
+
+    # All returned Session IDs should be unique
+    assert len(set(results)) == len(results), \
+        f"Expected unique session IDs, got {results}"
 
 
 
