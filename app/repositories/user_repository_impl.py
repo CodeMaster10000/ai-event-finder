@@ -23,13 +23,11 @@ class UserRepositoryImpl(UserRepository):
 
     def save(self, user: User, session:Session) -> User:
         session.add(user)
-        #session.commit()
         return user
 
     def delete_by_id(self, user_id: int, session:Session) -> None:
         user = session.get(User, user_id)
         session.delete(user)
-        #session.commit()
 
     def exists_by_id(self, user_id: int, session:Session) -> bool:
         user = session.query(User).get(user_id)
