@@ -43,7 +43,6 @@ class UserSaveException(Exception):
         message = "Unable to save user due to an internal error."
         super().__init__(message)
 
-
 class UserDeleteException(Exception):
     """
     Raised when deleting a user from the database fails (aside from not found).
@@ -124,12 +123,15 @@ class EmbeddingServiceException(Exception):
         self.original_exception = original_exception
         super().__init__(message)
 
-class EmbeddingVectorException(Exception):
+class ConcurrencyException(Exception):
     """
-    Raised when encountering embedding vector fails (like wrong vector_dim)
+    Wraps cases where optimistic locking (via a version column)
+    fails because the data has been modified by another transaction
+    since it was last read.
     """
     def __init__(self, message: str):
         super().__init__(message)
+
 
 
 

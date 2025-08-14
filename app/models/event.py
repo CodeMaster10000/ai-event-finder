@@ -24,6 +24,7 @@ class Event(db.Model):
     title       = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
     datetime    = db.Column(db.DateTime, nullable=False, default=datetime.now(UTC))
     description = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
+    version      = db.Column(db.Integer, nullable=False, default=1)
 
     # Unified 1024-d vector for OpenAI and Ollama embeddings
     embedding = db.Column(Vector(Config.UNIFIED_VECTOR_DIM), nullable=True)
@@ -35,6 +36,10 @@ class Event(db.Model):
     category     = db.Column(db.String(CATEGORY_MAX_LENGTH), nullable=True)
 
     guests = db.relationship('User', secondary=guest_list, back_populates='events_attending', lazy='dynamic')
+
+    __mapper_args__ = {
+        "version_id_col": version
+    }
 
     def __repr__(self):
         return f"<Event {self.id} – {self.title} @ {self.datetime.isoformat()}>"

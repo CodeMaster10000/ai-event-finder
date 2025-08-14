@@ -4,7 +4,6 @@ import traceback
 from flask import jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from app.error_handler.exceptions import EmbeddingServiceException
 
 
 def register_error_handlers(app):
@@ -25,7 +24,9 @@ def register_error_handlers(app):
         EventSaveException,
         EventDeleteException,
         UserNotInEventException,
-        UserAlreadyInEventException
+        UserAlreadyInEventException,
+        ConcurrencyException,
+        EmbeddingServiceException
     )
 
     @app.errorhandler(UserNotFoundException)
@@ -67,6 +68,10 @@ def register_error_handlers(app):
     @app.errorhandler(UserAlreadyInEventException)
     def handle_user_already_in_event(exception):
         return jsonify({"error": {"code": "USER_ALREADY_IN_EVENT", "message": str(exception)}}), 409
+
+    @app.errorhandler(ConcurrencyException)
+    def handle_concurrency_exception(exception):
+        return jsonify({"error": {"code": "CONCURRENT_UPDATE", "message": str(exception)}}), 409
 
     @app.errorhandler(EmbeddingServiceException)
     def handle_embedding_service_error(exception: EmbeddingServiceException):
@@ -118,3 +123,4 @@ def register_error_handlers(app):
                 "message": f"Unexpected error: {type(e).__name__}"
             }
         }), 500
+

@@ -14,5 +14,5 @@ __pycache__/
 
 #Ignore .lock files
 *.lock
-
+poetry.lock
 .env

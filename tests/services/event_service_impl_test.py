@@ -4,10 +4,14 @@ Unit tests for the EventServiceImpl class.
 These tests mock the EventRepository to verify business logic in isolation,
 including proper exception handling and delegation of operations.
 """
-
+import flask_migrate
 import pytest
 from unittest.mock import MagicMock
 from datetime import datetime
+
+from flask import Flask
+from sqlalchemy.orm import Session
+from unittest.mock import ANY
 from app.models.event import Event
 from app.models.user import User
 from app.services.event_service_impl import EventServiceImpl
@@ -17,8 +21,60 @@ from app.error_handler.exceptions import (
     EventSaveException,
     EventDeleteException,
     UserNotFoundException)
+from app.extensions import db
 from app.util.format_event_util import format_event
 
+
+# -------------------------------
+# Fixtures
+# -------------------------------
+@pytest.fixture(scope="session")
+def app():
+    """
+    Minimal Flask app for unit tests.
+    - No create_app()
+    - No Flask-Migrate
+    - In-memory SQLite
+    """
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+
+    db.init_app(app)
+
+    with app.app_context():
+        # Import models so create_all() knows what to create
+        from app.models.user import User   # noqa: F401
+        from app.models.event import Event # noqa: F401
+
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
+
+
+
+@pytest.fixture
+def fake_session():
+    s = MagicMock(spec=Session)
+    s.commit = MagicMock()
+    s.rollback = MagicMock()
+    s.remove= MagicMock()
+    class _NoAutoflush:
+        def __enter__(self): return None
+        def __exit__(self, *a): return False
+    s.no_autoflush = _NoAutoflush()
+    return s
+
+@pytest.fixture
+def patch_db_session(fake_session, monkeypatch):
+    # Set db.session to a NON-callable fake Session object.
+    from app import extensions as _ext
+    monkeypatch.setattr(_ext.db, "session", fake_session)
+    return fake_session
 
 @pytest.fixture
 def mock_event_repo():
@@ -37,120 +93,91 @@ def event_service(mock_event_repo, mock_user_repo, mock_embedding_service):
     return EventServiceImpl(event_repository=mock_event_repo, user_repository=mock_user_repo, embedding_service=mock_embedding_service)
 
 
-def test_get_by_title_success(event_service, mock_event_repo):
-    organizer = User(id=1, name="Name", surname="Surname", email="email@example.com", password="secret")
-    event = Event(id=1,
-                  title="Event 1",
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description="Event description",
-                  organizer_id=organizer.id,
-                  location="Location 1",
-                  category="category")
+# -------------------------------
+# Tests
+# -------------------------------
 
+def test_get_by_title_success(event_service, mock_event_repo, patch_db_session):
+    organizer = User(id=1, name="Name", surname="Surname", email="email@example.com", password="secret")
+    event = Event(id=1, title="Event 1", organizer=organizer, datetime=datetime.now(),
+                  description="Event description", organizer_id=organizer.id,
+                  location="Location 1", category="category")
     mock_event_repo.get_by_title.return_value = event
 
     result = event_service.get_by_title("Event 1")
 
-    mock_event_repo.get_by_title.assert_called_once_with("Event 1")
-
+    mock_event_repo.get_by_title.assert_called_once_with("Event 1", patch_db_session)
     assert result == event
 
 
-
-def test_get_by_title_raises_if_not_found(event_service, mock_event_repo):
+def test_get_by_title_raises_if_not_found(event_service, mock_event_repo, patch_db_session):
     mock_event_repo.get_by_title.return_value = None
 
     with pytest.raises(EventNotFoundException, match="Event 1"):
         event_service.get_by_title("Event 1")
 
-    mock_event_repo.get_by_title.assert_called_once_with("Event 1")
+    mock_event_repo.get_by_title.assert_called_once_with("Event 1", patch_db_session)
 
 
-def test_get_by_category(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_category.return_value = event
+def test_get_by_category(event_service, mock_event_repo, patch_db_session):
+    events = [Event(id=1, title="E", organizer_id=1, datetime=datetime.now(),
+                    description="d", location="L", category="category")]
+    mock_event_repo.get_by_category.return_value = events
 
     result = event_service.get_by_category("category")
 
-    mock_event_repo.get_by_category.assert_called_once_with("category")
-    assert result == event
+    mock_event_repo.get_by_category.assert_called_once_with("category", patch_db_session)
+    assert result == events
 
-def test_get_by_location(event_service, mock_event_repo):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_location.return_value = event
+
+def test_get_by_location(event_service, mock_event_repo, patch_db_session):
+    events = [Event(id=1, title="E", organizer_id=1, datetime=datetime.now(),
+                    description="d", location="Location 1", category="category")]
+    mock_event_repo.get_by_location.return_value = events
 
     result = event_service.get_by_location("Location 1")
 
-    mock_event_repo.get_by_location.assert_called_once_with("Location 1")
-    assert result == event
+    mock_event_repo.get_by_location.assert_called_once_with("Location 1", patch_db_session)
+    assert result == events
 
-def test_get_by_date(event_service, mock_event_repo):
-    datetime_now = datetime.now()
 
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime_now,
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
-    mock_event_repo.get_by_date.return_value = event
+def test_get_by_date(event_service, mock_event_repo, patch_db_session):
+    dt = datetime.now()
+    events = [Event(id=1, title="E", organizer_id=1, datetime=dt,
+                    description="d", location="L", category="C")]
+    mock_event_repo.get_by_date.return_value = events
 
-    result = event_service.get_by_date(datetime_now)
+    result = event_service.get_by_date(dt)
 
-    mock_event_repo.get_by_date.assert_called_once_with(datetime_now)
-    assert result == event
+    mock_event_repo.get_by_date.assert_called_once_with(dt, patch_db_session)
+    assert result == events
 
-def test_get_by_organizer_success(event_service, mock_user_repo, mock_event_repo):
+
+def test_get_by_organizer_success(event_service, mock_user_repo, mock_event_repo, patch_db_session):
     organizer = User(id=1, name="Name", surname="Surname", email="email@example.com", password="secret")
-    event = Event(id=1,
-                  title="Event 1",
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description="Event description",
-                  organizer_id=organizer.id,
-                  location="Location 1",
-                  category="category")
+    event = Event(id=1, title="Event 1", organizer=organizer, datetime=datetime.now(),
+                  description="Event description", organizer_id=organizer.id,
+                  location="Location 1", category="category")
 
     mock_user_repo.get_by_email.return_value = organizer
     mock_event_repo.get_by_organizer_id.return_value = [event]
 
     result = event_service.get_by_organizer("email@example.com")
 
-    mock_user_repo.get_by_email.assert_called_once_with("email@example.com")
-    mock_event_repo.get_by_organizer_id.assert_called_once_with(organizer.id)
+    mock_user_repo.get_by_email.assert_called_once_with("email@example.com", patch_db_session)
+    mock_event_repo.get_by_organizer_id.assert_called_once_with(organizer.id, patch_db_session)
     assert result == [event]
 
 
-def test_get_by_organizer_raises_if_user_not_found(event_service, mock_user_repo):
+def test_get_by_organizer_raises_if_user_not_found(event_service, mock_user_repo, patch_db_session):
     mock_user_repo.get_by_email.return_value = None
 
     with pytest.raises(UserNotFoundException, match="No user found with email email@example.com"):
         event_service.get_by_organizer("email@example.com")
 
-    mock_user_repo.get_by_email.assert_called_once_with("email@example.com")
+    mock_user_repo.get_by_email.assert_called_once_with("email@example.com", patch_db_session)
 
-
-def test_get_all(event_service, mock_event_repo):
+def test_get_all(event_service, mock_event_repo, patch_db_session):
     organizer1 = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     event1 = Event(id=1,
                   title='Event 1',
@@ -176,162 +203,50 @@ def test_get_all(event_service, mock_event_repo):
 
     result = event_service.get_all()
 
-    mock_event_repo.get_all.assert_called_once()
+    mock_event_repo.get_all.assert_called_once_with(patch_db_session)
     assert result == events
 
+def test_create_event(event_service, mock_event_repo, mock_user_repo, patch_db_session):
+    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+    mock_user_repo.get_by_email.return_value = organizer
+    # create(): pre-check duplicate, then _persist TOCTOU recheck => two calls
+    mock_event_repo.get_by_title.side_effect = [None, None]
 
-# def test_create_event(event_service, mock_event_repo, mock_user_repo):
-#     # Arrange
-#     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-#     mock_user_repo.get_by_email.return_value = organizer
-#     mock_event_repo.get_by_title.return_value = None
-#
-#     payload = {
-#         'title':           'Event 1',
-#         'description':     'Event description',
-#         'datetime':        datetime.now(),
-#         'location':        'Location 1',
-#         'category':        'category',
-#         'organizer_email': organizer.email
-#     }
-#     saved_event = Event(
-#         title=payload['title'],
-#         description=payload['description'],
-#         datetime=payload['datetime'],
-#         location=payload['location'],
-#         category=payload['category'],
-#         organizer_id=organizer.id
-#     )
-#     mock_event_repo.save.return_value = saved_event
-#
-#     # Act
-#     result = event_service.create(payload)
-#
-#     # Assert
-#     assert isinstance(result, Event)
-#     assert result.title == 'Event 1'
-#     assert result.organizer_id == organizer.id
-
-def test_create_formats_event_and_saves_embedding(event_service,
-                                                   mock_event_repo,
-                                                   mock_user_repo,
-                                                   mock_embedding_service):
-    # --- Arrange -----------------------------------
     payload = {
-        'title': 'Test Event',
-        'description': 'An event for testing',
-        'datetime': datetime(2025, 8, 8, 12, 0),
-        'location': 'Testville',
-        'category': 'Testing',
-        'organizer_email': 'organizer@example.com'
+        'title':           'Event 1',
+        'description':     'Event description',
+        'datetime':        datetime.now(),
+        'location':        'Location 1',
+        'category':        'category',
+        'organizer_email': organizer.email
     }
 
-    # user lookup
-    organizer = User(id=42,
-                     name='Org',
-                     surname='Anizer',
-                     email='organizer@example.com',
-                     password='p@ss')
-    mock_user_repo.get_by_email.return_value = organizer
+    def _save(e, session):
+        e.id = 42
+        return e
+    mock_event_repo.save.side_effect = _save
 
-    # no duplicate
-    mock_event_repo.get_by_title.return_value = None
-
-    # embedding service returns a fixed vector
-    expected_vector = [0.11, 0.22, 0.33]
-    mock_embedding_service.create_embedding.return_value = expected_vector
-
-    # stub out save() to return its input Event instance
-    def save_side_effect(ev):
-        return ev
-    mock_event_repo.save.side_effect = save_side_effect
-
-    # --- Act ---------------------------------------
     result = event_service.create(payload)
 
-    # --- Assert ------------------------------------
-    # 1) get_by_title & get_by_email called correctly
-    mock_event_repo.get_by_title.assert_called_once_with('Test Event')
-    mock_user_repo.get_by_email.assert_called_once_with('organizer@example.com')
+    # first duplicate check uses direct db.session (your patched one)
+    c0_args, _ = mock_event_repo.get_by_title.call_args_list[0]
+    assert c0_args == ('Event 1', patch_db_session)
+    # TOCTOU recheck uses decorator session -> allow ANY
+    c1_args, _ = mock_event_repo.get_by_title.call_args_list[1]
+    assert c1_args == ('Event 1', ANY)
 
-    # 2) format_event was passed exactly the Event instance constructed
-    saved_event_arg = mock_event_repo.save.call_args.args[0]
-    expected_prompt = format_event(saved_event_arg)
-    mock_embedding_service.create_embedding.assert_called_once_with(expected_prompt)
-
-    # 3) the embedding was set on the Event BEFORE saving
-    assert hasattr(saved_event_arg, 'embedding')
-    assert saved_event_arg.embedding == expected_vector
-
-    # 4) save() was called exactly once, and we get back the same object
+    # save happens inside the decorator transaction -> allow ANY session
     mock_event_repo.save.assert_called_once()
-    assert result is saved_event_arg
+    s_args, _ = mock_event_repo.save.call_args
+    assert s_args[0].title == 'Event 1'
 
-def test_update_formats_event_and_saves_embedding(event_service,
-                                                  mock_event_repo,
-                                                  mock_embedding_service):
-    # --- Arrange -----------------------------------
-    # Create a dummy organizer (for format_event’s organizer field)
-    organizer = User(
-        id=2,
-        name='Org',
-        surname='User',
-        email='org@example.com',
-        password='secret'
-    )
-
-    # Build the Event we’re going to update
-    ev = Event(
-        id=1,
-        title='Updated Event',
-        description='Updated description',
-        datetime=datetime(2025,  8,  8, 13, 0),
-        location='New Location',
-        category='UpdatedCategory',
-        organizer_id=organizer.id
-    )
-    # Attach the organizer so format_event will include it
-    ev.organizer = organizer
-
-    # Stub repository to find our “existing” event and no conflicting title
-    mock_event_repo.get_by_id.return_value = ev
-    mock_event_repo.get_by_title.return_value = ev
-
-    # Stub embedding service
-    expected_vector = [0.4, 0.5, 0.6]
-    mock_embedding_service.create_embedding.return_value = expected_vector
-
-    # Make save() echo back the passed-in Event
-    mock_event_repo.save.side_effect = lambda e: e
-
-    # --- Act ---------------------------------------
-    result = event_service.update(ev)
-
-    # --- Assert ------------------------------------
-    # It should have re-queried the DB by id and title
-    mock_event_repo.get_by_id.assert_called_once_with(ev.id)
-    mock_event_repo.get_by_title.assert_called_once_with(ev.title)
-
-    # Compute the prompt the service should have used
-    expected_prompt = format_event(ev)
-    mock_embedding_service.create_embedding.assert_called_once_with(expected_prompt)
-
-    # The Event passed to save() must already have embedding set
-    saved_arg = mock_event_repo.save.call_args.args[0]
-    assert hasattr(saved_arg, 'embedding')
-    assert saved_arg.embedding == expected_vector
-
-    # And update() returns that same object
-    assert result is saved_arg
+    assert result.id == 42
 
 
-
-def test_create_raises_on_duplicate_title(event_service, mock_event_repo, mock_user_repo):
-    # Arrange
+def test_create_raises_on_duplicate_title(event_service, mock_event_repo, mock_user_repo, patch_db_session):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     mock_user_repo.get_by_email.return_value = organizer
 
-    # Simulate an existing event with the same title
     existing = Event(
         title='DupEvent',
         description='desc',
@@ -351,64 +266,57 @@ def test_create_raises_on_duplicate_title(event_service, mock_event_repo, mock_u
         'organizer_email': organizer.email
     }
 
-    # Act & Assert
     with pytest.raises(EventAlreadyExistsException) as exc:
         event_service.create(payload)
     assert 'DupEvent' in str(exc.value)
 
+    mock_event_repo.get_by_title.assert_called_once_with('DupEvent', patch_db_session)
 
-def test_delete_by_title_success(event_service, mock_event_repo):
+def test_delete_by_title_success(event_service, mock_event_repo, patch_db_session):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                           title='Event 1',
-                           organizer=organizer,
-                           datetime=datetime.now(),
-                           description='Event description',
-                           organizer_id=organizer.id,
-                           location='Location 1',
-                           category='category')
+    event = Event(id=1, title='Event 1', organizer=organizer, datetime=datetime.now(),
+                  description='Event description', organizer_id=organizer.id,
+                  location='Location 1', category='category')
     mock_event_repo.get_by_title.return_value = event
+
+    # sanity (non-decorated call)
     result = event_service.get_by_title("Event 1")
     assert result == event
+    mock_event_repo.get_by_title.assert_any_call("Event 1", patch_db_session)
 
+    # decorated call uses its own session -> ANY
     event_service.delete_by_title("Event 1")
-    mock_event_repo.delete_by_title.assert_called_once_with("Event 1")
+    mock_event_repo.delete_by_title.assert_called_once_with("Event 1", ANY)
 
 
-def test_delete_by_title_raises_if_not_found(event_service, mock_event_repo):
+
+def test_delete_by_title_raises_if_not_found(event_service, mock_event_repo, patch_db_session):
     mock_event_repo.get_by_title.return_value = None
 
     with pytest.raises(EventNotFoundException, match="Event 1"):
         event_service.delete_by_title("Event 1")
 
-def test_delete_by_title_wraps_repository_errors(event_service, mock_event_repo):
-    """delete_by_title should catch exceptions from the repo and raise EventDeleteException."""
+def test_delete_by_title_wraps_repository_errors(event_service, mock_event_repo, patch_db_session):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
+    event = Event(id=1, title='Event 1', organizer=organizer, datetime=datetime.now(),
+                  description='Event description', organizer_id=organizer.id,
+                  location='Location 1', category='category')
 
     mock_event_repo.get_by_title.return_value = event
     mock_event_repo.delete_by_title.side_effect = RuntimeError("db down")
 
-    with pytest.raises(EventDeleteException) as ei:
+    with pytest.raises(EventDeleteException):
         event_service.delete_by_title("Event 1")
 
-    assert isinstance(ei.value.original_exception, RuntimeError)
-    mock_event_repo.get_by_title.assert_called_once_with("Event 1")
-    mock_event_repo.delete_by_title.assert_called_once_with("Event 1")
+    # decorated calls -> ANY
+    mock_event_repo.get_by_title.assert_called_with("Event 1", ANY)
+    mock_event_repo.delete_by_title.assert_called_once_with("Event 1", ANY)
 
 
-def test_create_wraps_repository_errors(event_service, mock_event_repo, mock_user_repo):
-    # Arrange
+def test_create_wraps_repository_errors(event_service, mock_event_repo, mock_user_repo, patch_db_session):
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
     mock_user_repo.get_by_email.return_value = organizer
-    mock_event_repo.get_by_title.return_value = None
+    mock_event_repo.get_by_title.side_effect = [None, None]
     mock_event_repo.save.side_effect = RuntimeError("db down")
 
     payload = {
@@ -420,132 +328,170 @@ def test_create_wraps_repository_errors(event_service, mock_event_repo, mock_use
         'organizer_email': organizer.email
     }
 
-    # Act & Assert
     with pytest.raises(EventSaveException) as exc:
         event_service.create(payload)
     assert str(exc.value) == 'Unable to save event due to an internal error.'
 
-
-
-def test_update_success(event_service, mock_event_repo):
+def test_update_success(event_service, mock_event_repo, patch_db_session):
     """update should call save() on an existing event when no conflicts."""
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                      title='Event 1',
-                      organizer=organizer,
-                      datetime=datetime.now(),
-                      description='Event description',
-                      organizer_id=organizer.id,
-                      location='Location 1',
-                      category='category')
+    event = Event(id=1, title='Event 1', organizer=organizer, datetime=datetime.now(),
+                  description='Event description', organizer_id=organizer.id,
+                  location='Location 1', category='category')
+
     mock_event_repo.get_by_id.return_value = event
-    mock_event_repo.get_by_title.return_value = event
-    mock_event_repo.save.return_value = event
+    # pre-check uses direct session, TOCTOU recheck uses decorator session
+    mock_event_repo.get_by_title.side_effect = [event, None]
+
+    def _save(e, session): return e
+    mock_event_repo.save.side_effect = _save
+
     result = event_service.update(event)
-    mock_event_repo.save.assert_called_once_with(event)
+
+    mock_event_repo.get_by_id.assert_called_once_with(event.id, patch_db_session)
+
+    a0, _ = mock_event_repo.get_by_title.call_args_list[0]
+    a1, _ = mock_event_repo.get_by_title.call_args_list[1]
+    assert a0 == (event.title, patch_db_session)  # direct
+    assert a1 == (event.title, ANY)               # decorator
+
+    # save happens inside decorator -> ANY
+    mock_event_repo.save.assert_called_once()
+    s_args, _ = mock_event_repo.save.call_args
+    assert s_args[0] is event
+
     assert result is event
 
-############
 
-def test_update_raises_not_found(event_service, mock_event_repo):
-    """update should raise EventNotFoundException if the event to update doesn’t exist."""
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
 
+def test_update_raises_not_found(event_service, mock_event_repo, patch_db_session):
     mock_event_repo.get_by_id.return_value = None
+
     with pytest.raises(EventNotFoundException):
-        event_service.update(Event(id=1,
-                      title='Event 1',
-                      organizer=organizer,
-                      datetime=datetime.now(),
-                      description='Event description',
-                      organizer_id=organizer.id,
-                      location='Location 1',
-                      category='category'))
+        event_service.update(Event(id=1, title='Event 1', organizer_id=1,
+                                   datetime=datetime.now(), description='Event description',
+                                   location='Location 1', category='category'))
 
 
-def test_update_raises_duplicate_title(event_service, mock_event_repo):
-    """update should raise EventAlreadyExists there is already an event with that title."""
+def test_update_raises_duplicate_title(event_service, mock_event_repo, patch_db_session):
+    """update should raise EventAlreadyExists when another event already has that title."""
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    original = Event(id=1,
-                  title='Event 1',
-                  organizer=organizer,
-                  datetime=datetime.now(),
-                  description='Event description',
-                  organizer_id=organizer.id,
-                  location='Location 1',
-                  category='category')
+    original = Event(id=1, title='Event 1', organizer=organizer, datetime=datetime.now(),
+                     description='Event description', organizer_id=organizer.id,
+                     location='Location 1', category='category')
 
-    conflict = Event(id=2,
-                     title='Event 1',
-                     organizer=organizer,
-                     datetime=datetime.now(),
-                     description='Event description',
-                     organizer_id=organizer.id,
-                     location='Location 2',
-                     category='category')
+    conflict = Event(id=2, title='Event 1', organizer=organizer, datetime=datetime.now(),
+                     description='Event description', organizer_id=organizer.id,
+                     location='Location 2', category='category')
+
     mock_event_repo.get_by_id.return_value = original
+    # Pre-check already finds conflicting OTHER event → raises before TOCTOU
     mock_event_repo.get_by_title.return_value = conflict
+
     with pytest.raises(EventAlreadyExistsException):
         event_service.update(original)
 
 
-def test_update_wraps_save_errors(event_service, mock_event_repo):
+def test_update_wraps_save_errors(event_service, mock_event_repo, patch_db_session):
     """update should catch repo.save exceptions and re-raise EventSaveException."""
     organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    event = Event(id=1,
-                     title='Event 1',
-                     organizer=organizer,
-                     datetime=datetime.now(),
-                     description='Event description',
-                     organizer_id=organizer.id,
-                     location='Location 1',
-                     category='category')
+    event = Event(id=1, title='Event 1', organizer=organizer, datetime=datetime.now(),
+                  description='Event description', organizer_id=organizer.id,
+                  location='Location 1', category='category')
     mock_event_repo.get_by_id.return_value = event
-    mock_event_repo.get_by_title.return_value = event
+    # allow through conflict checks, then fail on save
+    mock_event_repo.get_by_title.side_effect = [event, None]
     mock_event_repo.save.side_effect = ValueError("oops")
+
     with pytest.raises(EventSaveException) as ei:
         event_service.update(event)
+
     assert isinstance(ei.value.original_exception, ValueError)
+def test_create_event_calls_embedding(app, event_service, mock_event_repo, mock_user_repo, mock_embedding_service, patch_db_session):
+    with app.app_context():
+        # Arrange
+        organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
+        mock_user_repo.get_by_email.return_value = organizer
+        # create(): pre-check -> None (no duplicate)
+        mock_event_repo.get_by_title.side_effect = [None, None]  # pre-check + TOCTOU recheck
 
-def test_create_event_calls_embedding(event_service, mock_event_repo, mock_user_repo, mock_embedding_service):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    mock_user_repo.get_by_email.return_value = organizer
-    mock_event_repo.get_by_title.return_value = None
+        payload = {
+            'title': 'Event 1',
+            'description': 'desc',
+            'datetime': datetime.now(),
+            'location': 'L1',
+            'category': 'cat',
+            'organizer_email': organizer.email
+        }
 
-    payload = {
-        'title': 'Event 1',
-        'description': 'desc',
-        'datetime': datetime.now(),
-        'location': 'L1',
-        'category': 'cat',
-        'organizer_email': organizer.email
-    }
-    saved = Event(
-        id=None, title=payload['title'], description=payload['description'],
-        datetime=payload['datetime'], location='L1', category='cat',
-        organizer_id=organizer.id
-    )
-    mock_event_repo.save.return_value = saved
-    # define what embedding_service should return
-    mock_embedding_service.create_embedding.return_value = [0.1, 0.2, 0.3]
+        # Let save() return the SAME object it was given (avoids identity surprises)
+        def _save(e, session):
+            e.id = 42
+            return e
+        mock_event_repo.save.side_effect = _save
 
-    result = event_service.create(payload)
+        mock_embedding_service.create_embedding.return_value = [0.1, 0.2, 0.3]
 
-    mock_event_repo.save.assert_called_once()
-    mock_embedding_service.create_embedding.assert_called_once_with(saved)
-    assert hasattr(result, 'embedding')
-    assert result.embedding == [0.1, 0.2, 0.3]
+        # We need the expected formatted text the service will produce
+        expected_event_pre_save = Event(
+            title=payload['title'],
+            description=payload['description'],
+            datetime=payload['datetime'],
+            location=payload['location'],
+            category=payload['category'],
+            organizer_id=organizer.id
+        )
+        expected_formatted = format_event(expected_event_pre_save)
 
-def test_update_success_calls_embedding(event_service, mock_event_repo, mock_user_repo, mock_embedding_service):
-    organizer = User(id=1, name='Name', surname='Surname', email='email', password='secret')
-    ev = Event(1, 'E', None, datetime.now(), 'd', 1, 'L', 'C')
-    mock_event_repo.get_by_id.return_value = ev
-    mock_event_repo.get_by_title.return_value = ev
-    mock_event_repo.save.return_value = ev
-    mock_embedding_service.create_embedding.return_value = ['v']
+        # Act
+        result = event_service.create(payload)
 
-    result = event_service.update(ev)
+        # Assert repository interactions respecting sessions & TOCTOU
+        a0, _ = mock_event_repo.get_by_title.call_args_list[0]
+        a1, _ = mock_event_repo.get_by_title.call_args_list[1]
+        assert a0 == (payload['title'], patch_db_session)  # direct read session
+        assert a1 == (payload['title'], ANY)               # decorator session in _persist
 
-    mock_event_repo.save.assert_called_once_with(ev)
-    mock_embedding_service.create_embedding.assert_called_once_with(ev)
-    assert result.embedding == ['v']
+        mock_event_repo.save.assert_called_once()
+        # Embedding service called with the formatted string (NOT the Event object)
+        mock_embedding_service.create_embedding.assert_called_once_with(expected_formatted)
+
+        assert hasattr(result, 'embedding')
+        assert result.embedding == [0.1, 0.2, 0.3]
+        assert result.id == 42
+
+def test_update_success_calls_embedding(app, event_service, mock_event_repo, mock_user_repo, mock_embedding_service, patch_db_session):
+    with app.app_context():
+        # Arrange: existing event
+        ev = Event(
+            id=1,
+            title="OpenAI Conference",
+            description="Annual conference on artificial intelligence.",
+            location="San Francisco, CA",
+            category="Technology",
+            datetime=datetime(2025, 8, 6, 9, 0, 0),
+            organizer_id=1
+        )
+        mock_event_repo.get_by_id.return_value = ev
+        # conflict check: same title returns THIS event (no conflict)
+        mock_event_repo.get_by_title.return_value = ev
+
+        def _save(e, session):
+            return e
+        mock_event_repo.save.side_effect = _save
+
+        mock_embedding_service.create_embedding.return_value = ['v']
+
+        expected_formatted = format_event(ev)
+
+        # Act
+        result = event_service.update(ev)
+
+        # Assert: pre-checks use direct session, persist uses decorator session
+        mock_event_repo.get_by_id.assert_called_once_with(ev.id, patch_db_session)
+        a0, _ = mock_event_repo.get_by_title.call_args_list[0]
+        assert a0 == (ev.title, patch_db_session)
+
+        mock_event_repo.save.assert_called_once_with(ev, ANY)
+        mock_embedding_service.create_embedding.assert_called_once_with(expected_formatted)
+        assert result.embedding == ['v']

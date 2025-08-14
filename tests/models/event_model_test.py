@@ -1,7 +1,8 @@
 import pytest
 from datetime import datetime
 from flask import Flask
-
+from torch.nn.functional import embedding
+from app.configuration.config import Config
 from app.extensions import db
 from app.models.event import Event, guest_list
 from app.models.user import User
@@ -81,7 +82,7 @@ def test_repr_without_db():
     """
     dt = datetime(2025, 8, 1, 12, 0)
     e = Event(id=123, title="Sample", datetime=dt, description=None, organizer_id=1, location="X", category="Y")
-    assert repr(e) == f"<Event 123 – Sample @ {dt}>"
+    assert repr(e) == f"<Event 123 – Sample @ {dt.isoformat()}>"
 
 
 def test_persistence_and_relationships(session):
@@ -95,12 +96,19 @@ def test_persistence_and_relationships(session):
 
     # Create event
     dt = datetime(2025, 8, 2, 18, 30)
-    ev = Event(title="Party", datetime=dt, description="Fun", organizer=org, location="Club", category="Social")
+    ev = Event(title="Party",
+               datetime=dt,
+               description="Fun",
+               organizer=org,
+               location="Club",
+               category="Social",
+               embedding = [0.0] * Config.UNIFIED_VECTOR_DIM  # dummy vector
+    )
     session.add(ev)
     session.commit()
 
     # __repr__ with real id
-    assert repr(ev) == f"<Event {ev.id} – Party @ {dt}>"
+    assert repr(ev) == f"<Event {ev.id} – Party @ {dt.isoformat()}>"
 
     # Add guest
     guest = User(name="Guest", surname="User", email="guest@example.com", password="pw")

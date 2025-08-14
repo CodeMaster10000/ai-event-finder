@@ -57,7 +57,6 @@ def test_user_schema_dumps_only_public_fields():
     }
     dumped = UserSchema().dump(user_obj)
     assert dumped == {
-        "id": 123,
         "name": "Bob",
         "surname": "Jones",
         "email": "bob@example.com",

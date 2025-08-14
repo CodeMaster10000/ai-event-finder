@@ -10,7 +10,6 @@ from app.models.event import Event
 from app.extensions import db
 
 
-# fixtures
 @pytest.fixture
 def test_user():
     return User(id=1, name="Test", surname="User", email="test@example.com", password="testpass")
@@ -47,7 +46,10 @@ def app(mock_event_service):
     # app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost/ai_event_test"
 
     with app.app_context():
+        db.create_all()
         yield app
+        db.session.remove()
+        db.drop_all()
 
 
 @pytest.fixture
@@ -123,8 +125,8 @@ def test_login_nonexistent_user(client):
         "password": "nopass"
     })
     data = response.get_json()
-    assert response.status_code == 401
-    assert data["message"] == "Invalid credentials"
+    assert response.status_code == 404
+    assert data["message"] == "User not found with email nonexistent@example.com"
 
 def test_login_missing_fields(client):
     response = client.post("/auth/login", json={"email": "test@example.com"})

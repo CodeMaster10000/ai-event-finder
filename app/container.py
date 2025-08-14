@@ -20,11 +20,14 @@ from app.services.model.cloud_model_service_impl import CloudModelService
 class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(packages=["app.routes", "app.services"])
 
-    # Provide a singleton SQLAlchemy session
-    db_session = providers.Singleton(lambda: db.session)
 
-    user_repository  = providers.Singleton(UserRepositoryImpl,  session=db_session)
-    event_repository = providers.Singleton(EventRepositoryImpl, session=db_session)
+    # Repositories
+    user_repository = providers.Singleton(
+        UserRepositoryImpl,
+    )
+    event_repository = providers.Singleton(
+        EventRepositoryImpl,
+    )
 
     provider = os.getenv("PROVIDER", "local").lower()
 
