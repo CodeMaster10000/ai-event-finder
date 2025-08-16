@@ -6,6 +6,7 @@ from app.services.model.model_service import ModelService
 from app.configuration.config import Config
 from ollama import Client
 from app.util.format_event_util import format_event
+from app.util.model_util import COUNT_EXTRACT_SYS_PROMPT
 
 
 class LocalModelService(ModelService):
@@ -78,3 +79,20 @@ class LocalModelService(ModelService):
         formatted = [format_event(e) for e in events]
 
         return "\n".join(formatted)
+
+
+    def extract_requested_event_count(self, user_prompt: str) -> int:
+
+        messages = [
+            {"role": "system", "content": COUNT_EXTRACT_SYS_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        resp = self.client.chat(
+            model=Config.OLLAMA_LLM,
+            messages=messages,
+            options=Config.OLLAMA_LLM_EXTRACT_K_OPTIONS
+        )
+
+        return int(resp["message"]["content"])
+
