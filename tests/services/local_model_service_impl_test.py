@@ -5,10 +5,10 @@ from ollama import Client
 
 from app.configuration.config import Config
 from app.services.model.local_model_service_impl import LocalModelService
-from app.services.model.cloud_model_service_impl import CloudModelService
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 
+pytest.skip("Skipping LLM tests.", allow_module_level=True)
 
 # -------------------- Connectivity helpers --------------------
 

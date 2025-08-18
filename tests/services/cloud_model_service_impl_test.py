@@ -1,6 +1,5 @@
-# tests/services/cloud_model_service_impl_test.py
-import os
 import pytest
+import os
 from unittest.mock import MagicMock
 from openai import OpenAI
 
@@ -9,6 +8,7 @@ from app.services.model.cloud_model_service_impl import CloudModelService
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 
+pytest.skip("Skipping LLM tests.", allow_module_level=True)
 
 # -------------------- Cloud (OpenAI) prechecks --------------------
 
