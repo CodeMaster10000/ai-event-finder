@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv, find_dotenv
-from transformers import FlavaTextConfig
 
 # Locates the path of the .env file and loads it
 env_path = find_dotenv()
