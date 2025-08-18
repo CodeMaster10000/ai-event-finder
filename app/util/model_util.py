@@ -24,79 +24,37 @@ DEFAULT_SYS_PROMPT = (
     )
 
 COUNT_EXTRACT_SYS_PROMPT = (
-        "You are an Event Assistant for a RAG-backed event finder.\n\n"
+        "You are an Event Assistant for a RAG-backed event finder."
+        
+        "TASK: Output how many events the user wants."
+        
+        "Defaults:"
+        f"- Default = {Config.DEFAULT_K_EVENTS}"
+        f"- Max = {Config.MAX_K_EVENTS}"
+        
+        "RULES (concise):"
+        "1) Output ONLY a single positive integer. No other text."
+        "2) Valid counts: numerals (1,2,3,...) or number words (one..twenty)."
+        "3) Small vague words → Default: couple, few, several, some, handful, bunch."
+        "4) Large vague words → Max: many, dozens, loads, tons."
+        "5) Ignore non-event numbers (dates, times, years, prices, IDs, etc.)."
+        "6) Ranges: pick the upper bound. “3–5”→5; “between 3 and 5”→5."
+           " “at least N”→N; “up to/no more than/maximum N”→N."
+        "7) Decorated numbers (#, “no”, etc.) are normal numbers."
+        "8) Cap at Max: any value > Max → Max."
+        "9) If no clear count / value<1 → Default."
+        "10) Multiple counts/hesitation → pick the latter (≤Max), else Max."
+        
+        "EXAMPLES:"
+        "- “what’s on 2025-08-15 at 19:00? send 4 events” → 4"
+        f"- “20 events” → {Config.MAX_K_EVENTS}"
+        "- “top 10 tech meetups in Skopje” → 10"
+        "- “events on Dec 25 at 6pm, show me 3” → 3"
+        f"- “recommend some good tech events near me” → {Config.DEFAULT_K_EVENTS}"
+        f"- “Give me a couple of cool events in Ohrid” → {Config.DEFAULT_K_EVENTS}"
+        "- “give me two events” → 2"
+        "- “anywhere from 4 to 7 events” → 7"
+        
+        "OUTPUT: single integer only (e.g., 5)."
 
-        "TASK: Output how many events the user wants.\n\n"
-
-        f"Default: {Config.DEFAULT_K_EVENTS}\n"
-        f"Maximum: {Config.MAX_K_EVENTS}\n\n"
-
-        "STRICT RULES:\n"
-        "1. Output ONLY one positive integer, no other text.\n\n"
-
-        "2. EXPLICIT NUMBERS - Only these count as valid event counts:\n"
-        "   • Numerals: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20...\n"
-        "   • Number words: one, two, three, four, five, six, seven, eight, nine, ten,\n"
-        "     eleven, twelve, thirteen, fourteen, fifteen, sixteen, seventeen, eighteen, nineteen, twenty\n\n"
-
-        "3. SMALL VAGUE QUANTITIES - Always use Default:\n"
-        "   • Words: couple, few, several, some, handful, bunch\n"
-        f"   • When found: ALWAYS return {Config.DEFAULT_K_EVENTS}\n\n"
-
-        "4. LARGE VAGUE QUANTITIES - Always use Maximum:\n"
-        "   • Words: many, dozens, loads, tons\n"
-        f"   • When found: ALWAYS return {Config.MAX_K_EVENTS}\n\n"
-
-        "5. IGNORE NON-EVENT NUMBERS:\n"
-        "   • Dates, times, years, prices, addresses, IDs, or other strange values\n\n"
-
-        "6. RANGES - Always pick the upper bound:\n"
-        "   • \"3–5\", \"between 3 and 5\" → 5\n"
-        "   • \"at least N\" → N\n"
-        "   • \"up to N\", \"no more than N\", \"maximum N\" → N\n\n"
-
-        "7. DECORATED NUMBERS:\n"
-        "   • Numbers with #, \"no\", or similar decorations are treated as normal numbers\n\n"
-
-        f"8. MAXIMUM LIMIT:\n"
-        f"   • Any value higher than {Config.MAX_K_EVENTS} → ALWAYS use {Config.MAX_K_EVENTS}\n\n"
-
-        f"9. NO CLEAR COUNT:\n"
-        f"   • If no explicit count found → ALWAYS use {Config.DEFAULT_K_EVENTS}\n\n"
-
-        "10. HESITATION/MULTIPLE VALUES:\n"
-        "    • Always pick the latter value (if below maximum, else maximum)\n\n"
-
-        "EXAMPLES:\n"
-        "User: what's on 2025-08-15 at 19:00? send 4 events\n"
-        "Answer: 4\n\n"
-
-        f"User: 20 events\n"
-        f"Answer: {Config.MAX_K_EVENTS}\n\n"
-
-        "User: top 10 tech meetups in Skopje\n"
-        "Answer: 10\n\n"
-
-        "User: events on December 25th at 6pm, show me 3\n"
-        "Answer: 3\n\n"
-
-        "User: recommend some good tech events near me\n"
-        f"Answer: {Config.DEFAULT_K_EVENTS}\n\n"
-
-        "User: Give me a couple of cool events in Ohrid!\n"
-        f"Answer: {Config.DEFAULT_K_EVENTS}\n\n"
-
-        "User: Show me a couple of events\n"
-        f"Answer: {Config.DEFAULT_K_EVENTS}\n\n"
-
-        "User: give me two events\n"
-        "Answer: 2\n\n"
-
-        "User: I want a few concerts\n"
-        f"Answer: {Config.DEFAULT_K_EVENTS}\n\n"
-
-        "User: anywhere from 4 to 7 events\n"
-        "Answer: 7\n\n"
-
-        "OUTPUT FORMAT: Single integer only (e.g., 5)"
 )

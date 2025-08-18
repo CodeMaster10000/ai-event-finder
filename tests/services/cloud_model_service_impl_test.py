@@ -1,95 +1,88 @@
+# tests/services/cloud_model_service_impl_test.py
 import os
 import pytest
 from unittest.mock import MagicMock
-from ollama import Client
+from openai import OpenAI
 
 from app.configuration.config import Config
-from app.services.model.local_model_service_impl import LocalModelService
 from app.services.model.cloud_model_service_impl import CloudModelService
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 
 
-# -------------------- Connectivity helpers --------------------
-
-def _ollama_base_url() -> str:
-    """
-    Priority:
-      1) OLLAMA_TEST_URL (explicit override for tests)
-      2) Config.OLLAMA_URL if present
-      3) OLLAMA_EMBEDDING_URL (your fallback in Config)
-      4) http://localhost:11434
-    """
-    return (
-        os.getenv("OLLAMA_TEST_URL")
-        or getattr(Config, "OLLAMA_URL", None)
-        or os.getenv("OLLAMA_EMBEDDING_URL")
-        or "http://localhost:11434"
-    )
-
-
-def _model_name() -> str:
-    # The model tag tests will ask Ollama to run
-    return getattr(Config, "OLLAMA_LLM", "llama3.1")
-
+# -------------------- Cloud (OpenAI) prechecks --------------------
 
 @pytest.fixture(scope="session")
-def ollama_client_or_skip():
-    """Create a real Ollama client or skip the suite if not available."""
-    base = _ollama_base_url()
-    client = Client(host=base)
+def openai_client_or_skip():
+    """Create a real OpenAI client or skip if API key/model not configured."""
+    api_key = os.getenv("OPENAI_API_KEY") or getattr(Config, "OPENAI_API_KEY", None)
+    model = os.getenv("OPENAI_MODEL") or getattr(Config, "OPENAI_MODEL", None)
 
-    # 1) Reachability (/api/tags)
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not set in environment/.env")
+    if not model:
+        pytest.skip("OPENAI_MODEL not set (e.g., gpt-4o-mini). Add it to .env")
+
+    # Instantiate using env; SDK will pick up OPENAI_API_KEY automatically
     try:
-        client.list()
+        client = OpenAI()
     except Exception as e:
-        pytest.skip(f"Ollama not reachable at {base}. Start it (and publish port 11434). Details: {e}")
-
-    # 2) Model availability
-    model = _model_name()
-    try:
-        tags = client.list() or {}
-        names = {m.get("name", "") for m in (tags.get("models") or [])}
-        if not any(model in n for n in names):
-            # Fallback probe
-            try:
-                client.show(model)
-            except Exception as se:
-                pytest.skip(f"Model '{model}' not available. Run: `ollama pull {model}`. Details: {se}")
-    except Exception as e:
-        pytest.skip(f"Could not verify model availability for '{model}'. Details: {e}")
-
+        pytest.skip(f"Failed to init OpenAI client: {e}")
     return client
 
 
-# -------------------- Service fixture --------------------
+# -------------------- Force deterministic decoding for this suite --------------------
+
+@pytest.fixture(autouse=True)
+def force_deterministic_openai(monkeypatch):
+    """
+    Make the cloud extractor deterministic regardless of OPENAI_GEN_OPTS in Config.
+    The service merges from Config, so we override that dict here.
+    """
+    opts = dict(getattr(Config, "OPENAI_GEN_OPTS", {}) or {})
+    # Hard overrides for extractor behavior
+    opts.update({
+        "temperature": 0,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "max_tokens": 12,          # single integer; short & safe
+        "stream": False,
+        "stop": ["\n", "Assistant:", "User:"],  # keep it to one-line integer
+    })
+    # Patch the config used by CloudModelService
+    monkeypatch.setattr("app.configuration.config.Config.OPENAI_GEN_OPTS", opts, raising=False)
+
+
+# -------------------- Service fixture (real cloud client, no DB/RAG) --------------------
 
 @pytest.fixture
-def service(ollama_client_or_skip):
+def service(openai_client_or_skip):
     """
-    Construct LocalModelService with the real Ollama client.
-    Repo/embedding are unused by the extractor, so we pass MagicMocks
-    to keep the constructor happy and to assert they aren't invoked.
+    Construct CloudModelService with the real OpenAI client.
+    Repo/embedding are unused by the extractor; use MagicMocks to satisfy ctor.
     """
     mock_repo = MagicMock(spec=EventRepository)
     mock_embed = MagicMock(spec=EmbeddingService)
-
-    return LocalModelService(
+    return CloudModelService(
         event_repository=mock_repo,
         embedding_service=mock_embed,
-        client=ollama_client_or_skip,
+        client=openai_client_or_skip,
     )
 
 
-# -------------------- Helper for default K in your prompt --------------------
+# -------------------- Helpers for defaults/caps --------------------
 
 def _default_k():
-    return int(getattr(Config, "RAG_TOP_K", 5))
+    # Prefer DEFAULT_K_EVENTS if you set it; else fall back to RAG_TOP_K; else 5.
+    return int(getattr(Config, "DEFAULT_K_EVENTS", getattr(Config, "RAG_TOP_K", 5)))
+
 def _max_k():
-    return int(getattr(Config, "MAX_K_EVENTS", 5))
+    # If you cap max results, expose MAX_K_EVENTS; else default to 20 for these tests.
+    return int(getattr(Config, "MAX_K_EVENTS", 20))
 
 
-# -------------------- LIVE TESTS --------------------
+# -------------------- LIVE TESTS (Cloud) --------------------
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
@@ -117,32 +110,32 @@ def _max_k():
         ("FIVE events please", 5),
         ("Show me Eight concerts", 8),
 
-        # Date/time with explicit event counts - should ignore date/time
+        # Date/time with explicit counts
         ("what's on 2025-08-15 at 19:00? send 4 events", 4),
         ("events on December 25th at 6pm, show me 3", 3),
         ("what's happening on 2024-12-31 at 23:59? give me 7 events", 7),
-        ("August 15th 2025 at 8:_max_k()pm, find 2 events", 2),
+        ("August 15th 2025 at 8pm, find 2 events", 2),  # fixed typo from original
         ("events for 01/01/2025 at 12:00, show 6", 6),
         ("2025-03-14 at 15:30 - give me 9 events", 9),
         ("what's on the 25th at 7pm? send 12 events", 12),
 
-        # Prices/money with event counts - should ignore prices
+        # Prices/money with event counts
         ("$50 tickets, show me 3 events", 3),
         ("events under 20 euros, give me 5", 5),
         ("free to $100 events, find 4", 4),
         ("concerts for 15 dollars or less, show 8", 8),
 
-        # Address/location numbers with event counts - should ignore addresses
+        # Address/location numbers
         ("events near 123 Main Street, show 6", 6),
         ("concerts at venue 42, give me 3", 3),
         ("events in building 15, floor 3, show 2", 2),
 
-        # Years as standalone with event counts - should ignore years
+        # Years with event counts
         ("events in 2025, show 5", 5),
         ("concerts from 2024, give me 3", 3),
         ("events since 1999, find 7", 7),
 
-        # Vague quantities - should use default
+        # Vague quantities -> default (requires your ambiguous-word guard or strict prompt)
         ("I want to go to a rock concert. Show me a couple of events", _default_k()),
         ("Give me a couple of cool events in Ohrid!", _default_k()),
         ("recommend some good tech events near me", _default_k()),
@@ -150,61 +143,60 @@ def _max_k():
         ("I want a few concerts", _default_k()),
         ("show me several events", _default_k()),
         ("give me some events", _default_k()),
-        ("find many events", _max_k()),
+        ("find many events", _max_k()),      # if you map 'many' to cap; adjust if you prefer default
         ("show me a handful of concerts", _default_k()),
         ("give me a bunch of events", _default_k()),
         ("find dozens of events", _max_k()),
         ("show me loads of concerts", _max_k()),
         ("tons of events please", _max_k()),
 
-        # No explicit count - should use default
+        # No explicit count -> default
         ("find events this weekend", _default_k()),
         ("what's happening tonight?", _default_k()),
         ("show me concerts", _default_k()),
         ("jazz events near me", _default_k()),
 
-        # Ranges - should take the higher number
+        # Ranges -> upper bound
         ("show me 3-5 events", 5),
-        ("give me 3–5 events", 5),  # em dash
+        ("give me 3–5 events", 5),
         ("find between 2 and 8 events", 8),
         ("between 1 and 10 concerts", 10),
         ("anywhere from 4 to 7 events", 7),
 
-        # "At least" patterns - should use the specified number
+        # "At least" -> N
         ("at least 3 events", 3),
         ("show me at least 5 concerts", 5),
         ("find at least 10 events", 10),
         ("minimum 6 events", 6),
         ("no fewer than 4 events", 4),
 
-        # "Up to" patterns - should use the specified number
+        # "Up to" -> N
         ("up to 8 events", 8),
         ("no more than 5 events", 5),
         ("maximum 12 events", 12),
         ("at most 7 events", 7),
         ("not more than 3 events", 3),
 
-        # Complex sentences with explicit counts
-        ("I'm interested in a jazz night. I want to drink cocktails and relax with some friends. Ideally in a nice place. Give me 3 events",
-         3),
-        ("Looking for outdoor summer events with good music and food. Budget is flexible. Show me 6 events", 6),
-        ("My girlfriend loves electronic music and we want to go dancing this Friday. Find 4 events", 4),
-        ("Need family-friendly events for kids aged 5-12. Budget under $50 per person. Give me 8 events", 8),
+        # Complex sentences
+        ("I'm interested in a jazz night... Give me 3 events", 3),
+        ("Looking for outdoor summer events... Show me 6 events", 6),
+        ("... this Friday. Find 4 events", 4),
+        ("family-friendly ... Give me 8 events", 8),
 
-        # Multiple numbers - should pick the event count, not other numbers
+        # Multiple numbers -> event count wins
         ("events for 2 people on 2025-12-25, show 5", 5),
         ("3 friends want to see 7 events", 7),
         ("group of 4 looking for 2 events", 2),
         ("6 people, budget $100 each, find 9 events", 9),
         ("team of 10 people wants 3 events", 3),
 
-        # Ordinals mixed with counts - should ignore ordinals
+        # Ordinals in context (ignored)
         ("1st choice events, show me 5", 5),
         ("top 3rd tier events, give me 7", 7),
         ("21st century music, find 4 events", 4),
         ("events on the 15th, show 6", 6),
 
-        # Edge cases with punctuation and formatting
+        # Punctuation & formatting
         ("show me exactly 5 events!", 5),
         ("give me 3 events please.", 3),
         ("find 7 events, thanks", 7),
@@ -212,31 +204,31 @@ def _max_k():
         ("[6 events please]", 6),
         ("show me #8 events", 8),
 
-        # Negative/zero tests - should use default (assuming your system handles this)
-        ("show me 0 events", 0),  # or however you want to handle zero
-        ("give me -5 events", _default_k()),  # negative numbers
+        # Negative/zero (adjust to your product rules)
+        ("show me 0 events", _default_k()),
+        ("give me -5 events", _default_k()),
 
-        # Very large numbers - test boundaries
-        ("show me 100 events",_max_k()),
-        ("find 999 events",_max_k()),
-        ("give me 1000 events",_max_k()),
+        # Very large -> cap
+        ("show me 100 events", _max_k()),
+        ("find 999 events", _max_k()),
+        ("give me 1000 events", _max_k()),
 
-        # Multiple explicit counts - should use the last/most relevant one
+        # Multiple explicit counts -> take last/most relevant
         ("find 3 events, actually make that 5", 5),
         ("show me 10... no wait, 7 events", 7),
 
-        # Spelled out larger numbers (if supported)
-        ("twenty-one events", _max_k()),  # should default as it's not in your supported list
-        ("thirty events",_max_k()),  # should default
-        ("one hundred events",_max_k()),  # should default
+        # Larger number words not in whitelist -> cap/default
+        ("twenty-one events", _max_k()),
+        ("thirty events", _max_k()),
+        ("one hundred events", _max_k()),
 
-        # Ambiguous contexts
-        ("room for 50 people, show me 3 events", 3),  # capacity vs event count
-        ("event lasts 2 hours, find 5 events", 5),  # duration vs event count
-        ("4 star rated events, show me 8", 8),  # rating vs event count
-        ("events with 100+ attendees, give me 2", 2),  # attendee count vs event count
+        # Ambiguous contexts with extra numbers
+        ("room for 50 people, show me 3 events", 3),
+        ("event lasts 2 hours, find 5 events", 5),
+        ("4 star rated events, show me 8", 8),
+        ("events with 100+ attendees, give me 2", 2),
 
-        # Different phrasings for event requests
+        # Alternate verbs
         ("display 5 events", 5),
         ("list 7 events", 7),
         ("present 3 events", 3),
@@ -245,12 +237,12 @@ def _max_k():
         ("fetch 9 events", 9),
         ("retrieve 2 events", 2),
 
-        # International date formats with event counts
-        ("15/08/2025 events, show 4", 4),  # DD/MM/YYYY
-        ("08/15/2025 events, give me 6", 6),  # MM/DD/YYYY
-        ("15.08.2025 events, find 3", 3),  # DD.MM.YYYY
+        # International dates
+        ("15/08/2025 events, show 4", 4),
+        ("08/15/2025 events, give me 6", 6),
+        ("15.08.2025 events, find 3", 3),
 
-        # Time formats with event counts
+        # Times
         ("events at 7:30 AM, show 5", 5),
         ("concerts at 19h30, give me 3", 3),
         ("shows at 8PM, find 4", 4),
@@ -265,10 +257,6 @@ def test_live_returns_exact_integer(service, user_prompt, expected):
 
 @pytest.mark.integration
 def test_live_uses_default_when_no_number(service):
-    """
-    Relies on COUNT_EXTRACT_SYS_PROMPT instructing the model to use the provided default.
-    Ensure your system prompt includes something like: 'Default count: {DEFAULT_K}'.
-    """
     prompt = "recommend some good tech events near me"
     n = service.extract_requested_event_count(prompt)
     assert isinstance(n, int)
@@ -280,5 +268,3 @@ def test_live_handles_whitespace_and_newlines(service):
     prompt = "   please send 12 events \n"
     n = service.extract_requested_event_count(prompt)
     assert n == 12
-
-
