@@ -63,7 +63,7 @@ class Config:
         "top_p": 1,
         "frequency_penalty": 0,
         "presence_penalty": 0,
-        "max_tokens": 8-16,
+        "max_tokens": 6,
         "stream": False
     }
 
