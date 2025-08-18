@@ -14,6 +14,7 @@ from app.services.embedding_service.embedding_service import EmbeddingService
 from app.services.model.model_service import ModelService
 from app.configuration.config import Config
 from app.util.format_event_util import format_event
+from app.util.model_util import COUNT_EXTRACT_SYS_PROMPT
 
 
 class CloudModelService(ModelService):
@@ -136,3 +137,39 @@ class CloudModelService(ModelService):
         # Defensive extraction
         msg = (resp.choices[0].message.content if resp.choices and resp.choices[0].message else None) or ""
         return msg.strip()
+
+    def extract_requested_event_count(self, user_prompt: str) -> int:
+        """
+            Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
+            Returns an integer depicting the requested event count.
+        """
+        model = getattr(Config, "OPENAI_MODEL", "gpt-4o-mini")
+
+        # Start from config opts; ensure it's a dict
+        cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_EXTRACT_K_OPTS", {}) or {})
+
+        # We always return a final integer from this method.
+        # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
+        cfg_opts.pop("stream", None)
+
+
+        system_msg: ChatCompletionSystemMessageParam = {
+            "role": "system",
+            "content": f"{COUNT_EXTRACT_SYS_PROMPT}\n\n".strip(),
+        }
+        user_msg: ChatCompletionUserMessageParam = {
+            "role": "user",
+            "content": user_prompt,
+        }
+        messages=[system_msg, user_msg]
+
+        resp = self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            **cfg_opts,
+        )
+
+        return int(resp.choices[0].message.content)
+
+
+

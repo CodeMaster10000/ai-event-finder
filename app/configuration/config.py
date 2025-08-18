@@ -10,9 +10,11 @@ class Config:
     OLLAMA_URL = os.getenv("OLLAMA_EMBEDDING_URL", "http://localhost:11434")
     OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-large")
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "nomic-embed-text")
-    OLLAMA_LLM = os.getenv("OLLAMA_LLM", "llama3.1")
+    OLLAMA_LLM = os.getenv("OLLAMA_LLM_MODEL", "llama3.1")
 
     RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
+    DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", "5"))
+    MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", "5"))
 
     OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
     OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
@@ -20,11 +22,21 @@ class Config:
     OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
     OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
 
+
+
     OLLAMA_LLM_OPTIONS = {
         "temperature": OLLAMA_TEMPERATURE,
         "top_p": OLLAMA_TOP_P,
         "top_k": OLLAMA_TOP_K,
         "num_predict": OLLAMA_NUM_PREDICT,
+        "seed": OLLAMA_SEED
+    }
+
+    OLLAMA_LLM_EXTRACT_K_OPTIONS = { #HARDCODED FOR TESTING
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "top_k": 1,
+        "num_predict": 6,
         "seed": OLLAMA_SEED
     }
 
@@ -43,6 +55,15 @@ class Config:
         "presence_penalty" : PRESENCE_PENALTY,
         "max_tokens" : MAX_TOKENS,
         "stream" : True
+    }
+
+    OPEN_AI_EXTRACT_K_OPTS = { #hard coded for testing
+        "temperature": 0,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "max_tokens": 6,
+        "stream": False
     }
 
 
