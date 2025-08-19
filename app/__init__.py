@@ -52,7 +52,6 @@ def create_api(app: Flask):
 def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
-
     app.config["PROPAGATE_EXCEPTIONS"] = True
 
     app.config['SECRET_KEY'] = secrets.token_hex(32)
@@ -83,7 +82,7 @@ def create_app(test_config: dict | None = None):
         "app.routes.user_route", "app.routes.app_route",
         "app.routes.event_route",
     ])
-
+    app.di = container
     create_api(app)
     # Configure logging and activate error listener
     register_auth_error_handlers(app)

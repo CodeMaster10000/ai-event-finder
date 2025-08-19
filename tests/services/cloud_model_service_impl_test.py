@@ -4,11 +4,11 @@ from unittest.mock import MagicMock
 from openai import OpenAI
 
 from app.configuration.config import Config
-from app.services.model.cloud_model_service_impl import CloudModelService
+from app.services.model.model_service_impl import ModelServiceImpl
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 
-pytest.skip("Skipping LLM tests.", allow_module_level=True)
+#pytest.skip("Skipping LLM tests.", allow_module_level=True)
 
 # -------------------- Cloud (OpenAI) prechecks --------------------
 
@@ -64,7 +64,7 @@ def service(openai_client_or_skip):
     """
     mock_repo = MagicMock(spec=EventRepository)
     mock_embed = MagicMock(spec=EmbeddingService)
-    return CloudModelService(
+    return ModelServiceImpl(
         event_repository=mock_repo,
         embedding_service=mock_embed,
         client=openai_client_or_skip,

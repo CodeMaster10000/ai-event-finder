@@ -2,14 +2,14 @@ import csv
 import os
 from datetime import datetime
 from itertools import cycle
-
+from flask import current_app
 from flask.cli import AppGroup
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models.user import User
 from app.models.event import Event
-from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
+from app.services.embedding_service.embedding_service_impl import EmbeddingServiceImpl
 from app.constants import (
     DEFAULT_PASSWORD,
     DESCRIPTION_MAX_LENGTH, CATEGORY_MAX_LENGTH, TITLE_MAX_LENGTH, LOCATION_MAX_LENGTH
@@ -32,7 +32,9 @@ CSV_PATH = os.getenv("SEED_EVENTS_CSV", "data/preprocessed_events.csv")
 USERS_COUNT = int(os.getenv("SEED_USERS_COUNT", "20"))
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-_embedding_service = LocalEmbeddingService()
+
+def get_embedding_service():
+    return current_app.di.embedding_service()
 
 
 def _parse_datetime(date_string: str) -> datetime | None:
@@ -130,6 +132,7 @@ def seed_events():
 
         # embedding
         try:
+            _embedding_service = get_embedding_service()
             event_embedding = _embedding_service.create_embedding(
                 f"Title: {title}. Description: {description}. Category: {category}. Location: {location}"
             )

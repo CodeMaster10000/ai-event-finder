@@ -34,21 +34,8 @@ services:
     volumes:
       - .:/app
 
-  ollama:
-    build:
-      context: .
-      dockerfile: Dockerfile.ollama
-    environment:
-      - EMBEDDING_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL}
-      - LLM_MODEL_NAME=${OLLAMA_LLM_MODEL}
-    ports:
-      - "${HOST_OLLAMA_PORT}:${OLLAMA_PORT}"
-    volumes:
-      - ollama-models:/root/.ollama
-    restart: unless-stopped
 
 
 
 volumes:
   postgres_data:
-  ollama-models:

@@ -7,29 +7,31 @@ load_dotenv(dotenv_path=env_path)
 
 # Loads PostgresSQL connection URI and other settings from environment variables, defined in a .env file.
 class Config:
-    OLLAMA_URL = os.getenv("OLLAMA_EMBEDDING_URL", "http://localhost:11434")
-    OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-large")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "nomic-embed-text")
-    OLLAMA_LLM = os.getenv("OLLAMA_LLM_MODEL", "llama3.1")
+    PROVIDER = os.getenv("PROVIDER", "local").lower()
+
+    DMR_BASE_URL = os.getenv("DMR_BASE_URL", "http://host.docker.internal:12434/v1")
+    DMR_EMBEDDING_MODEL = os.getenv("DMR_EMBEDDING_MODEL", "ai/mxbai-embed-large")
+    DMR_MODEL = os.getenv("DMR_LLM_MODEL", "ai/llama3.1:8b-instruct")
+    DMR_API_KEY = os.getenv("DMR_API_KEY", "dmr")
 
     RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
     DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", "5"))
     MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", "5"))
 
-    OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
-    OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
-    OLLAMA_TOP_K = int(os.getenv("OLLAMA_TOP_K", 30))
-    OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
-    OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
+    DMR_TEMPERATURE = float(os.getenv("DMR_TEMPERATURE", 0.3))
+    DMR_TOP_P = float(os.getenv("DMR_TOP_P", 0.9))
+    DMR_TOP_K = int(os.getenv("DMR_TOP_K", 30))
+    DMR_NUM_PREDICT = int(os.getenv("DMR_NUM_PREDICT", 256))
+    DMR_SEED = int(os.getenv("DMR_SEED", 42))
 
 
 
     OLLAMA_LLM_OPTIONS = {
-        "temperature": OLLAMA_TEMPERATURE,
-        "top_p": OLLAMA_TOP_P,
-        "top_k": OLLAMA_TOP_K,
-        "num_predict": OLLAMA_NUM_PREDICT,
-        "seed": OLLAMA_SEED
+        "temperature": DMR_TEMPERATURE,
+        "top_p": DMR_TOP_P,
+        "top_k": DMR_TOP_K,
+        "num_predict": DMR_NUM_PREDICT,
+        "seed": DMR_SEED
     }
 
     OLLAMA_LLM_EXTRACT_K_OPTIONS = { #HARDCODED FOR TESTING
@@ -37,7 +39,7 @@ class Config:
         "top_p": 1.0,
         "top_k": 1,
         "num_predict": 6,
-        "seed": OLLAMA_SEED
+        "seed": DMR_SEED
     }
 
     # CLOUD
@@ -47,7 +49,7 @@ class Config:
     PRESENCE_PENALTY = float(os.getenv("OPENAI_PRESENCE_PENALTY"))
     MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS"))
 
-    OPENAI_MODEL = str(os.getenv("OPENAI_MODEL"))
+    OPENAI_MODEL = str(os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
     OPENAI_GEN_OPTS = {
         "temperature" : OPENAI_TEMPERATURE,
         "top_p": OPENAI_P,
@@ -57,7 +59,7 @@ class Config:
         "stream" : True
     }
 
-    OPEN_AI_EXTRACT_K_OPTS = { #hard coded for testing
+    OPENAI_EXTRACT_K_OPTS = { #hard coded for testing
         "temperature": 0,
         "top_p": 1,
         "frequency_penalty": 0,
