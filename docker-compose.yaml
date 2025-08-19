@@ -3,6 +3,8 @@ version: '3.9'
 services:
   db:
     image: pgvector/pgvector:pg16
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -20,6 +22,8 @@ services:
   web:
     build: .
     command: python run.py
+    env_file:
+      - .env
     ports:
       - "${HOST_APP_PORT}:${APP_PORT}"
     depends_on:
@@ -38,15 +42,38 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.ollama
+    env_file:
+      - .env
     environment:
-      - EMBEDDING_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL}
-      - LLM_MODEL_NAME=${OLLAMA_LLM_MODEL}
+      EMBEDDING_MODEL_NAME: ${OLLAMA_EMBEDDING_MODEL}
+      LLM_MODEL_NAME: ${OLLAMA_LLM_MODEL}
     ports:
       - "${HOST_OLLAMA_PORT}:${OLLAMA_PORT}"
     volumes:
       - ollama-models:/root/.ollama
     restart: unless-stopped
 
+  locust:
+    image: locustio/locust
+    env_file:
+      - .env
+    command: >
+      -f /mnt/locust/locustfile.py
+      --host ${LOCUST_HOST}
+      --users ${LOCUST_USERS}
+      --spawn-rate ${LOCUST_SPAWN_RATE}
+      --run-time ${LOCUST_RUN_TIME}
+      ${LOCUST_HEADLESS_FLAG}
+      --csv /mnt/locust/reports/${LOCUST_CSV_PREFIX}
+      --loglevel ${LOCUST_LOGLEVEL}
+    volumes:
+      - ./perf/locust:/mnt/locust
+    ports:
+      - "${LOCUST_PORT_MAPPING}"
+    depends_on:
+      - web
+      - db
+      - ollama
 
 
 volumes:
