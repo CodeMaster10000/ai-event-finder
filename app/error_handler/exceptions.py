@@ -104,6 +104,13 @@ class UserNotInEventException(Exception):
         message = f"User with email {user_email} doesn't exist in event with title {event_title}."
         super().__init__(message)
 
+class InvalidDateFormatException(Exception):
+    def __init__(self, date_string: str, date_format: str, original_exception: Exception = None):
+        self.original_exception = original_exception
+
+        message = f"Invalid date format {date_string}. Expected format: {date_format}."
+        super().__init__(message)
+
 class EventSaveException(Exception):
     """
     Raised when persisting an event fails due to an internal error.

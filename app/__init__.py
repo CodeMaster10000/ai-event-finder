@@ -20,6 +20,8 @@ from app.routes.user_route import user_ns
 from app.services import user_service
 from app.services import user_service_impl
 
+from app.cli import seed_cli
+
 migrate = Migrate()
 
 # Function to set up REST API and Swagger API
@@ -61,6 +63,9 @@ def create_app(test_config: dict | None = None):
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
+
+    app.cli.add_command(seed_cli)
+
     if test_config and test_config.get("TESTING", True):
         app.config.update(test_config)
     else:
