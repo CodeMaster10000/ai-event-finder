@@ -28,11 +28,13 @@ class ModelService(ABC):
         """
         ...
 
+    @abstractmethod
     def build_messages(self, context: str, user_prompt: str, sys_prompt) -> List[Dict[str, str]]:
         """
         Assemble the chat messages with system, assistant, and user roles.
         """
 
+    @abstractmethod
     def get_rag_data_and_create_context(self, user_prompt) -> List[Dict[str, str]]:
         """
         Retrieves relevant event data using a Retrieval-Augmented Generation (RAG) approach
@@ -61,3 +63,30 @@ class ModelService(ABC):
         This method is useful in RAG-based applications to inject real-world data context into
         LLM queries.
         """
+
+    @abstractmethod
+    def extract_requested_event_count(self, user_prompt: str) -> int:
+        """
+        Extract the number of events the user is asking for from a free-form prompt.
+
+        This method should call the underlying LLM with a dedicated **count-extraction**
+        system prompt that coerces the model to output a single integer (no prose).
+        Do **not** perform RAG or hit the repositories/embeddings for this operation.
+
+        Args:
+            user_prompt: The raw user input (e.g., "show me 5 tech events in Skopje").
+
+        Returns:
+            int: The requested event count. If the prompt does not contain a clear,
+            positive integer, return the application default (e.g., `K` from env/config).
+
+        Expected behavior / normalization rules:
+        - Prefer an explicit positive integer if present (numerals or number words).
+        - For ranges or comparative phrases (e.g., "3–5", "up to 7", "at least 10"),
+          choose a single reasonable integer (e.g., the most specific bound available);
+          if ambiguity remains, fall back to the default.
+        - Ignore numerals clearly unrelated to quantity (dates, times, addresses).
+        - Clamp to a minimum of 1 if a non-positive value is produced by the LLM.
+        - Implementations should be robust to casing, punctuation, and extra text.
+        """
+

@@ -67,6 +67,9 @@ OPENAI_PRESENCE_PENALTY=0.0
 OPENAI_MAX_TOKENS=220
 ```
 
+SEED_EVENTS_CSV=data/preprocessed_events.csv
+SEED_USERS_COUNT=20
+
 ## Example for flaskenv. File
 FLASK_APP=run.py
 FLASK_ENV=development
@@ -80,3 +83,10 @@ poetry install --with testing
 pytest --cov=app --cov-report=term-missing
 ```
 - always stick to coverage **greater than 90%**
+
+## Seeding data into db
+```shell
+flask seed users
+flask seed events
+flask seed clean 
+```
