@@ -3,7 +3,6 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import create_access_token
 from app.services.user_service import UserService
-from app.util.logging_util import log_calls
 from app.container import Container
 
 auth_ns = Namespace("auth", description="Authentication")
@@ -16,7 +15,6 @@ login_model = auth_ns.model("Login", {
 @auth_ns.route("/login")
 class Login(Resource):
     @inject # Injects User Service from DI container
-    # @log_calls("app.routes")
     @auth_ns.expect(login_model)
     def post(self,
                 user_service: UserService = Provide[Container.user_service]):
@@ -28,7 +26,8 @@ class Login(Resource):
             return {"message": "Email and password are required."}, 400
 
         user = user_service.get_by_email(email)
-        if not user or user.password != password:
+
+        if not user or not user.password == password:
             return {"message": "Invalid credentials"}, 401
 
         access_token = create_access_token(identity=str(user.id))
