@@ -8,6 +8,7 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
+from poetry.console.commands import self
 
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
@@ -42,7 +43,7 @@ class ModelServiceImpl(ModelService):
 
         super().__init__(event_repository, embedding_service, sys_prompt=sys_prompt)
         self.client = client
-        self.model = model or (Config.DMR_MODEL if Config.PROVIDER == "local"
+        self.model = model or (Config.DMR_LLM_MODEL if Config.PROVIDER == "local"
         else Config.OPENAI_MODEL)
 
     # ---------------------------
@@ -154,7 +155,10 @@ class ModelServiceImpl(ModelService):
         # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
         cfg_opts.pop("stream", None)
 
-        print(f"using chat model: {self.model}")
+        print(f"DEBUG: Config.PROVIDER: {Config.PROVIDER}")
+        print(f"DEBUG: cfg_opts: {cfg_opts}")
+        print(f"DEBUG: client base_url: {self.client.base_url}")
+        print(f"DEBUG: client api_key: {self.client.api_key}")
         system_msg: ChatCompletionSystemMessageParam = {
             "role": "system",
             "content": f"{COUNT_EXTRACT_SYS_PROMPT}\n\n".strip(),

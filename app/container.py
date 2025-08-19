@@ -36,10 +36,10 @@ class Container(containers.DeclarativeContainer):
     else:
         openai_client = providers.Singleton(
             OpenAI,
-            api_key="not-needed",
-            base_url=Config.DMR_BASE_URL
+            api_key=Config.DMR_API_KEY,
+            base_url=Config.DMR_CHAT_BASE_URL,
         )
-        chat_model = providers.Object(getattr(Config, "DMR_MODEL", "ai/llama3.1"))
+        chat_model = providers.Object(getattr(Config, "DMR_LLM_MODEL", "ai/llama3.1"))
         embedding_model = providers.Object(getattr(Config, "DMR_EMBEDDING_MODEL", "ai/mxbai-embed-large"))
 
     embedding_service = providers.Singleton(
@@ -49,6 +49,8 @@ class Container(containers.DeclarativeContainer):
     )
     model_service = providers.Singleton(
         ModelServiceImpl,
+        event_repository=event_repository,
+        embedding_service=embedding_service,
         client=openai_client,
         model=chat_model,
     )
