@@ -2,6 +2,7 @@ import secrets
 from datetime import timedelta
 
 from flask import Flask
+from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
 from flask_restx import Api
@@ -50,6 +51,16 @@ def create_api(app: Flask):
 def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:8080"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": False
+        }
+    })
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
 
