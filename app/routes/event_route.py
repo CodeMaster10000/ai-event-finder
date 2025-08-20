@@ -42,14 +42,14 @@ class EventBaseResource(Resource):
     @event_ns.expect(event_create_input)
     @inject
     @jwt_required()
-    def post(self,
+    async def post(self,
              event_service: EventService = Provide[Container.event_service]):
         """Create a new event"""
         # 1. Validate & deserialize the JSON (still requires organizer_email)
         data = create_event_schema.load(request.get_json())
 
         # 2. Delegate everything (including email lookup) to the service
-        saved = event_service.create(data)
+        saved = await event_service.create(data)
 
         # 3. Serialize and return the newly created event
         return event_schema.dump(saved), 201

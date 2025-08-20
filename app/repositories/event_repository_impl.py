@@ -31,11 +31,6 @@ class EventRepositoryImpl(EventRepository):
     def get_by_category(self, category: str, session:Session) -> list[type[Event]]:
         return session.query(Event).filter_by(category=category).all()
 
-    def delete_by_id(self, event_id: int, session:Session) -> None:
-        event = session.get(Event, event_id)
-        if event:
-            session.delete(event)
-
     def search_by_embedding(self, query_vector: Sequence[float], k: int = 10,
                             probes: Optional[int] = 10, session: Session = db.session) -> list[Event]:
         vec = [float(x) for x in query_vector]
