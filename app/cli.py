@@ -91,11 +91,19 @@ def seed_events():
     length_violations = 0
     embedding_errors = 0
 
+    existing_titles = {
+        (t or "").strip.lower()
+        for (t,) in db.session.query(Event.title).all()
+    }
+    seen_titles = set(existing_titles)
+
     for row_index, csv_row in enumerate(csv_rows, start=1):
         title = (csv_row.get("name") or csv_row.get("title") or "").strip()
         description = (csv_row.get("description") or "").strip()
         location = (csv_row.get("location") or "").strip()
         category = (csv_row.get("category") or "").strip()
+
+        norm_title = title.lower()
 
         try:
             event_datetime = _parse_datetime(csv_row.get("datetime") or "")
@@ -117,13 +125,18 @@ def seed_events():
             length_violations += 1
             continue
 
+        if norm_title in seen_titles:
+            duplicate_events += 1
+            continue
+        seen_titles.add(norm_title)
+
         event_organizer = next(round_robin_users)
 
         # idempotency: (organizer_id, title, datetime)
         with db.session.no_autoflush:
             if db.session.query(Event.id).filter_by(
-                    title=title, organizer_id=event_organizer.id
-            ).filter(Event.datetime == event_datetime).first():
+                    title=title
+            ).first():
                 try:
                     raise EventAlreadyExistsException(event_name=title)
                 except EventAlreadyExistsException:

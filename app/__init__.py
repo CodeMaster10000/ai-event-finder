@@ -1,6 +1,6 @@
 import secrets
 from datetime import timedelta
-
+from flask_cors import CORS
 from flask import Flask
 from flask_migrate import Migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
@@ -54,7 +54,15 @@ def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
     app.config["PROPAGATE_EXCEPTIONS"] = True
-
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:8080"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": False
+        }
+    })
     app.config['SECRET_KEY'] = secrets.token_hex(32)
     app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(64)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
