@@ -19,11 +19,12 @@ class Config:
     DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", "5"))
     MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", "5"))
 
-    DMR_TEMPERATURE = float(os.getenv("DMR_TEMPERATURE", 0.3))
-    DMR_TOP_P = float(os.getenv("DMR_TOP_P", 0.9))
-    DMR_TOP_K = int(os.getenv("DMR_TOP_K", 30))
-    DMR_NUM_PREDICT = int(os.getenv("DMR_NUM_PREDICT", 256))
-    DMR_SEED = int(os.getenv("DMR_SEED", 42))
+    OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
+    OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
+    OLLAMA_TOP_K = int(os.getenv("OLLAMA_TOP_K", 30))
+    OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
+    OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
+
 
 
     # CLOUD
@@ -67,6 +68,20 @@ class Config:
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 50))
+    DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 50))
+    DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 30))  # seconds to wait for a free conn
+    DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 1800))  # recycle after 30 min
+    DB_POOL_PRE_PING = os.getenv("DB_POOL_PRE_PING", "true").lower() in ("1", "true", "yes", "on")
+
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": DB_POOL_SIZE,
+        "max_overflow": DB_MAX_OVERFLOW,
+        "pool_timeout": DB_POOL_TIMEOUT,
+        "pool_recycle": DB_POOL_RECYCLE,
+        "pool_pre_ping": DB_POOL_PRE_PING,
+    }
 
     # One shared size we standardize on for the DB vector column (e.g., 1024)
     UNIFIED_VECTOR_DIM = int(os.getenv("UNIFIED_VECTOR_DIM", 1024))

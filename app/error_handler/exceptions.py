@@ -61,13 +61,6 @@ class EventNotFoundException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-class EventSaveException(Exception):
-    def __init__(self, original_exception: Exception = None):
-        self.original_exception = original_exception
-
-        message = "Unable to save event due to an internal error."
-        super().__init__(message)
-
 class EventDeleteException(Exception):
     """
     Raised when deleting an event from the database fails (aside from not found).

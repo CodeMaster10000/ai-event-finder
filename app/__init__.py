@@ -89,5 +89,10 @@ def create_app(test_config: dict | None = None):
     configure_logging()
     register_error_handlers(app)
 
+    @app.teardown_appcontext
+    def shutdown_session(exc=None):
+        # CRITICAL: returns the scoped session/connection to the pool
+        db.session.remove()
+
 
     return app
