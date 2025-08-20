@@ -9,23 +9,13 @@ load_dotenv(dotenv_path=env_path)
 class Config:
     PROVIDER = os.getenv("PROVIDER", "local").lower()
 
-    DMR_CHAT_BASE_URL = os.getenv("DMR_CHAT_BASE_URL", "http://host.docker.internal:12434/engines/llama.cpp/v1")
-    DMR_EMBED_BASE_URL = os.getenv("DMR_EMBED_BASE_URL", "http://host.docker.internal:12434/engines/tei/v1")
+    DMR_BASE_URL = os.getenv("DMR_CHAT_BASE_URL", "http://host.docker.internal:12434/engines/llama.cpp/v1")
     DMR_EMBEDDING_MODEL = os.getenv("DMR_EMBEDDING_MODEL", "ai/mxbai-embed-large")
     DMR_LLM_MODEL = os.getenv("DMR_LLM_MODEL", "ai/llama3.1:8b-instruct")
     DMR_API_KEY = os.getenv("DMR_API_KEY", "dmr")
 
-    RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
-    DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", "5"))
-    MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", "5"))
-
-    OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
-    OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
-    OLLAMA_TOP_K = int(os.getenv("OLLAMA_TOP_K", 30))
-    OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
-    OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
-
-
+    DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", 5))
+    MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", 5))
 
     # CLOUD
     OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE"))

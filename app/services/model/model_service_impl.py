@@ -155,10 +155,6 @@ class ModelServiceImpl(ModelService):
         # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
         cfg_opts.pop("stream", None)
 
-        print(f"DEBUG: Config.PROVIDER: {Config.PROVIDER}")
-        print(f"DEBUG: cfg_opts: {cfg_opts}")
-        print(f"DEBUG: client base_url: {self.client.base_url}")
-        print(f"DEBUG: client api_key: {self.client.api_key}")
         system_msg: ChatCompletionSystemMessageParam = {
             "role": "system",
             "content": f"{COUNT_EXTRACT_SYS_PROMPT}\n\n".strip(),

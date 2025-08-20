@@ -60,7 +60,6 @@ services:
     depends_on:
       - web
       - db
-      - ollama
 
 
 volumes:
