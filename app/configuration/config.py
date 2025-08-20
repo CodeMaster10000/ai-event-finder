@@ -72,6 +72,20 @@ class Config:
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 50))
+    DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 50))
+    DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 30))  # seconds to wait for a free conn
+    DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 1800))  # recycle after 30 min
+    DB_POOL_PRE_PING = os.getenv("DB_POOL_PRE_PING", "true").lower() in ("1", "true", "yes", "on")
+
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": DB_POOL_SIZE,
+        "max_overflow": DB_MAX_OVERFLOW,
+        "pool_timeout": DB_POOL_TIMEOUT,
+        "pool_recycle": DB_POOL_RECYCLE,
+        "pool_pre_ping": DB_POOL_PRE_PING,
+    }
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "hard-coded-test-key")
     OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
 
