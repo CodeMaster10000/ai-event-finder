@@ -37,7 +37,7 @@ class EventRepositoryImpl(EventRepository):
             session.delete(event)
 
     def search_by_embedding(self, session: Session, query_vector: Sequence[float],
-                            k: int = 10, probes: Optional[int] = 10) -> list[Event]:
+                            k: int = Config.DEFAULT_K_EVENTS, probes: Optional[int] = 10) -> list[Event]:
         vec = [float(x) for x in query_vector]
 
         if probes is not None:

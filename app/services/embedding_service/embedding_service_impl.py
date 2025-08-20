@@ -4,22 +4,25 @@ from app.configuration.config import Config
 from app.error_handler.exceptions import EmbeddingServiceException
 
 
-class CloudEmbeddingService(EmbeddingService):
+class EmbeddingServiceImpl(EmbeddingService):
     """
     OpenAI cloud embedding using text-embedding-3-* with a unified dimension.
     Accepts plain text and returns a list[float], same shape as LocalEmbeddingService.
     """
 
-    def __init__(self, client: OpenAI):
+    def __init__(self, client: OpenAI, model: str | None = None):
         self.client = client
-
+        self.model = model or (
+            Config.DMR_EMBEDDING_MODEL if Config.PROVIDER == "local"
+            else Config.OPENAI_EMBEDDING_MODEL
+        )
     def create_embedding(self, text: str) -> list[float]:
         if not isinstance(text, str) or not text.strip():
             raise EmbeddingServiceException("Input text must be a non-empty string.")
 
         try:
             resp = self.client.embeddings.create(
-                model=Config.OPENAI_EMBEDDING_MODEL,
+                model=self.model,
                 input=text,
                 dimensions=Config.UNIFIED_VECTOR_DIM,
             )
