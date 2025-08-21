@@ -162,6 +162,15 @@ SEED_USERS_COUNT=20
 
 ---
 
+## Docker Model Runner
+
+To pull the required models to Docker Model Runner, follow these instructions:
+1. Open Docker Desktop
+2. Go to settings, beta features
+3. Enable Docker Model Runner
+4. Exit the settings menu and go to the Models tab on the left
+5. Click Add Models and pull llama3.1 and mxbai-embed-large
+
 ## Installation
 
 1. **Clone the repository**
