@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from typing import List, Dict, Any, cast, Optional
-
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionSystemMessageParam,
@@ -35,7 +33,7 @@ class ModelServiceImpl(ModelService):
         self,
         event_repository: EventRepository,
         embedding_service: EmbeddingService,
-        client: OpenAI,  # DI-provided OpenAI client
+        client: AsyncOpenAI,  # DI-provided async OpenAI client
         model: str | None = None,
         sys_prompt: Optional[str] = None,
     ):
@@ -49,24 +47,41 @@ class ModelServiceImpl(ModelService):
     # ---------------------------
     # Public API
     # ---------------------------
-
-    def query_prompt(self, user_prompt: str) -> str:
+    async def query_prompt(self, user_prompt: str) -> str:
         """
-        1) Retrieve RAG context (embedding + events)
-        2) Build full chat messages
-        3) Call the OpenAI Chat Completions API and return assistant text
+        1) Embed the user prompt via embedding_service
+        2) Fetch top-K similar events and format them
+        3) Build chat messages
+        4) Call OpenAI Chat Completion API
+        5) Return the assistant response
         """
-        # 1) fetch context
-        rag_context = self.get_rag_data_and_create_context(user_prompt)
+        # 1) embed the user prompt (await if using async embedding service)
+        embed_vector = await self.embedding_service.create_embedding(user_prompt)
 
-        # 2) assemble messages (typed for OpenAI SDK)
+        # 2) retrieve most fit events
+        events = self.event_repository.search_by_embedding(embed_vector, Config.RAG_TOP_K)
+
+        # 3) format events
+        rag_context = "\n".join([format_event(e) for e in events])
+
+        # 4) assemble messages
         messages: List[ChatCompletionMessageParam] = self.build_messages(
             self.sys_prompt, rag_context, user_prompt
         )
 
-        # 3) call OpenAI (non-streaming by default; safe against duplicate kwargs)
-        text = self._generate_text(messages)
-        return text
+        # 5) call OpenAI Chat Completions API
+        cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_GEN_OPTS", {}) or {})
+        cfg_opts.pop("stream", None)  # remove streaming if present
+
+        resp = await self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            **cfg_opts,
+        )
+
+        # defensive extraction
+        msg = (resp.choices[0].message.content if resp.choices and resp.choices[0].message else None) or ""
+        return msg.strip()
 
     def build_messages(
         self,
@@ -94,66 +109,16 @@ class ModelServiceImpl(ModelService):
         # Cast ensures strict checkers accept the union type list
         return cast(List[ChatCompletionMessageParam], [system_msg, user_msg])
 
-    def get_rag_data_and_create_context(self, user_prompt: str) -> str:
+    async def extract_requested_event_count(self, user_prompt: str) -> int:
         """
-        1) Embed the user_prompt via embedding_service
-        2) Fetch top-K similar events
-        3) Format into a newline-joined list
-        """
-        # 1) embed the user prompt
-        embed_vector = self.embedding_service.create_embedding(user_prompt)
-
-        # 2) retrieve most fit events
-        events = self.event_repository.search_by_embedding(embed_vector, Config.RAG_TOP_K)
-
-        # 3) format events
-        formatted = [format_event(e) for e in events]
-        return "\n".join(formatted)
-
-    # ---------------------------
-    # Internals
-    # ---------------------------
-
-    def _generate_text(self, messages: List[ChatCompletionMessageParam]) -> str:
-        """
-        Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
-        Returns plain string content (non-streaming aggregation if you ever enable streaming).
-        """
-
-        # Start from config opts; ensure it's a dict
-        cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_GEN_OPTS", {}) or {})
-
-        # We always return a final string from this method.
-        # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
-        # (If you later want streaming, create a separate method that yields chunks.)
-        cfg_opts.pop("stream", None)
-
-        # Optional: set a sane default timeout if supported via 'timeout' in your HTTP client config.
-        # (OpenAI SDK uses 'max_retries' and timeouts in client config; leaving here for clarity.)
-        # cfg_opts.setdefault("timeout", 60)
-
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            **cfg_opts,
-        )
-
-        # Defensive extraction
-        msg = (resp.choices[0].message.content if resp.choices and resp.choices[0].message else None) or ""
-        return msg.strip()
-
-    def extract_requested_event_count(self, user_prompt: str) -> int:
-        """
-            Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
-            Returns an integer depicting the requested event count.
+        Async version: Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
+        Returns an integer depicting the requested event count.
         """
 
         # Start from config opts; ensure it's a dict
         cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_EXTRACT_K_OPTS", {}) or {})
+        cfg_opts.pop("stream", None)  # remove streaming if present
 
-        # We always return a final integer from this method.
-        # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
-        cfg_opts.pop("stream", None)
 
         system_msg: ChatCompletionSystemMessageParam = {
             "role": "system",
@@ -163,15 +128,16 @@ class ModelServiceImpl(ModelService):
             "role": "user",
             "content": user_prompt,
         }
-        messages=[system_msg, user_msg]
+        messages = [system_msg, user_msg]
 
-        resp = self.client.chat.completions.create(
+        resp = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             **cfg_opts,
         )
 
-        return int(resp.choices[0].message.content)
+        # defensive extraction
+        content = (resp.choices[0].message.content
+                   if resp.choices and resp.choices[0].message else "0")
 
-
-
+        return int(content.strip())
