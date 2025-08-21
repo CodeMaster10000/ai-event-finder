@@ -26,7 +26,8 @@ def register_error_handlers(app):
         UserNotInEventException,
         UserAlreadyInEventException,
         ConcurrencyException,
-        EmbeddingServiceException
+        EmbeddingServiceException,
+        ModelWarmupException
     )
 
     @app.errorhandler(ValidationError)
@@ -94,12 +95,11 @@ def register_error_handlers(app):
 
     @app.errorhandler(EmbeddingServiceException)
     def handle_embedding_service_error(exception: EmbeddingServiceException):
-        # log provider/root cause if present (shows full stack in server logs)
-        if getattr(exception, "original_exception", None):
-            logger.exception("Embedding service error", exc_info=exception.original_exception)
-
         return jsonify({"error": {"code": "EMBEDDING_SERVICE_ERROR","message": str(exception),}}), getattr(exception, "status_code", 500)
 
+    @app.errorhandler(ModelWarmupException)
+    def handle_model_warmup_error(exc: ModelWarmupException):
+        return {"error": "Internal server error"}, 500
 
     # -------------------------
     # GLOBAL FALLBACK - DETAILED DEBUGGING
