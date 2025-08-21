@@ -1,4 +1,5 @@
 from app.configuration.config import Config
+from app.error_handler.exceptions import ModelWarmupException
 from app.util.logging_util import log_calls
 DEFAULT_SYS_PROMPT = (
         "You are an Event Assistant for a RAG-backed event finder.\n\n"
@@ -68,19 +69,22 @@ def warmup_local_models(container) -> None:
         if Config.PROVIDER != "local":
                 return
 
+        try:
         # Chat model warmup
-        client = container.openai_client()
-        model = container.chat_model()
-        client.chat.completions.create(
-                model=model,
-                messages=[{"role":"user", "content": "ping"}],
-                temperature=0,
-                max_tokens=1,
-        )
+                client = container.openai_client()
+                model = container.chat_model()
+                client.chat.completions.create(
+                        model=model,
+                        messages=[{"role":"user", "content": "ping"}],
+                        temperature=0,
+                        max_tokens=1,
+                )
 
-        # Embedding model warmup
-        model = container.embedding_model()
-        client.embeddings.create(
-                model=model,
-                input="warmup"
-        )
+                # Embedding model warmup
+                model = container.embedding_model()
+                client.embeddings.create(
+                        model=model,
+                        input="warmup"
+                )
+        except Exception as e:
+                raise ModelWarmupException(f"Failed to warmup local models: {e}")
