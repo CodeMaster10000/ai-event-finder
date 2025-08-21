@@ -8,15 +8,17 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
+from poetry.console.commands import self
 
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 from app.services.model.model_service import ModelService
 from app.configuration.config import Config
 from app.util.format_event_util import format_event
+from app.util.model_util import COUNT_EXTRACT_SYS_PROMPT
 
 
-class CloudModelService(ModelService):
+class ModelServiceImpl(ModelService):
     """
     ModelService implementation that:
       - uses your existing EmbeddingService + EventRepository for RAG
@@ -34,11 +36,15 @@ class CloudModelService(ModelService):
         event_repository: EventRepository,
         embedding_service: EmbeddingService,
         client: OpenAI,  # DI-provided OpenAI client
+        model: str | None = None,
         sys_prompt: Optional[str] = None,
     ):
         # Calls the ModelService constructor (keeps existing behavior)
+
         super().__init__(event_repository, embedding_service, sys_prompt=sys_prompt)
         self.client = client
+        self.model = model or (Config.DMR_LLM_MODEL if Config.PROVIDER == "local"
+        else Config.OPENAI_MODEL)
 
     # ---------------------------
     # Public API
@@ -113,7 +119,6 @@ class CloudModelService(ModelService):
         Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
         Returns plain string content (non-streaming aggregation if you ever enable streaming).
         """
-        model = getattr(Config, "OPENAI_MODEL", "gpt-4o-mini")
 
         # Start from config opts; ensure it's a dict
         cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_GEN_OPTS", {}) or {})
@@ -128,7 +133,7 @@ class CloudModelService(ModelService):
         # cfg_opts.setdefault("timeout", 60)
 
         resp = self.client.chat.completions.create(
-            model=model,
+            model=self.model,
             messages=messages,
             **cfg_opts,
         )
@@ -136,3 +141,37 @@ class CloudModelService(ModelService):
         # Defensive extraction
         msg = (resp.choices[0].message.content if resp.choices and resp.choices[0].message else None) or ""
         return msg.strip()
+
+    def extract_requested_event_count(self, user_prompt: str) -> int:
+        """
+            Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
+            Returns an integer depicting the requested event count.
+        """
+
+        # Start from config opts; ensure it's a dict
+        cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_EXTRACT_K_OPTS", {}) or {})
+
+        # We always return a final integer from this method.
+        # If 'stream' appears in config, remove it so we don't double-pass and to keep this path non-streaming.
+        cfg_opts.pop("stream", None)
+
+        system_msg: ChatCompletionSystemMessageParam = {
+            "role": "system",
+            "content": f"{COUNT_EXTRACT_SYS_PROMPT}\n\n".strip(),
+        }
+        user_msg: ChatCompletionUserMessageParam = {
+            "role": "user",
+            "content": user_prompt,
+        }
+        messages=[system_msg, user_msg]
+
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            **cfg_opts,
+        )
+
+        return int(resp.choices[0].message.content)
+
+
+

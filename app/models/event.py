@@ -1,6 +1,6 @@
 from datetime import datetime, UTC
 from pgvector.sqlalchemy import Vector
-
+from sqlalchemy import Index
 from app.configuration.config import Config
 from app.extensions import db
 from app.constants import (
@@ -16,12 +16,13 @@ guest_list = db.Table(
     db.Column('user_id',  db.Integer, db.ForeignKey('user.id'),   primary_key=True),
 )
 
+
 class Event(db.Model):
     """Event with a single unified 1024-dim embedding column for semantic search."""
     __tablename__ = 'events'
 
     id          = db.Column(db.Integer, primary_key=True)
-    title       = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False)
+    title       = db.Column(db.String(TITLE_MAX_LENGTH), nullable=False, unique=True)
     datetime    = db.Column(db.DateTime, nullable=False, default=datetime.now(UTC))
     description = db.Column(db.String(DESCRIPTION_MAX_LENGTH), nullable=True)
     version      = db.Column(db.Integer, nullable=False, default=1)
@@ -41,5 +42,17 @@ class Event(db.Model):
         "version_id_col": version
     }
 
+    __table_args__ = (
+        Index(
+            'idx_events_embedding_cosine',
+            'embedding',  # <— string, not Event.embedding
+            postgresql_using='ivfflat',
+            postgresql_with={'lists': '100'},
+            postgresql_ops={'embedding': 'vector_cosine_ops'},
+        ),
+    )
+
     def __repr__(self):
         return f"<Event {self.id} – {self.title} @ {self.datetime.isoformat()}>"
+
+

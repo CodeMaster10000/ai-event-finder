@@ -2,8 +2,8 @@ import logging
 import traceback
 
 from flask import jsonify, request
-from werkzeug.exceptions import HTTPException
-
+from marshmallow import ValidationError
+from werkzeug.exceptions import HTTPException, UnsupportedMediaType, BadRequest, RequestEntityTooLarge
 
 
 def register_error_handlers(app):
@@ -28,6 +28,25 @@ def register_error_handlers(app):
         ConcurrencyException,
         EmbeddingServiceException
     )
+
+    @app.errorhandler(ValidationError)
+    def handle_marshmallow_validation(err: ValidationError):
+        # err.messages is a dict of field -> list[str]
+        return jsonify({"error": {"code": "VALIDATION_ERROR","message": "Invalid request payload.","fields": err.messages,}}), 422
+
+    # --- NEW: JSON/body issues ---
+    @app.errorhandler(BadRequest)
+    def handle_bad_request(err: BadRequest):
+        # e.g. malformed JSON -> “Failed to decode JSON object …”
+        return jsonify({"error": {"code": "BAD_REQUEST", "message": err.description or "Bad request."}}), 400
+
+    @app.errorhandler(UnsupportedMediaType)
+    def handle_unsupported_media(err: UnsupportedMediaType):
+        return jsonify({"error": { "code": "UNSUPPORTED_MEDIA_TYPE","message": err.description or "Unsupported media type."}}), 415
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def handle_too_large(err: RequestEntityTooLarge):
+        return jsonify({ "error": { "code": "REQUEST_ENTITY_TOO_LARGE","message": "Payload too large."}}), 413
 
     @app.errorhandler(UserNotFoundException)
     def handle_user_not_found(exception):
@@ -79,12 +98,7 @@ def register_error_handlers(app):
         if getattr(exception, "original_exception", None):
             logger.exception("Embedding service error", exc_info=exception.original_exception)
 
-        return jsonify({
-            "error": {
-                "code": "EMBEDDING_SERVICE_ERROR",
-                "message": str(exception),
-            }
-        }), getattr(exception, "status_code", 500)
+        return jsonify({"error": {"code": "EMBEDDING_SERVICE_ERROR","message": str(exception),}}), getattr(exception, "status_code", 500)
 
 
     # -------------------------

@@ -61,13 +61,6 @@ class EventNotFoundException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-class EventSaveException(Exception):
-    def __init__(self, original_exception: Exception = None):
-        self.original_exception = original_exception
-
-        message = "Unable to save event due to an internal error."
-        super().__init__(message)
-
 class EventDeleteException(Exception):
     """
     Raised when deleting an event from the database fails (aside from not found).
@@ -102,6 +95,13 @@ class UserNotInEventException(Exception):
         self.event_title = event_title
         self.user_email = user_email
         message = f"User with email {user_email} doesn't exist in event with title {event_title}."
+        super().__init__(message)
+
+class InvalidDateFormatException(Exception):
+    def __init__(self, date_string: str, date_format: str, original_exception: Exception = None):
+        self.original_exception = original_exception
+
+        message = f"Invalid date format {date_string}. Expected format: {date_format}."
         super().__init__(message)
 
 class EventSaveException(Exception):
