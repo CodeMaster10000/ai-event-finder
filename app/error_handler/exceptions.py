@@ -133,7 +133,12 @@ class ConcurrencyException(Exception):
         super().__init__(message)
 
 
-
+class ModelWarmupException(Exception):
+    """
+    Raised when a model warm up at app start fails.
+    """
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 
