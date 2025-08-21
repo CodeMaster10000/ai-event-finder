@@ -78,3 +78,18 @@ class LocalModelService(ModelService):
         formatted = [format_event(e) for e in events]
 
         return "\n".join(formatted)
+
+#     def chat(self, messages: List[Dict[str, str]]) -> str:
+#         r = requests.post(
+#             f"{Config.OLLAMA_URL}/api/chat",
+#             json={
+#                 "model": Config.OLLAMA_CHAT_MODEL,
+#                 "messages": messages,
+#                 "stream": False,
+#                 "options": {"temperature": 0.2}
+#             },
+#             timeout=120
+#         )
+#         r.raise_for_status()
+#         data = r.json()
+#         return (data.get("message") or {}).get("content", "")

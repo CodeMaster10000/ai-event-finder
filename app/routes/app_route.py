@@ -79,3 +79,17 @@ class PromptResource(Resource):
         if not user_prompt:
             abort(400, "'prompt' query parameter is required")
         return model_service.query_prompt(user_prompt), 200
+
+#     @router.post("/chat")
+# async def chat(req: Request, body: dict):
+#     # pick your key (example: session cookie)
+#     sid = req.session.get("sid")
+#     if not sid:
+#         sid = str(uuid.uuid4())
+#         req.session["sid"] = sid
+#
+#     prompt = body.get("prompt", "")
+#     context = body.get("context")  # plug in your RAG retrieval upstream if needed
+#
+#     answer = conversation.chat(key=sid, prompt=prompt, context=context)
+#     return JSONResponse({"answer": answer, "session_id": sid})
