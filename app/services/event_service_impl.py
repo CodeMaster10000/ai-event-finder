@@ -27,7 +27,7 @@ class EventServiceImpl(EventService):
 
     def get_by_title(self, title: str) -> Event:
         event = self.event_repository.get_by_title(title, db.session)
-        validate_event(event, f"No event with title '{title}")
+        validate_event(event, f"No event with title '{title}'")
         return event
 
     def get_by_location(self, location: str) -> List[Event]:

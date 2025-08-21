@@ -1,11 +1,12 @@
 import secrets
 from datetime import timedelta
-
+from flask_cors import CORS
 from flask import Flask
 from flask_migrate import Migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
 from flask_restx import Api
 
+from app.util.model_util import warmup_local_models
 from app.configuration.config import Config
 from app.configuration.logging_config import configure_logging
 from app.container import Container
@@ -52,9 +53,16 @@ def create_api(app: Flask):
 def create_app(test_config: dict | None = None):
     app = Flask(__name__)
     app.config.from_object(Config)
-
     app.config["PROPAGATE_EXCEPTIONS"] = True
-
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:8080"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": False
+        }
+    })
     app.config['SECRET_KEY'] = secrets.token_hex(32)
     app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(64)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
@@ -83,12 +91,17 @@ def create_app(test_config: dict | None = None):
         "app.routes.user_route", "app.routes.app_route",
         "app.routes.event_route",
     ])
-
+    app.di = container
     create_api(app)
     # Configure logging and activate error listener
     register_auth_error_handlers(app)
     configure_logging()
     register_error_handlers(app)
+    warmup_local_models(container)
+    @app.teardown_appcontext
+    def shutdown_session(exc=None):
+        # CRITICAL: returns the scoped session/connection to the pool
+        db.session.remove()
 
 
     return app

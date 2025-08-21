@@ -25,7 +25,8 @@ class EmbeddingServiceImpl(EmbeddingService):
             # Async call using AsyncOpenAI client
             resp = await self.client.embeddings.create(
                 model=self.model,
-                input=text
+                input=text,
+                dimensions=Config.UNIFIED_VECTOR_DIM,
             )
         except Exception as e:
             raise EmbeddingServiceException(

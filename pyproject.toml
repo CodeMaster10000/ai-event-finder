@@ -9,6 +9,7 @@ package-mode = false
 # Core test runner
 pytest = "^8.3.5"
 pytest-flask = "^1.3.0"
+locust = "^2.38.1"
 
 # Coverage support
 [tool.poetry.group.testing.dependencies]
@@ -67,7 +68,6 @@ dependencies = [
   "Mako==1.3.10",
 
   # ─── extras for RAG & PostgresVector ──────────────────────────────────────
-  "ollama==0.4.9",
   "openai>=1.0.0,<2.0.0",
   "psycopg2-binary",
   "pgvector",

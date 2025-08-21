@@ -21,12 +21,14 @@ class ModelServiceImpl(ModelService):
     ModelService implementation that:
       - uses your existing EmbeddingService + EventRepository for RAG
       - calls an OpenAI-hosted chat LLM for generation
+
     Public API preserved:
       - __init__(event_repository, embedding_service, client, sys_prompt=None)
       - query_prompt(user_prompt) -> str
       - build_messages(sys_prompt, context, user_prompt) -> List[ChatCompletionMessageParam]
       - get_rag_data_and_create_context(user_prompt) -> str
     """
+
     def __init__(
         self,
         event_repository: EventRepository,
@@ -36,10 +38,11 @@ class ModelServiceImpl(ModelService):
         sys_prompt: Optional[str] = None,
     ):
         # Calls the ModelService constructor (keeps existing behavior)
+
         super().__init__(event_repository, embedding_service, sys_prompt=sys_prompt)
         self.client = client
         self.model = model or (Config.DMR_LLM_MODEL if Config.PROVIDER == "local"
-                               else Config.OPENAI_MODEL)
+        else Config.OPENAI_MODEL)
 
     # ---------------------------
     # Public API
@@ -93,6 +96,7 @@ class ModelServiceImpl(ModelService):
         """
         sys_text = (sys_prompt or "").strip()
         ctx_text = (context or "no events retrieved").strip()
+
         system_msg: ChatCompletionSystemMessageParam = {
             "role": "system",
             "content": f"{sys_text}\n\n{ctx_text}".strip(),
@@ -101,6 +105,7 @@ class ModelServiceImpl(ModelService):
             "role": "user",
             "content": user_prompt,
         }
+
         # Cast ensures strict checkers accept the union type list
         return cast(List[ChatCompletionMessageParam], [system_msg, user_msg])
 
@@ -109,14 +114,11 @@ class ModelServiceImpl(ModelService):
         Async version: Calls the OpenAI Chat Completions API safely, avoiding duplicate kwargs like 'stream'.
         Returns an integer depicting the requested event count.
         """
+
         # Start from config opts; ensure it's a dict
         cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_EXTRACT_K_OPTS", {}) or {})
         cfg_opts.pop("stream", None)  # remove streaming if present
 
-        print(f"DEBUG: Config.PROVIDER: {Config.PROVIDER}")
-        print(f"DEBUG: cfg_opts: {cfg_opts}")
-        print(f"DEBUG: client base_url: {self.client.base_url}")
-        print(f"DEBUG: client api_key: {self.client.api_key}")
 
         system_msg: ChatCompletionSystemMessageParam = {
             "role": "system",

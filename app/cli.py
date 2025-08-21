@@ -2,14 +2,14 @@ import csv
 import os
 from datetime import datetime
 from itertools import cycle
-
+from flask import current_app
 from flask.cli import AppGroup
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models.user import User
 from app.models.event import Event
-from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
+from app.services.embedding_service.embedding_service_impl import EmbeddingServiceImpl
 from app.constants import (
     DEFAULT_PASSWORD,
     DESCRIPTION_MAX_LENGTH, CATEGORY_MAX_LENGTH, TITLE_MAX_LENGTH, LOCATION_MAX_LENGTH
@@ -32,7 +32,9 @@ CSV_PATH = os.getenv("SEED_EVENTS_CSV", "data/preprocessed_events.csv")
 USERS_COUNT = int(os.getenv("SEED_USERS_COUNT", "20"))
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-_embedding_service = LocalEmbeddingService()
+
+def get_embedding_service():
+    return current_app.di.embedding_service()
 
 
 def _parse_datetime(date_string: str) -> datetime | None:
@@ -89,11 +91,19 @@ def seed_events():
     length_violations = 0
     embedding_errors = 0
 
+    existing_titles = {
+        (t or "").strip.lower()
+        for (t,) in db.session.query(Event.title).all()
+    }
+    seen_titles = set(existing_titles)
+
     for row_index, csv_row in enumerate(csv_rows, start=1):
         title = (csv_row.get("name") or csv_row.get("title") or "").strip()
         description = (csv_row.get("description") or "").strip()
         location = (csv_row.get("location") or "").strip()
         category = (csv_row.get("category") or "").strip()
+
+        norm_title = title.lower()
 
         try:
             event_datetime = _parse_datetime(csv_row.get("datetime") or "")
@@ -115,13 +125,18 @@ def seed_events():
             length_violations += 1
             continue
 
+        if norm_title in seen_titles:
+            duplicate_events += 1
+            continue
+        seen_titles.add(norm_title)
+
         event_organizer = next(round_robin_users)
 
         # idempotency: (organizer_id, title, datetime)
         with db.session.no_autoflush:
             if db.session.query(Event.id).filter_by(
-                    title=title, organizer_id=event_organizer.id
-            ).filter(Event.datetime == event_datetime).first():
+                    title=title
+            ).first():
                 try:
                     raise EventAlreadyExistsException(event_name=title)
                 except EventAlreadyExistsException:
@@ -130,6 +145,7 @@ def seed_events():
 
         # embedding
         try:
+            _embedding_service = get_embedding_service()
             event_embedding = _embedding_service.create_embedding(
                 f"Title: {title}. Description: {description}. Category: {category}. Location: {location}"
             )
