@@ -2,6 +2,8 @@ from openai import AsyncOpenAI
 from .embedding_service import EmbeddingService
 from app.configuration.config import Config
 from app.error_handler.exceptions import EmbeddingServiceException
+import numpy as np
+from numpy.linalg import norm
 
 
 class EmbeddingServiceImpl(EmbeddingService):
@@ -44,5 +46,10 @@ class EmbeddingServiceImpl(EmbeddingService):
             raise EmbeddingServiceException(
                 f"Expected {Config.UNIFIED_VECTOR_DIM}-dim embedding, got {len(emb)}"
             )
+        vec = np.array(emb, dtype=np.float32)
+        norm_val = norm(vec)
+        if norm_val == 0:
+            raise EmbeddingServiceException("Embedding vector has zero norm, cannot normalize.")
+        normalized = vec / norm_val
 
-        return list(emb)
+        return normalized.tolist()

@@ -21,7 +21,7 @@ services:
 
   web:
     build: .
-    command: uvicorn asgi:app --host 0.0.0.0 --port ${APP_PORT} --reload
+    command: uvicorn run:app --host 0.0.0.0 --port ${APP_PORT} --reload
     env_file:
       - .env
     ports:
