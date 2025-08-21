@@ -26,6 +26,7 @@ services:
       - .env
     ports:
       - "${HOST_APP_PORT}:${APP_PORT}"
+    extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on:
       - db
     environment:
@@ -38,20 +39,6 @@ services:
     volumes:
       - .:/app
 
-  ollama:
-    build:
-      context: .
-      dockerfile: Dockerfile.ollama
-    env_file:
-      - .env
-    environment:
-      EMBEDDING_MODEL_NAME: ${OLLAMA_EMBEDDING_MODEL}
-      LLM_MODEL_NAME: ${OLLAMA_LLM_MODEL}
-    ports:
-      - "${HOST_OLLAMA_PORT}:${OLLAMA_PORT}"
-    volumes:
-      - ollama-models:/root/.ollama
-    restart: unless-stopped
 
   locust:
     image: locustio/locust
@@ -73,9 +60,7 @@ services:
     depends_on:
       - web
       - db
-      - ollama
 
 
 volumes:
   postgres_data:
-  ollama-models:
