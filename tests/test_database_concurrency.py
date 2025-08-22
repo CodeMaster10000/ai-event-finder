@@ -1,37 +1,35 @@
-# tests/test_concurrency.py
-import pytest
-from sqlalchemy.orm import sessionmaker
+# tests/test_database_concurrency.py
 import concurrent.futures
-from sqlalchemy.orm.exc import StaleDataError
-from sqlalchemy.exc import IntegrityError
 from datetime import datetime, UTC
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import StaleDataError
+
 from app import create_app
 from app.extensions import db
-from app.models.user import User
 from app.models.event import Event
+from app.models.user import User
 from app.util.transaction_util import transactional, retry_conflicts
 from app.error_handler.exceptions import (
     ConcurrencyException,
     UserAlreadyInEventException,
 )
+from tests.util.util_test import test_cfg
 
-# ---------- Fixtures ----------
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def app():
-    app = create_app({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-    })
+    app = create_app(test_cfg)
     with app.app_context():
+        db.drop_all()
         db.create_all()
         yield app
         db.session.remove()
-        db.drop_all()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def engine(app):
     return db.engine
 
@@ -40,7 +38,14 @@ def engine(app):
 def Session(engine):
     return sessionmaker(bind=engine)
 
-# ---------- Existing tests (kept) ----------
+
+@pytest.fixture(autouse=True)
+def clean_db(app):
+    with app.app_context():
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+        db.session.commit()
+
 
 def test_db_two_sessions_conflict_raises_staledataerror(Session):
     s0 = Session()
@@ -197,34 +202,22 @@ def test_http_conflict_mapping_returns_409(app):
     data = resp.get_json()
     assert data["error"]["code"] == "CONCURRENT_UPDATE"
 
-# ---------- New / fixed tests ----------
+
 def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Session):
-    """
-    EventService.create: (1) no active DB txn during external call,
-    (2) TOCTOU title re-check blocks a race introduced between phases.
-    """
-    from datetime import datetime, UTC
-    from app.extensions import db
-    from app.models.user import User
-    from app.models.event import Event
     from app.services.event_service_impl import EventServiceImpl
     from app.repositories.event_repository_impl import EventRepositoryImpl
     from app.repositories.user_repository_impl import UserRepositoryImpl
     from app.error_handler.exceptions import EventAlreadyExistsException
 
     with app.app_context():
-        # Seed organizer
         organizer = User(name="Org", surname="One", email="org@x.com", password="pw")
         db.session.add(organizer)
         db.session.commit()
 
-        # Stub embedding: assert no txn, then create rival event in separate Session
         class StubEmbed:
             def create_embedding(self, payload):
                 real = db.session() if callable(db.session) else db.session
-                assert real.get_transaction() is None  # no txn during external I/O
-
-                # Competing event with the same title in another session (race)
+                assert real.get_transaction() is None
                 s2 = Session()
                 e = Event(title="Clash", description="rival", organizer_id=organizer.id)
                 e.datetime = datetime.now(UTC)
@@ -239,17 +232,8 @@ def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Sess
         with pytest.raises(EventAlreadyExistsException):
             svc.create(data)
 
-# test_split_phase_update_has_no_txn_during_external_call_and_toctou
+
 def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Session):
-    """
-    EventService.update: (1) no active DB txn during external call,
-    (2) if another event with the target title is inserted between phases,
-        the persist step re-raises the expected domain error.
-    """
-    from datetime import datetime, UTC
-    from app.extensions import db
-    from app.models.user import User
-    from app.models.event import Event
     from app.services.event_service_impl import EventServiceImpl
     from app.repositories.event_repository_impl import EventRepositoryImpl
     from app.repositories.user_repository_impl import UserRepositoryImpl
@@ -257,7 +241,6 @@ def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Sess
     from app.configuration.config import Config
 
     with app.app_context():
-        # Seed organizer + base event
         organizer = User(name="Org", surname="One", email="org@x.com", password="pw")
         db.session.add(organizer)
         db.session.commit()
@@ -268,12 +251,10 @@ def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Sess
         db.session.commit()
         eid = base.id
 
-        # Stub embedding: assert no txn, then create competitor with target title
         class StubEmbed:
             def create_embedding(self, payload):
                 real = db.session() if callable(db.session) else db.session
-                assert real.get_transaction() is None  # no txn during external I/O
-
+                assert real.get_transaction() is None
                 s2 = Session()
                 rival = Event(title="Clash", description="rival", organizer_id=organizer.id)
                 rival.datetime = datetime.now(UTC)
@@ -284,7 +265,6 @@ def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Sess
 
         svc = EventServiceImpl(EventRepositoryImpl(), UserRepositoryImpl(), StubEmbed())
 
-        # Prepare an update that changes the title to "Clash"
         ev = db.session.get(Event, eid)
         ev.title = "Clash"
 
@@ -292,19 +272,14 @@ def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Sess
             svc.update(ev)
 
 
-
 def test_transactional_joins_outer_and_rolls_back_once(app):
-    """
-    Outer @transactional opens txn; inner @transactional must not commit.
-    We force an error in the outer block and verify nothing persisted.
-    """
     @transactional
     def inner_create_user(email: str, session=None):
         session.add(User(name="Inner", surname="X", email=email, password="pw"))
 
     @transactional
     def outer_wrapper(session=None):
-        inner_create_user("join@test.com")  # joins outer txn
+        inner_create_user("join@test.com")
         raise RuntimeError("boom")
 
     with app.app_context():
@@ -314,10 +289,6 @@ def test_transactional_joins_outer_and_rolls_back_once(app):
 
 
 def test_retry_conflicts_rolls_back_between_attempts(app):
-    """
-    First attempt writes then raises ConcurrencyException -> should be rolled back.
-    Second attempt asserts prior write is gone, then succeeds.
-    """
     calls = {"n": 0}
 
     @retry_conflicts(max_retries=2, backoff_sec=0)
@@ -340,28 +311,20 @@ def test_request_session_isolation_across_requests(app):
 
     with app.test_request_context():
         real = db.session() if callable(db.session) else db.session
-
-        # open a savepoint for the “temporary write”
         with real.begin_nested() as sp:
             db.session.add(User(name="Iso", surname="L", email=email, password="pw"))
             db.session.flush()
             assert db.session.query(User).filter_by(email=email).count() == 1
-            # roll back just the savepoint
             sp.rollback()
-
-        # after rolling back the savepoint, the row is gone in this request
         assert db.session.query(User).filter_by(email=email).count() == 0
 
-    # a separate request never sees it either
     with app.test_request_context():
         assert db.session.query(User).filter_by(email=email).count() == 0
 
 
 def _session_id_for_request(app, name):
-    """Simulates one request, returns the id() of its db.Session."""
     with app.test_request_context():
-        session = db.session()  # actual Session instance
-        # Do a trivial operation to make sure it's active
+        session = db.session()
         u = User(name=name, surname="X", email=f"{name}@test.com", password="pw")
         session.add(u)
         session.flush()
@@ -369,38 +332,25 @@ def _session_id_for_request(app, name):
 
 
 def test_parallel_request_scoped_sessions_are_different(app):
-    """
-    Simulate multiple requests running in parallel and ensure
-    that each request gets its own independent Session instance.
-    """
     names = ["req1", "req2", "req3", "req4"]
 
     with app.app_context():
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(names)) as executor:
             results = list(executor.map(lambda n: _session_id_for_request(app, n), names))
 
-    # All returned Session IDs should be unique
-    assert len(set(results)) == len(results), \
-        f"Expected unique session IDs, got {results}"
-
+    assert len(set(results)) == len(results)
 
 
 def test_app_service_duplicate_invite_mapping_branch(app, monkeypatch):
-    """
-    Exercise the code path that maps IntegrityError(orig=UniqueViolation)
-    to UserAlreadyInEventException without needing Postgres behavior.
-    """
     from app.services.app_service_impl import AppServiceImpl, UniqueViolation
     from app.repositories.user_repository_impl import UserRepositoryImpl
     from app.repositories.event_repository_impl import EventRepositoryImpl
 
     with app.app_context():
-        # seed a user and an event owned by that user
         u = User(name="U", surname="V", email="u@v.com", password="pw")
         db.session.add(u)
         db.session.commit()
 
-        from datetime import datetime as _dt
         e = Event(title="E", description="d", organizer_id=u.id)
         e.datetime = datetime.now(UTC)
         db.session.add(e)
@@ -408,7 +358,6 @@ def test_app_service_duplicate_invite_mapping_branch(app, monkeypatch):
 
         svc = AppServiceImpl(UserRepositoryImpl(), EventRepositoryImpl())
 
-        # Monkeypatch save() to raise IntegrityError(UniqueViolation) to hit mapping branch
         def fake_save_raises(*args, **kwargs):
             raise IntegrityError("insert into guest_list ...", {}, UniqueViolation())
 
@@ -416,5 +365,3 @@ def test_app_service_duplicate_invite_mapping_branch(app, monkeypatch):
 
         with pytest.raises(UserAlreadyInEventException):
             svc.add_participant_to_event("E", "u@v.com")
-
-
