@@ -1,10 +1,10 @@
 import os
 import pytest
-
+import asyncio
 from app.container import Container
 from app.configuration.config import Config
 
-pytest.skip("Skipping AI calls", allow_module_level=True)
+#pytest.skip("Skipping AI calls", allow_module_level=True)
 # -------- Helpers -------------------------------------------------------------
 
 def _default_k():
@@ -237,7 +237,7 @@ def service(provider_env):
     ]
 )
 def test_extract_k_exact_integer(provider_env, service, user_prompt, expected):
-    n = service.extract_requested_event_count(user_prompt)
+    n = asyncio.run(service.extract_requested_event_count(user_prompt))
     assert isinstance(n, int)
     assert n == expected
 
@@ -246,7 +246,7 @@ def test_extract_k_exact_integer(provider_env, service, user_prompt, expected):
 @pytest.mark.parametrize("provider_env", ["local", "cloud"], indirect=True)
 def test_extract_k_default_when_no_number(provider_env, service):
     prompt = "recommend some good tech events near me"
-    n = service.extract_requested_event_count(prompt)
+    n =  asyncio.run(service.extract_requested_event_count(prompt))
     assert isinstance(n, int)
     assert n == _default_k()
 
@@ -255,5 +255,5 @@ def test_extract_k_default_when_no_number(provider_env, service):
 @pytest.mark.parametrize("provider_env", ["local", "cloud"], indirect=True)
 def test_extract_k_handles_whitespace(provider_env, service):
     prompt = "   please send 12 events \n"
-    n = service.extract_requested_event_count(prompt)
+    n = asyncio.run(service.extract_requested_event_count(prompt))
     assert n == 12

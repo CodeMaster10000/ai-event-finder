@@ -91,7 +91,7 @@ def seed_events():
     duplicate_events = 0
     parse_errors = 0
     length_violations = 0
-    embedding_errors = 0
+    save_errors = 0
 
     async def _run():
         nonlocal events_created, duplicate_events, parse_errors, length_violations, save_errors
@@ -153,7 +153,7 @@ def seed_events():
     print(f"  duplicates: {duplicate_events}")
     print(f"  parse errors (missing/invalid title/datetime): {parse_errors}")
     print(f"  length violations: {length_violations}")
-    print(f"  save errors: {embedding_errors}")
+    print(f"  save errors: {save_errors}")
 
 
 @seed_cli.command("clean")

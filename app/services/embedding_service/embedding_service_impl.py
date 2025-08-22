@@ -29,6 +29,7 @@ class EmbeddingServiceImpl(EmbeddingService):
                 model=self.model,
                 input=text,
                 dimensions=Config.UNIFIED_VECTOR_DIM,
+                encoding_format="float"
             )
         except Exception as e:
             raise EmbeddingServiceException(

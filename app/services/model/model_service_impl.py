@@ -7,7 +7,7 @@ from openai.types.chat import (
     ChatCompletionUserMessageParam,
 )
 from poetry.console.commands import self
-
+from app.extensions import db
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 from app.services.model.model_service import ModelService
@@ -59,7 +59,7 @@ class ModelServiceImpl(ModelService):
         embed_vector = await self.embedding_service.create_embedding(user_prompt)
 
         # 2) retrieve most fit events
-        events = self.event_repository.search_by_embedding(embed_vector, Config.RAG_TOP_K)
+        events = self.event_repository.search_by_embedding(query_vector=embed_vector, k=Config.DEFAULT_K_EVENTS, session=db.session)
 
         # 3) format events
         rag_context = "\n".join([format_event(e) for e in events])
