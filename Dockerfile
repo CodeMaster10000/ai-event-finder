@@ -21,5 +21,6 @@ COPY . /app
 # Expose port 5000 (Flask default) so it can be mapped outside
 EXPOSE 5000
 
-# Run the Flask app using run.py when the container starts
-CMD ["python", "run.py"]
+# Run the ASGI app with uvicorn when the container starts
+CMD ["uvicorn", "asgi:app", "--host", "0.0.0.0", "--port", "5000"]
+

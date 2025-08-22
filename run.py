@@ -1,9 +1,7 @@
-import os
+from asgiref.wsgi import WsgiToAsgi
 from app import create_app
 
 
-app = create_app()
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0",port=int(os.environ.get("APP_PORT",5000)),debug=True, use_reloader=False)
+flask_app = create_app()
+app=WsgiToAsgi(flask_app)
 

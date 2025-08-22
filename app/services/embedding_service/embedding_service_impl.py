@@ -1,42 +1,55 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from .embedding_service import EmbeddingService
 from app.configuration.config import Config
 from app.error_handler.exceptions import EmbeddingServiceException
+import numpy as np
+from numpy.linalg import norm
 
 
 class EmbeddingServiceImpl(EmbeddingService):
     """
-    OpenAI cloud embedding using text-embedding-3-* with a unified dimension.
-    Accepts plain text and returns a list[float], same shape as LocalEmbeddingService.
+    Async OpenAI embedding service using text-embedding-3-* models with a unified dimension.
+    Accepts plain text and returns a list[float], fully non-blocking under ASGI.
     """
 
-    def __init__(self, client: OpenAI, model: str | None = None):
-        self.client = client
+    def __init__(self, client: AsyncOpenAI, model: str | None = None):
+        self.client = client  # Must be AsyncOpenAI
         self.model = model or (
             Config.DMR_EMBEDDING_MODEL if Config.PROVIDER == "local"
             else Config.OPENAI_EMBEDDING_MODEL
         )
-    def create_embedding(self, text: str) -> list[float]:
+
+    async def create_embedding(self, text: str) -> list[float]:
         if not isinstance(text, str) or not text.strip():
             raise EmbeddingServiceException("Input text must be a non-empty string.")
 
         try:
-            resp = self.client.embeddings.create(
+            # Async call using AsyncOpenAI client
+            resp = await self.client.embeddings.create(
                 model=self.model,
                 input=text,
                 dimensions=Config.UNIFIED_VECTOR_DIM,
             )
         except Exception as e:
-            raise EmbeddingServiceException("OpenAI embedding request failed.", original_exception=e)
+            raise EmbeddingServiceException(
+                "OpenAI embedding request failed.", original_exception=e
+            )
 
         try:
             emb = resp.data[0].embedding
         except Exception as e:
-            raise EmbeddingServiceException("OpenAI returned an unexpected embedding payload.", original_exception=e)
+            raise EmbeddingServiceException(
+                "OpenAI returned an unexpected embedding payload.", original_exception=e
+            )
 
         if len(emb) != Config.UNIFIED_VECTOR_DIM:
             raise EmbeddingServiceException(
                 f"Expected {Config.UNIFIED_VECTOR_DIM}-dim embedding, got {len(emb)}"
             )
+        vec = np.array(emb, dtype=np.float32)
+        norm_val = norm(vec)
+        if norm_val == 0:
+            raise EmbeddingServiceException("Embedding vector has zero norm, cannot normalize.")
+        normalized = vec / norm_val
 
-        return list(emb)
+        return normalized.tolist()

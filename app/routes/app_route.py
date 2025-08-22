@@ -5,7 +5,7 @@ from app.services.app_service import AppService
 from app.services.model.model_service import ModelService
 from app.util.logging_util import log_calls
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 from flask import request, abort
 
 app_ns = Namespace("app", description="Event participation-related operations")
@@ -18,7 +18,7 @@ class PromptResource(Resource):
     @app_ns.param("chat_id", "Optional chat thread id to separate multiple chats", _in="query", required=False)
     @inject
     @jwt_required()
-    def get(
+    async def get(
         self,
         model_service: ModelService = Provide[Container.model_service],
     ):
@@ -32,7 +32,7 @@ class PromptResource(Resource):
         chat_id = request.args.get("chat_id")  # optional, to have multiple conversations
         session_key = f"{user_id}:{chat_id}" if chat_id else user_id
 
-        answer = model_service.query_prompt(user_prompt, session_key=session_key)
+        answer = await model_service.query_prompt(user_prompt, session_key=session_key)
         return {"answer": answer, "session_key": session_key}, 200
 
 # Endpoint: POST and DELETE /app/<event_title>/participants/<user_email>
@@ -80,39 +80,3 @@ class ListParticipantsResource(Resource):
 
         participant_list = app_service.list_participants(event_title)
         return users_schema.dump(participant_list), 200
-
-
-@app_ns.route("/prompt")
-@log_calls("app.routes")
-class PromptResource(Resource):
-    @app_ns.param(
-        "prompt",
-        "The user's chat prompt",
-        _in="query",
-        required=True
-    )
-    @inject
-    @jwt_required()
-    def get(
-        self,
-        model_service: ModelService = Provide[Container.model_service],
-    ):
-        """Accept a user prompt via query-string and return the model’s response"""
-        user_prompt = request.args.get("prompt")
-        if not user_prompt:
-            abort(400, "'prompt' query parameter is required")
-        return model_service.query_prompt(user_prompt), 200
-
-#     @router.post("/chat")
-# async def chat(req: Request, body: dict):
-#     # pick your key (example: session cookie)
-#     sid = req.session.get("sid")
-#     if not sid:
-#         sid = str(uuid.uuid4())
-#         req.session["sid"] = sid
-#
-#     prompt = body.get("prompt", "")
-#     context = body.get("context")  # plug in your RAG retrieval upstream if needed
-#
-#     answer = conversation.chat(key=sid, prompt=prompt, context=context)
-#     return JSONResponse({"answer": answer, "session_id": sid})
