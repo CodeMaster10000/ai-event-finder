@@ -73,11 +73,6 @@ def create_app(test_config: dict | None = None):
             "supports_credentials": False
         }
     })
-    app.config['SECRET_KEY'] = secrets.token_hex(32)
-    app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(64)
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
-
-    # Initialize extensions
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", secrets.token_hex(32))
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(64))
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
@@ -99,6 +94,7 @@ def create_app(test_config: dict | None = None):
         "app.routes.user_route",
         "app.routes.app_route",
         "app.routes.event_route",
+        "app.routes.login_route",
     ])
     app.di = container
     create_api(app)
