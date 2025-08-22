@@ -2,19 +2,14 @@ import os
 
 from dependency_injector import containers, providers
 from openai import OpenAI
-from ollama import Client as OllamaClient
-
 from app.configuration.config import Config
-from app.extensions import db
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
-from app.services.embedding_service.local_embedding_service import LocalEmbeddingService
 from app.services.event_service_impl import EventServiceImpl
 from app.services.user_service_impl import UserServiceImpl
 from app.services.app_service_impl import AppServiceImpl
-from app.services.embedding_service.cloud_embedding_service import CloudEmbeddingService
-from app.services.model.local_model_service_impl import LocalModelService
-from app.services.model.cloud_model_service_impl import CloudModelService
+from app.services.embedding_service.embedding_service_impl import EmbeddingServiceImpl
+from app.services.model.model_service_impl import ModelServiceImpl
 
 
 class Container(containers.DeclarativeContainer):
@@ -29,34 +24,36 @@ class Container(containers.DeclarativeContainer):
         EventRepositoryImpl,
     )
 
-    provider = os.getenv("PROVIDER", "local").lower()
+    provider = Config.PROVIDER
 
     if provider == "cloud":
-        openai_client = providers.Singleton(OpenAI, api_key=Config.OPENAI_API_KEY)
-        embedding_service = providers.Singleton(
-            CloudEmbeddingService,
-            client=openai_client,
-        )
-        model_service = providers.Singleton(
-            CloudModelService,
-            event_repository=event_repository,
-            embedding_service=embedding_service,
-            client=openai_client,
-        )
+        openai_client = providers.Singleton(
+            OpenAI,
+            api_key=Config.OPENAI_API_KEY)
+        chat_model = providers.Object(getattr(Config, "OPENAI_MODEL", "gpt-4o-mini"))
+        embedding_model = providers.Object(getattr(Config, "OPENAI_EMBEDDING_MODEL", "text-embedding-3-large"))
+
     else:
-        ollama_client = providers.Singleton(
-            OllamaClient,
-            host=Config.OLLAMA_URL,
+        openai_client = providers.Singleton(
+            OpenAI,
+            api_key=Config.DMR_API_KEY,
+            base_url=Config.DMR_BASE_URL,
         )
+        chat_model = providers.Object(getattr(Config, "DMR_LLM_MODEL", "ai/llama3.1"))
+        embedding_model = providers.Object(getattr(Config, "DMR_EMBEDDING_MODEL", "ai/mxbai-embed-large"))
 
-        embedding_service = providers.Singleton(LocalEmbeddingService)
-
-        model_service = providers.Singleton(
-            LocalModelService,
-            event_repository=event_repository,
-            embedding_service=embedding_service,
-            client=ollama_client,
-        )
+    embedding_service = providers.Singleton(
+        EmbeddingServiceImpl,
+        client=openai_client,
+        model=embedding_model,
+    )
+    model_service = providers.Singleton(
+        ModelServiceImpl,
+        event_repository=event_repository,
+        embedding_service=embedding_service,
+        client=openai_client,
+        model=chat_model,
+    )
 
     user_service = providers.Singleton(UserServiceImpl, user_repository=user_repository)
 

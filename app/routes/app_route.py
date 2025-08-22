@@ -70,7 +70,7 @@ class PromptResource(Resource):
     )
     @inject
     @jwt_required()
-    def get(
+    async def get(
         self,
         model_service: ModelService = Provide[Container.model_service],
     ):
@@ -78,4 +78,7 @@ class PromptResource(Resource):
         user_prompt = request.args.get("prompt")
         if not user_prompt:
             abort(400, "'prompt' query parameter is required")
-        return model_service.query_prompt(user_prompt), 200
+
+        # Await the async query
+        response = await model_service.query_prompt(user_prompt)
+        return {"response": response}, 200

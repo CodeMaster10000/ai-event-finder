@@ -7,38 +7,15 @@ load_dotenv(dotenv_path=env_path)
 
 # Loads PostgresSQL connection URI and other settings from environment variables, defined in a .env file.
 class Config:
-    OLLAMA_URL = os.getenv("OLLAMA_EMBEDDING_URL", "http://localhost:11434")
-    OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-large")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "nomic-embed-text")
-    OLLAMA_LLM = os.getenv("OLLAMA_LLM_MODEL", "llama3.1")
+    PROVIDER = os.getenv("PROVIDER", "local").lower()
 
-    RAG_TOP_K = int(os.getenv("RAG_TOP_K", "5"))
-    DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", "5"))
-    MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", "5"))
+    DMR_BASE_URL = os.getenv("DMR_CHAT_BASE_URL", "http://host.docker.internal:12434/engines/llama.cpp/v1")
+    DMR_EMBEDDING_MODEL = os.getenv("DMR_EMBEDDING_MODEL", "ai/mxbai-embed-large")
+    DMR_LLM_MODEL = os.getenv("DMR_LLM_MODEL", "ai/llama3.1:8b-instruct")
+    DMR_API_KEY = os.getenv("DMR_API_KEY", "dmr")
 
-    OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", 0.3))
-    OLLAMA_TOP_P = float(os.getenv("OLLAMA_TOP_P", 0.9))
-    OLLAMA_TOP_K = int(os.getenv("OLLAMA_TOP_K", 30))
-    OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", 256))
-    OLLAMA_SEED = int(os.getenv("OLLAMA_SEED", 42))
-
-
-
-    OLLAMA_LLM_OPTIONS = {
-        "temperature": OLLAMA_TEMPERATURE,
-        "top_p": OLLAMA_TOP_P,
-        "top_k": OLLAMA_TOP_K,
-        "num_predict": OLLAMA_NUM_PREDICT,
-        "seed": OLLAMA_SEED
-    }
-
-    OLLAMA_LLM_EXTRACT_K_OPTIONS = { #HARDCODED FOR TESTING
-        "temperature": 0.0,
-        "top_p": 1.0,
-        "top_k": 1,
-        "num_predict": 6,
-        "seed": OLLAMA_SEED
-    }
+    DEFAULT_K_EVENTS = int(os.getenv("DEFAULT_K_EVENTS", 5))
+    MAX_K_EVENTS = int(os.getenv("MAX_K_EVENTS", 5))
 
     # CLOUD
     OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE"))
@@ -47,7 +24,12 @@ class Config:
     PRESENCE_PENALTY = float(os.getenv("OPENAI_PRESENCE_PENALTY"))
     MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS"))
 
-    OPENAI_MODEL = str(os.getenv("OPENAI_MODEL"))
+    OPENAI_EXTRACT_TEMPERATURE = float(os.getenv("OPENAI_EXTRACT_TEMPERATURE"))
+    OPENAI_EXTRACT_P = float(os.getenv("OPENAI_EXTRACT_P"))
+    OPENAI_EXTRACT_FREQUENCY_PENALTY = float(os.getenv("OPENAI_EXTRACT_FREQUENCY_PENALTY"))
+    OPENAI_EXTRACT_PRESENCE_PENALTY = float(os.getenv("OPENAI_EXTRACT_PRESENCE_PENALTY"))
+    OPENAI_EXTRACT_MAX_TOKENS = int(os.getenv("OPENAI_EXTRACT_MAX_TOKENS"))
+
     OPENAI_GEN_OPTS = {
         "temperature" : OPENAI_TEMPERATURE,
         "top_p": OPENAI_P,
@@ -57,22 +39,39 @@ class Config:
         "stream" : True
     }
 
-    OPEN_AI_EXTRACT_K_OPTS = { #hard coded for testing
-        "temperature": 0,
-        "top_p": 1,
-        "frequency_penalty": 0,
-        "presence_penalty": 0,
-        "max_tokens": 6,
+    OPENAI_EXTRACT_K_OPTS = { #hard coded for testing
+        "temperature": OPENAI_TEMPERATURE,
+        "top_p": OPENAI_TEMPERATURE,
+        "frequency_penalty": OPENAI_EXTRACT_FREQUENCY_PENALTY,
+        "presence_penalty": OPENAI_EXTRACT_PRESENCE_PENALTY,
+        "max_tokens": OPENAI_EXTRACT_MAX_TOKENS,
         "stream": False
     }
+
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "hard-coded-test-key")
+    OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+    OPENAI_MODEL = str(os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+
 
     SQLALCHEMY_DATABASE_URI = (
         f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "hard-coded-test-key")
-    OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
+
+    DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 50))
+    DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", 50))
+    DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", 30))  # seconds to wait for a free conn
+    DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 1800))  # recycle after 30 min
+    DB_POOL_PRE_PING = os.getenv("DB_POOL_PRE_PING", "true").lower() in ("1", "true", "yes", "on")
+
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": DB_POOL_SIZE,
+        "max_overflow": DB_MAX_OVERFLOW,
+        "pool_timeout": DB_POOL_TIMEOUT,
+        "pool_recycle": DB_POOL_RECYCLE,
+        "pool_pre_ping": DB_POOL_PRE_PING,
+    }
 
     # One shared size we standardize on for the DB vector column (e.g., 1024)
     UNIFIED_VECTOR_DIM = int(os.getenv("UNIFIED_VECTOR_DIM", 1024))

@@ -16,3 +16,4 @@ __pycache__/
 *.lock
 poetry.lock
 .env
+*.csv

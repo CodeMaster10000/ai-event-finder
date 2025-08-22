@@ -1,7 +1,7 @@
 import os
 import secrets
 from datetime import timedelta
-
+from flask_cors import CORS
 from flask import Flask
 from flask_migrate import Migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
@@ -9,6 +9,7 @@ from flask_restx import Api
 from importlib import resources
 
 
+from app.util.model_util import warmup_local_models
 from app.configuration.config import Config
 from app.configuration.logging_config import configure_logging
 from app.container import Container
@@ -20,6 +21,9 @@ from app.routes.app_route import app_ns
 from app.routes.event_route import event_ns
 from app.routes.login_route import auth_ns
 from app.routes.user_route import user_ns
+from app.services import user_service
+from app.services import user_service_impl
+
 from app.cli import seed_cli
 
 
@@ -30,20 +34,22 @@ migrate = Migrate(directory=MIGRATIONS_DIR)
 
 
 def create_api(app: Flask):
+    authorizations = {
+        "BearerAuth": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization",
+            "description": "Paste your JWT token here. Format: Bearer <token>"
+        }
+    }
+
     api = Api(
         app,
         title="Event Finder API",
         version="1.0",
         description="REST API",
-        doc="/swagger/",
-        authorizations={
-            "BearerAuth": {
-                "type": "apiKey",
-                "in": "header",
-                "name": "Authorization",
-                "description": "Paste JWT: Bearer <token>",
-            }
-        },
+        doc="/swagger/",  # optional: where Swagger UI lives
+        authorizations=authorizations
     )
     api.add_namespace(user_ns, path="/users")
     api.add_namespace(event_ns, path="/events")
@@ -58,6 +64,20 @@ def create_app(test_config: dict | None = None):
         app.config.update(test_config)
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:8080"],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": False
+        }
+    })
+    app.config['SECRET_KEY'] = secrets.token_hex(32)
+    app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(64)
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+
+    # Initialize extensions
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", secrets.token_hex(32))
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(64))
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
@@ -80,10 +100,17 @@ def create_app(test_config: dict | None = None):
         "app.routes.app_route",
         "app.routes.event_route",
     ])
-
+    app.di = container
     create_api(app)
+    # Configure logging and activate error listener
     register_auth_error_handlers(app)
     configure_logging()
     register_error_handlers(app)
+    warmup_local_models(container)
+    @app.teardown_appcontext
+    def shutdown_session(exc=None):
+        # CRITICAL: returns the scoped session/connection to the pool
+        db.session.remove()
+
 
     return app

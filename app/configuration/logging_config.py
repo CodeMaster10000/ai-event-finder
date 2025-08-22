@@ -35,6 +35,10 @@ LOGGING = {
         "level": "NOTSET",
         "propagate": True
     },
+    "app.util":{
+        "level": "NOTSET",
+        "propagate": True
+    },
     "werkzeug":{
         "level":"ERROR"
     }

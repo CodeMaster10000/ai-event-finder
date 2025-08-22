@@ -17,6 +17,8 @@ from app.error_handler.exceptions import (
     EventAlreadyExistsException
 )
 
+
+
 class EventServiceImpl(EventService):
     def __init__(self, event_repository: EventRepository, user_repository: UserRepository, embedding_service: EmbeddingService):
         self.embedding_service = embedding_service
@@ -25,7 +27,7 @@ class EventServiceImpl(EventService):
 
     def get_by_title(self, title: str) -> Event:
         event = self.event_repository.get_by_title(title, db.session)
-        validate_event(event, f"No event with title '{title}")
+        validate_event(event, f"No event with title '{title}'")
         return event
 
     def get_by_location(self, location: str) -> List[Event]:
@@ -58,7 +60,7 @@ class EventServiceImpl(EventService):
 
     # TRANSACTIONAL - SPLIT INTO 2 TRANSACTIONS / @transactional helper method
 
-    def create(self, data: dict) -> Event:
+    async def create(self, data: dict) -> Event:
         # 1) Ensure no duplicate title
         if self.event_repository.get_by_title(data['title'], db.session):
             # end the read txn and bail
@@ -74,12 +76,12 @@ class EventServiceImpl(EventService):
         payload = {k: v for k, v in data.items() if k != 'organizer_email'}
         event = Event(**payload, organizer_id=organizer.id)
 
-
         # close read-only txn before external I/O
         formatted = format_event(event)
         db.session.rollback()
 
-        event.embedding = self.embedding_service.create_embedding(formatted)
+        # External call: await async embedding
+        event.embedding = await self.embedding_service.create_embedding(formatted)
 
         # 4) Persist it
         try:
@@ -90,7 +92,7 @@ class EventServiceImpl(EventService):
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
-    def update(self, event: Event) -> Event:
+    async def update(self, event: Event) -> Event:
         # Capture the new title separately for early uniqueness check
         new_title = event.title
 
@@ -122,8 +124,8 @@ class EventServiceImpl(EventService):
         # End the read-only transaction before the external I/O
         db.session.rollback()
 
-        # External call (no DB txn open)
-        event.embedding = self.embedding_service.create_embedding(formatted)
+        # External call (await async embedding)
+        event.embedding = await self.embedding_service.create_embedding(formatted)
 
         # Re-apply the user's pending changes that rollback may have expired
         for key, value in pending_changes.items():
@@ -153,5 +155,3 @@ class EventServiceImpl(EventService):
 
         # Now save the event
         return self.event_repository.save(event, session)
-
-
