@@ -10,17 +10,15 @@ class MemoryChatHistoryRepository(ChatHistoryRepository):
 
     def get(self, key: str) -> List[Message]:
         with self._lock:
-            return self._store.setdefault(key, [])
+            return list(self._store.get(key, []))
 
     def set(self, key: str, messages: List[Message]) -> None:
         with self._lock:
-            self._store[key] = messages
+            self._store[key] = list(messages)[-self._max:]
 
     def append(self, key: str, role: str, content: str) -> None:
         with self._lock:
             hist = self._store.setdefault(key, [])
             hist.append({"role": role, "content": content})
             if len(hist) > self._max:
-                system = [m for m in hist if m["role"] == "system"]
-                rest = [m for m in hist if m["role"] != "system"][-(self._max - len(system)):]
-                self._store[key] = system + rest
+                self._store[key] = hist[-self._max:]

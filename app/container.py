@@ -3,6 +3,7 @@ import os
 from dependency_injector import containers, providers
 from openai import OpenAI
 from app.configuration.config import Config
+from app.repositories.chat_history_repository_impl import MemoryChatHistoryRepository
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
 from app.services.event_service_impl import EventServiceImpl
@@ -47,12 +48,19 @@ class Container(containers.DeclarativeContainer):
         client=openai_client,
         model=embedding_model,
     )
+
+    history_repo = providers.Singleton(
+        MemoryChatHistoryRepository,
+        max_messages=int(os.getenv("CHAT_HISTORY_MAX", "50")),
+    )
+
     model_service = providers.Singleton(
         ModelServiceImpl,
         event_repository=event_repository,
         embedding_service=embedding_service,
         client=openai_client,
         model=chat_model,
+        history_repo=history_repo,
     )
 
     user_service = providers.Singleton(UserServiceImpl, user_repository=user_repository)
