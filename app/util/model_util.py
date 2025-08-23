@@ -23,7 +23,6 @@ DEFAULT_SYS_PROMPT = (
         "     - Location: <Location>\n"
         "     - Category: <Event Category>\n"
         "     - Organizer: <Name Surname, Email>\n"
-        "     - Short Reason: <Why it matches the user query>\n\n"
         "Safety:\n"
         "- Disambiguate same-title events by date/location.\n"
         "- Never mention internal implementation details."
