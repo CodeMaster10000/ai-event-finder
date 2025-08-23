@@ -84,7 +84,7 @@ def service(ollama_client_or_skip):
 # -------------------- Helper for default K in your prompt --------------------
 
 def _default_k():
-    return int(getattr(Config, "RAG_TOP_K", 5))
+    return int(getattr(Config, "DEFAULT_K_EVENTS", 5))
 def _max_k():
     return int(getattr(Config, "MAX_K_EVENTS", 5))
 

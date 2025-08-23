@@ -3,6 +3,7 @@ from flask_restx import Namespace, Resource, fields
 from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 from app.container import Container
+from app.models.event import Event
 from app.services.event_service import EventService
 from app.schemas.event_schema import CreateEventSchema, EventSchema
 from app.util.logging_util import log_calls
@@ -78,6 +79,46 @@ class EventByTitleResource(Resource):
             abort(404, description=f"Event with title {title} not found")
         event_service.delete_by_title(title)
         return '', 204  # No content on successful delete
+
+    @inject
+    @jwt_required()
+    async def put(
+            self,
+            title: str,
+            event_service: EventService = Provide[Container.event_service],
+    ):
+        """Update an event by title"""
+        data = request.get_json() or {}
+
+        # 1) Load the managed instance
+        existing = event_service.get_by_title(title)
+        if not existing:
+            abort(404, description=f"Event with title {title} not found")
+
+        # 2) Apply changes directly on the managed entity
+        new_dt = data.get("datetime")
+        if new_dt:
+            new_dt = new_dt.replace(" ", "T")
+            from datetime import datetime
+            try:
+                existing.datetime = datetime.fromisoformat(new_dt)
+            except ValueError:
+                abort(400, description="Invalid datetime format")
+
+        if "title" in data:
+            existing.title = data["title"]
+        if "description" in data:
+            existing.description = data["description"]
+        if "location" in data:
+            existing.location = data["location"]
+        if "category" in data:
+            existing.category = data["category"]
+
+        # 3) Delegate to service.update (it inspects changes & persists)
+        updated = await event_service.update(existing)
+
+        # 4) Return serialized event
+        return event_schema.dump(updated), 200
 
 
 @log_calls("app.routes")
