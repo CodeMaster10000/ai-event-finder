@@ -1,15 +1,13 @@
+import asyncio
 import csv
 import os
 from datetime import datetime
 from itertools import cycle
+
 from flask import current_app
 from flask.cli import AppGroup
 from sqlalchemy.exc import IntegrityError
 
-from app.extensions import db
-from app.models.user import User
-from app.models.event import Event
-from app.services.embedding_service.embedding_service_impl import EmbeddingServiceImpl
 from app.constants import (
     DEFAULT_PASSWORD,
     DESCRIPTION_MAX_LENGTH, CATEGORY_MAX_LENGTH, TITLE_MAX_LENGTH, LOCATION_MAX_LENGTH
@@ -22,9 +20,11 @@ from app.error_handler.exceptions import (
     EventSaveException,
     EventDeleteException,
     UserDeleteException,
-    EmbeddingServiceException,
     InvalidDateFormatException,
 )
+from app.extensions import db
+from app.models.event import Event
+from app.models.user import User
 
 seed_cli = AppGroup("seed")
 
@@ -35,7 +35,8 @@ DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def get_embedding_service():
     return current_app.di.embedding_service()
-
+def get_event_service():
+    return current_app.di.event_service()
 
 def _parse_datetime(date_string: str) -> datetime | None:
     try:
@@ -89,99 +90,69 @@ def seed_events():
     duplicate_events = 0
     parse_errors = 0
     length_violations = 0
-    embedding_errors = 0
+    save_errors = 0
 
-    existing_titles = {
-        (t or "").strip.lower()
-        for (t,) in db.session.query(Event.title).all()
-    }
-    seen_titles = set(existing_titles)
+    async def _run():
+        nonlocal events_created, duplicate_events, parse_errors, length_violations, save_errors
+        svc = get_event_service()
 
-    for row_index, csv_row in enumerate(csv_rows, start=1):
-        title = (csv_row.get("name") or csv_row.get("title") or "").strip()
-        description = (csv_row.get("description") or "").strip()
-        location = (csv_row.get("location") or "").strip()
-        category = (csv_row.get("category") or "").strip()
+        for row_index, csv_row in enumerate(csv_rows, start=1):
+            title = (csv_row.get("name" or "title") or "").strip().replace("/","-")
+            description = (csv_row.get("description") or "").strip()
+            location = (csv_row.get("location") or "").strip()
+            category = (csv_row.get("category") or "").strip()
 
-        norm_title = title.lower()
+            try:
+                event_datetime = _parse_datetime(csv_row["datetime"] or "")
+            except InvalidDateFormatException:
+                parse_errors += 1
+                continue
 
-        try:
-            event_datetime = _parse_datetime(csv_row.get("datetime") or "")
-        except InvalidDateFormatException:
-            parse_errors += 1
-            continue
+            if not title or not event_datetime:
+                parse_errors += 1
+                continue
 
-        # required fields
-        if not title or not event_datetime:
-            parse_errors += 1
-            continue
-
-        # hard length checks (no truncation)
-        if (len(title) > TITLE_MAX_LENGTH or
+            if (len(title) > TITLE_MAX_LENGTH or
                 len(description) > DESCRIPTION_MAX_LENGTH or
                 len(location) > LOCATION_MAX_LENGTH or
                 len(category) > CATEGORY_MAX_LENGTH):
-            print(f"[{row_index}] skipped: field exceeds max length")
-            length_violations += 1
-            continue
-
-        if norm_title in seen_titles:
-            duplicate_events += 1
-            continue
-        seen_titles.add(norm_title)
-
-        event_organizer = next(round_robin_users)
-
-        # idempotency: (organizer_id, title, datetime)
-        with db.session.no_autoflush:
-            if db.session.query(Event.id).filter_by(
-                    title=title
-            ).first():
-                try:
-                    raise EventAlreadyExistsException(event_name=title)
-                except EventAlreadyExistsException:
-                    duplicate_events += 1
+                    print(f"[{row_index}] skipped: field exceeds max length")
+                    length_violations += 1
                     continue
 
-        # embedding
-        try:
-            _embedding_service = get_embedding_service()
-            event_embedding = _embedding_service.create_embedding(
-                f"Title: {title}. Description: {description}. Category: {category}. Location: {location}"
-            )
-        except EmbeddingServiceException as embedding_exception:
-            print(f"[{row_index}] embedding error: {embedding_exception}")
-            embedding_errors += 1
-            continue
-        except Exception as unexpected_exception:
-            print(f"[{row_index}] unexpected embedding error: {unexpected_exception}")
-            embedding_errors += 1
-            continue
+            event_organizer = next(round_robin_users)
+            data = {
+                "title": title,
+                "description": description or "No description",
+                "location": location or "TBA",
+                "category": category or "General",
+                "datetime": event_datetime,
+                "organizer_email": event_organizer.email,
+            }
 
-        db.session.add(Event(
-            title=title,
-            description=description or "No description",
-            location=location or "TBA",
-            category=category or "General",
-            datetime=event_datetime,
-            organizer_id=event_organizer.id,
-            embedding=event_embedding,
-        ))
-        events_created += 1
+            try:
+                await svc.create(data)
+                events_created += 1
+            except EventAlreadyExistsException:
+                duplicate_events += 1
+                continue
+            except EventSaveException as e:
+                print(f"[{row_index}] save error: {e}")
+                save_errors += 1
+                continue
+            except Exception as e:
+                print(f"[{row_index}] unexpected error: {e}")
+                save_errors += 1
+                continue
 
-    # single final commit (160 rows is fine)
-    try:
-        db.session.commit()
-    except Exception as commit_exception:
-        db.session.rollback()
-        raise EventSaveException(commit_exception) from commit_exception
+    asyncio.run(_run())
 
     print("Seed events summary:")
     print(f"  created: {events_created}")
     print(f"  duplicates: {duplicate_events}")
     print(f"  parse errors (missing/invalid title/datetime): {parse_errors}")
     print(f"  length violations: {length_violations}")
-    print(f"  embedding errors: {embedding_errors}")
+    print(f"  save errors: {save_errors}")
 
 
 @seed_cli.command("clean")

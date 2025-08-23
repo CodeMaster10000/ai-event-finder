@@ -1,8 +1,9 @@
 import os
 import secrets
 from datetime import timedelta
-from flask_cors import CORS
+
 from flask import Flask
+from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_migrate import upgrade as flask_migrate_upgrade
 from flask_restx import Api
@@ -23,7 +24,7 @@ from app.routes.login_route import auth_ns
 from app.routes.user_route import user_ns
 from app.services import user_service
 from app.services import user_service_impl
-
+import asyncio
 from app.cli import seed_cli
 
 
@@ -102,7 +103,12 @@ def create_app(test_config: dict | None = None):
     register_auth_error_handlers(app)
     configure_logging()
     register_error_handlers(app)
-    warmup_local_models(container)
+
+    if Config.PROVIDER == "local":
+        loop = asyncio.get_event_loop()
+        loop.create_task(warmup_local_models(container))
+
+
     @app.teardown_appcontext
     def shutdown_session(exc=None):
         # CRITICAL: returns the scoped session/connection to the pool
