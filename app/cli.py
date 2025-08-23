@@ -98,7 +98,7 @@ def seed_events():
     seen_titles = set(existing_titles)
 
     for row_index, csv_row in enumerate(csv_rows, start=1):
-        title = (csv_row.get("name") or csv_row.get("title") or "").strip()
+        title = (csv_row.get("name") or csv_row.get("title") or "").strip().replace("/", "-")
         description = (csv_row.get("description") or "").strip()
         location = (csv_row.get("location") or "").strip()
         category = (csv_row.get("category") or "").strip()
