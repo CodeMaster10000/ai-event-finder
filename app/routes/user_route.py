@@ -1,10 +1,10 @@
 from flask_restx import Namespace, Resource, fields
-from flask import request
+from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 
 from app.container import Container
 from app.services.user_service import UserService
-from app.schemas.user_schema import CreateUserSchema, UserSchema
+from app.schemas.user_schema import CreateUserSchema, UpdateUserSchema, UserSchema
 from app.models.user import User
 from app.util.logging_util import log_calls
 from flask_jwt_extended import jwt_required
@@ -13,8 +13,22 @@ user_ns = Namespace("users", description="User based operations")
 
 # Marshmallow schemas for validation and serialization
 create_user_schema = CreateUserSchema()
+update_user_schema = UpdateUserSchema()
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
+
+user_create_input = user_ns.model('user_create_input', {
+    'name': fields.String(required=True),
+    'surname': fields.String(required=True),
+    'email': fields.String(required=True),
+    'password': fields.String(required=True),
+})
+
+user_update_input = user_ns.model('user_update_input', {
+    'name': fields.String(required=True),
+    'surname': fields.String(required=True),
+    'password': fields.String(required=True),
+})
 
 @log_calls("app.routes")
 @user_ns.route("")
@@ -27,24 +41,18 @@ class UserBaseResource(Resource):
         users = user_service.get_all()
         return users_schema.dump(users), 200
 
-    user_create_input = user_ns.model('user_create_input', {
-        'name': fields.String(required=True),
-        'surname': fields.String(required=True),
-        'email': fields.String(required=True),
-        'password': fields.String(required=True),
-    })
-
     @user_ns.expect(user_create_input)
     @inject
     def post(self,
              user_service: UserService = Provide[Container.user_service]):
-        """Create or update a user"""
+        """Create a user"""
         json_data = request.get_json()
         data = create_user_schema.load(json_data)
 
         user = User(**data)
         saved_user = user_service.save(user)
         return user_schema.dump(saved_user), 201
+
 
 @log_calls("app.routes")
 @user_ns.route('/id/<int:user_id>')
@@ -71,6 +79,7 @@ class UserByIdResource(Resource):
 @log_calls("app.routes")
 @user_ns.route('/email/<string:email>')
 class UserByEmailResource(Resource):
+
     @inject
     @jwt_required()
     def get(self,
@@ -79,6 +88,23 @@ class UserByEmailResource(Resource):
         """Get a user by email"""
         user = user_service.get_by_email(email)
         return user_schema.dump(user), 200
+
+    @user_ns.expect(user_update_input)
+    @inject
+    @jwt_required()
+    def put(self,
+             email: str,
+             user_service: UserService = Provide[Container.user_service]):
+        """Update a user"""
+        json_data = request.get_json() or {}
+        data = update_user_schema.load(json_data, partial=True)
+
+        if not data:
+            abort(400, description="No valid update fields provided")
+
+        updated_user = user_service.update(email, data)
+        return user_schema.dump(updated_user), 200
+
 
 @log_calls("app.routes")
 @user_ns.route('/name/<string:name>')
