@@ -40,16 +40,21 @@ def transactional(fn):
     def wrapped(*args, **kwargs):
         session = _current_session()
         outermost = (session.get_transaction() is None)  # 2.0 API
+        method_name = fn.__name__
+        print(f"[transactional] method={method_name}, outermost={outermost}, in_txn={session.in_transaction()}")
 
         ctx = session.begin() if outermost else nullcontext()
         try:
             with ctx:
-                return fn(*args, session=session, **kwargs)
+                result = fn(*args, session=session, **kwargs)
+                if outermost:
+                    print(f"[transactional] method={method_name} committing outermost transaction")
+                return result
 
         except StaleDataError as e:
             if outermost:
                 session.rollback()
-                raise ConcurrencyException("Resource was updated by another transaction.") from e
+                raise ConcurrencyException(f"Resource was updated by another transaction in method {method_name}.") from e
             raise
 
         except Exception:

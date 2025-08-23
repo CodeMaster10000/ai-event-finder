@@ -21,8 +21,8 @@ class EventService(ABC):
         """Retrieve an event by the event category."""
         pass
 
-    def det_by_organizer_name(self, name: str, surname: str) -> List[Event]:
-        """Retrieve events by the name of the organizer."""
+    @abstractmethod
+    def get_by_organizer(self, email)->List[Event]:
         pass
 
     @abstractmethod
@@ -41,7 +41,7 @@ class EventService(ABC):
         pass
 
     @abstractmethod
-    def update(self, event: Event) -> Event:
+    def update(self, title:str, patch:dict) -> Event:
         """Update an existing event's data."""
         pass
 
@@ -50,3 +50,4 @@ class EventService(ABC):
     def delete_by_title(self, title: str) -> None:
         """Delete an event by the title. Raise an error if not found."""
         pass
+
