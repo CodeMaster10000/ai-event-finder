@@ -1,21 +1,24 @@
 from __future__ import annotations
+
 from typing import List, Dict, Any, cast, Optional
+
 from openai import AsyncOpenAI
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
-from poetry.console.commands import self
 
+from app.configuration.config import Config
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 from app.services.model.model_service import ModelService
-from app.configuration.config import Config
 from app.util.format_event_util import format_event
+from app.util.logging_util import log_calls
 from app.util.model_util import COUNT_EXTRACT_SYS_PROMPT
 
 
+@log_calls("app.services")
 class ModelServiceImpl(ModelService):
     """
     ModelService implementation that:
@@ -57,18 +60,21 @@ class ModelServiceImpl(ModelService):
         """
         # 1) embed the user prompt (await if using async embedding service)
         embed_vector = await self.embedding_service.create_embedding(user_prompt)
-
+        print("I got the embedding vector.")
         # 2) retrieve most fit events
-        events = self.event_repository.search_by_embedding(embed_vector, Config.RAG_TOP_K)
 
+        event_count_k = await self.extract_requested_event_count(user_prompt)
+
+        events = self.event_repository.search_by_embedding(embed_vector, event_count_k, 10)
+        print("I got the events")
         # 3) format events
         rag_context = "\n".join([format_event(e) for e in events])
-
+        print("I have the RAG context")
         # 4) assemble messages
         messages: List[ChatCompletionMessageParam] = self.build_messages(
             self.sys_prompt, rag_context, user_prompt
         )
-
+        print("I built the messages.")
         # 5) call OpenAI Chat Completions API
         cfg_opts: Dict[str, Any] = dict(getattr(Config, "OPENAI_GEN_OPTS", {}) or {})
         cfg_opts.pop("stream", None)  # remove streaming if present
@@ -78,7 +84,7 @@ class ModelServiceImpl(ModelService):
             messages=messages,
             **cfg_opts,
         )
-
+        print("I got the answer from OpenAI")
         # defensive extraction
         msg = (resp.choices[0].message.content if resp.choices and resp.choices[0].message else None) or ""
         return msg.strip()

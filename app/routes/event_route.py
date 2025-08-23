@@ -4,7 +4,7 @@ from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 from app.container import Container
 from app.services.event_service import EventService
-from app.schemas.event_schema import CreateEventSchema, EventSchema
+from app.schemas.event_schema import CreateEventSchema, EventSchema, UpdateEventSchema
 from app.util.logging_util import log_calls
 from datetime import datetime
 from flask_jwt_extended import jwt_required
@@ -14,6 +14,7 @@ event_ns = Namespace("events", description="Event based operations")
 
 # Instantiate Marshmallow schemas for input validation and serialization
 create_event_schema = CreateEventSchema()  # Validates incoming POST data
+update_event_schema = UpdateEventSchema()
 event_schema = EventSchema()               # Serializes a single Event object
 events_schema = EventSchema(many=True)     # Serializes a list of Event objects
 
@@ -78,6 +79,34 @@ class EventByTitleResource(Resource):
             abort(404, description=f"Event with title {title} not found")
         event_service.delete_by_title(title)
         return '', 204  # No content on successful delete
+
+    event_update_input = event_ns.model('event_update_input', {
+        'description': fields.String(required=False),
+        'datetime': fields.DateTime(required=False),
+        'location': fields.String(required=False),
+        'category': fields.String(required=False),
+    })
+    #noinspection PyUnreachableCode
+    @event_ns.expect(event_update_input)
+    @inject
+    @jwt_required()
+    async def put(self,
+                  title: str,
+                  event_service: EventService = Provide[Container.event_service]):
+        # 1) Parse & validate incoming JSON
+        body = request.get_json() or {}
+        patch = update_event_schema.load(body, partial=True)
+
+        if not patch:
+            abort(400, description="No valid update fields provided")
+
+        # 2) Delegate directly to service: update by unique title
+
+        updated_event = await event_service.update(title,patch)
+
+
+        # 3) Return updated event
+        return event_schema.dump(updated_event), 200
 
 
 @log_calls("app.routes")

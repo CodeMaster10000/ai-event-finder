@@ -16,36 +16,42 @@ from app.error_handler.exceptions import (
     EventDeleteException,
     EventAlreadyExistsException
 )
+from app.util.logging_util import log_calls
 
-
-
+@log_calls("app.services")
 class EventServiceImpl(EventService):
     def __init__(self, event_repository: EventRepository, user_repository: UserRepository, embedding_service: EmbeddingService):
         self.embedding_service = embedding_service
         self.event_repository = event_repository
         self.user_repository = user_repository
 
-    def get_by_title(self, title: str) -> Event:
-        event = self.event_repository.get_by_title(title, db.session)
+    @transactional
+    def get_by_title(self, title: str, session=None) -> Event:
+        event = self.event_repository.get_by_title(title, session)
         validate_event(event, f"No event with title '{title}'")
         return event
 
-    def get_by_location(self, location: str) -> List[Event]:
-        return self.event_repository.get_by_location(location, db.session)
+    @transactional
+    def get_by_location(self, location: str, session=None) -> List[Event]:
+        return self.event_repository.get_by_location(location, session)
 
-    def get_by_category(self, category: str) -> List[Event]:
-        return self.event_repository.get_by_category(category, db.session)
+    @transactional
+    def get_by_category(self, category: str, session=None) -> List[Event]:
+        return self.event_repository.get_by_category(category, session)
 
-    def get_by_organizer(self, email: str) -> List[Event]:
-        organizer = self.user_repository.get_by_email(email, db.session)
+    @transactional
+    def get_by_organizer(self, email: str, session=None) -> List[Event]:
+        organizer = self.user_repository.get_by_email(email, session)
         validate_user(organizer, f"No user found with email {email}")
-        return self.event_repository.get_by_organizer_id(organizer.id,db.session)
+        return self.event_repository.get_by_organizer_id(organizer.id, session)
 
-    def get_by_date(self, date: datetime) -> List[Event]:
-        return self.event_repository.get_by_date(date,db.session)
+    @transactional
+    def get_by_date(self, date: datetime, session=None) -> List[Event]:
+        return self.event_repository.get_by_date(date, session)
 
-    def get_all(self) -> List[Event]:
-        return self.event_repository.get_all(db.session)
+    @transactional
+    def get_all(self, session=None) -> List[Event]:
+        return self.event_repository.get_all(session)
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
@@ -92,54 +98,49 @@ class EventServiceImpl(EventService):
         except Exception as e:
             raise EventSaveException(original_exception=e)
 
-    async def update(self, event: Event) -> Event:
-        # Capture the new title separately for early uniqueness check
-        new_title = event.title
 
-        # Avoid autoflush while we run read-side checks
-        with db.session.no_autoflush:
-            existing_event = self.event_repository.get_by_id(event.id, db.session)
-            conflict = self.event_repository.get_by_title(new_title, db.session)
-
-        if conflict is not None and existing_event is not None and conflict.id != existing_event.id:
-            raise EventAlreadyExistsException(conflict.title)
+    async def update(self, title: str, patch: dict) -> Event:
+        """
+        Update an existing Event by its unique title.
+        The title itself cannot be changed.
+        """
+        # 1. Read-only fetch existing event
+        existing_event = self.event_repository.get_by_title(title, db.session)
         if not existing_event:
-            raise EventNotFoundException("Event not found in the database.")
+            raise EventNotFoundException(f"Event with title '{title}' not found.")
 
-        # ---- Build a patch of user changes BEFORE rollback ----
-        state = inspect(event)
-        pending_changes = {}
-        for attr in state.attrs:
-            # keep only attributes the user actually changed
-            if attr.history.has_changes():
-                key = attr.key
-                # we'll set embedding explicitly after the external call
-                if key == "embedding":
-                    continue
-                pending_changes[key] = getattr(event, key)
+        # 2. Build temporary event object for formatting + embedding
+        temp_data = {col: getattr(existing_event, col) for col in existing_event.__table__.columns.keys()}
+        temp_data.update(patch)  # apply patch fields
+        temp_event = Event(**temp_data)
 
-        # Prepare the formatted payload from the edited state
-        formatted = format_event(event)
-
-        # End the read-only transaction before the external I/O
+        # 3. End read-only transaction
         db.session.rollback()
 
-        # External call (await async embedding)
-        event.embedding = await self.embedding_service.create_embedding(formatted)
+        # 4. Create embedding asynchronously
+        temp_event.embedding = await self.embedding_service.create_embedding(format_event(temp_event))
 
-        # Re-apply the user's pending changes that rollback may have expired
-        for key, value in pending_changes.items():
-            setattr(event, key, value)
+        # 5. Transactional write to persist patch + embedding
+        @transactional
+        def _write_update(session=None):
+            # re-fetch to attach to current transactional session
+            event_to_update = self.event_repository.get_by_title(title, session)
+            if not event_to_update:
+                raise EventNotFoundException(f"Event with title '{title}' no longer exists.")
 
-        try:
-            # Re-check title inside the short write txn (TOCTOU guard) and persist
-            updated = self._persist(event, recheck_title=True, title_for_recheck=event.title)
-            return updated
-        except EventAlreadyExistsException:
-            # bubble up domain conflict unchanged
-            raise
-        except Exception as e:
-            raise EventSaveException(original_exception=e)
+            # apply patch fields
+            for key, value in patch.items():
+                setattr(event_to_update, key, value)
+            # apply new embedding
+            event_to_update.embedding = temp_event.embedding
+
+            # flush changes
+            session.flush()
+            return event_to_update
+
+        return _write_update()
+
+
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional

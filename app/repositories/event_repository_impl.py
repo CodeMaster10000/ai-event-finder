@@ -7,6 +7,10 @@ from typing import List, Optional, Sequence, cast
 from app.models.event import Event
 from app.extensions import db
 from app.configuration.config import Config
+
+from app.util.logging_util import log_calls
+
+@log_calls("app.repositories")
 class EventRepositoryImpl(EventRepository):
 
     def get_all(self, session:Session) -> list[type[Event]]:
@@ -36,12 +40,12 @@ class EventRepositoryImpl(EventRepository):
         if event:
             session.delete(event)
 
-    def search_by_embedding(self, session: Session, query_vector: Sequence[float],
+    def search_by_embedding(self, query_vector: Sequence[float],
                             k: int = Config.DEFAULT_K_EVENTS, probes: Optional[int] = 10) -> list[Event]:
         vec = [float(x) for x in query_vector]
 
         if probes is not None:
-            session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
+            db.session.execute(text("SET LOCAL ivfflat.probes = :p"), {"p": probes})
         # Sorting events by cosine distance to our query
         stmt = select(Event).from_statement(
             text("""
@@ -57,13 +61,16 @@ class EventRepositoryImpl(EventRepository):
         )
 
         # IMPORTANT: .scalars().all() → List[Event]
-        res = session.execute(stmt, {"q": vec, "k": int(k)}).scalars().all()
+        res = db.session.execute(stmt, {"q": vec, "k": int(k)}).scalars().all()
         return cast(list[Event], res)
 
     def delete_by_title(self, title: str, session:Session) -> None:
         event = session.query(Event).filter_by(title=title).first()
         if event:
+            print(f"[repository] deleting event {title}, found={bool(event)}")
             session.delete(event)
+            session.flush()
+            print(f"[repository] flushed delete for event {title}")
 
     def save(self, event: Event, session:Session) -> Event:
         session.add(event)
