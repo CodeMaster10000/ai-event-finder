@@ -1,16 +1,15 @@
-import os
-
 from dependency_injector import containers, providers
 from openai import AsyncOpenAI
+
 from app.configuration.config import Config
 from app.repositories.chat_history_repository_impl import MemoryChatHistoryRepository
 from app.repositories.event_repository_impl import EventRepositoryImpl
 from app.repositories.user_repository_impl import UserRepositoryImpl
-from app.services.event_service_impl import EventServiceImpl
-from app.services.user_service_impl import UserServiceImpl
 from app.services.app_service_impl import AppServiceImpl
 from app.services.embedding_service.embedding_service_impl import EmbeddingServiceImpl
+from app.services.event_service_impl import EventServiceImpl
 from app.services.model.model_service_impl import ModelServiceImpl
+from app.services.user_service_impl import UserServiceImpl
 
 
 class Container(containers.DeclarativeContainer):
