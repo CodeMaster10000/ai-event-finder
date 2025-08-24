@@ -152,6 +152,13 @@ RAMP_USERS=50
 SPIKE_USERS=200
 STAGE_SEC=60
 ```
+```bash
+TEST_DB_NAME=financial_db_test
+TEST_DB_USER=test
+TEST_DB_PASSWORD=test
+HOST_TEST_DB_PORT=5433
+```
+
 
 ### Seed Data
 
