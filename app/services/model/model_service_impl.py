@@ -62,7 +62,7 @@ class ModelServiceImpl(ModelService):
         # 1) embed the user prompt (await if using async embedding service)
         embed_vector = await self.embedding_service.create_embedding(user_prompt)
         print("I got the embedding vector.")
-        # 2) retrieve most fit events
+        # 2) retrieve the most relevant events
 
         event_count_k = await self.extract_requested_event_count(user_prompt)
 
