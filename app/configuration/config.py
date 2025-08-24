@@ -9,7 +9,7 @@ load_dotenv(dotenv_path=env_path)
 class Config:
     PROVIDER = os.getenv("PROVIDER", "local").lower()
 
-    DMR_BASE_URL = os.getenv("DMR_CHAT_BASE_URL", "http://host.docker.internal:12434/engines/llama.cpp/v1")
+    DMR_BASE_URL = os.getenv("DMR_CHAT_BASE_URL", "http://localhost:12434/engines/llama.cpp/v1")
     DMR_EMBEDDING_MODEL = os.getenv("DMR_EMBEDDING_MODEL", "ai/mxbai-embed-large")
     DMR_LLM_MODEL = os.getenv("DMR_LLM_MODEL", "ai/llama3.1:8b-instruct")
     DMR_API_KEY = os.getenv("DMR_API_KEY", "dmr")

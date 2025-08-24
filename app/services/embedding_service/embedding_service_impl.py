@@ -31,6 +31,7 @@ class EmbeddingServiceImpl(EmbeddingService):
                 model=self.model,
                 input=text,
                 dimensions=Config.UNIFIED_VECTOR_DIM,
+                encoding_format="float"
             )
             #  Print the full response as a dict
             #print("Embedding raw response (dict):", resp.model_dump())
