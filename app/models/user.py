@@ -12,7 +12,7 @@ class User(db.Model):
         name (str):                  User's first name (max length = NAME_MAX_LENGTH).
         surname (str):               User's surname (max length = SURNAME_MAX_LENGTH).
         email (str):                 User's email address (max length = EMAIL_MAX_LENGTH).
-        password (str):              Hashed password (max length = PASSWORD_MAX_LENGTH).
+        password_hash (str):              Hashed password (max length = PASSWORD_MAX_LENGTH).
         version (int):               Optimistic lock version counter (auto-incremented on update).
     """
 
@@ -20,7 +20,7 @@ class User(db.Model):
     name = db.Column(db.String(NAME_MAX_LENGTH), nullable=False)
     surname = db.Column(db.String(SURNAME_MAX_LENGTH), nullable=False)
     email = db.Column(db.String(EMAIL_MAX_LENGTH), nullable=False, unique=True, index=True)
-    password = db.Column(db.String(PASSWORD_MAX_LENGTH), nullable=False)
+    password_hash = db.Column("password", db.String(PASSWORD_MAX_LENGTH), nullable=False)
     version = db.Column(db.Integer, nullable=False, default=1)
 
     # MANY-TO-MANY: events this user is attending
@@ -36,6 +36,17 @@ class User(db.Model):
         back_populates='organizer',
         lazy='dynamic'
     )
+
+    @property
+    def password(self):
+        raise AttributeError("Password is write-only.")
+
+    @password.setter
+    def password(self, raw: str) -> None:
+        self.password_hash = generate_password_hash(raw)  # pbkdf2:sha256 by default
+
+    def verify_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
 
     __mapper_args__ = {
         "version_id_col": version,
