@@ -65,15 +65,15 @@ def create_app(test_config: dict | None = None):
         app.config.update(test_config)
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
-    CORS(app, resources={
-        r"/*": {
-            "origins": ["http://localhost:8080"],
-            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "expose_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": False
-        }
-    })
+    CORS(
+        app,
+        resources={r"/*": {"origins": "*"}},
+        allow_headers="*",
+        expose_headers="*",
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        supports_credentials=False,  # must be False when origins="*"
+        max_age=86400,  # cache preflight 24h
+    )
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", secrets.token_hex(32))
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(64))
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)

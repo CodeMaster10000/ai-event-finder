@@ -78,6 +78,8 @@ class Config:
     DB_POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", 1800))  # recycle after 30 min
     DB_POOL_PRE_PING = os.getenv("DB_POOL_PRE_PING", "true").lower() in ("1", "true", "yes", "on")
 
+    MAX_HISTORY_IN_CONTEXT = int(os.getenv("MAX_HISTORY_IN_CONTEXT", 5))
+
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": DB_POOL_SIZE,
         "max_overflow": DB_MAX_OVERFLOW,
