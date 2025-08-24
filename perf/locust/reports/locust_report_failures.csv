@@ -1,2 +1,1 @@
 Method,Name,Error,Occurrences
-POST,auth_login,"CatchResponseError('Login 401: {""message"": ""Invalid credentials""}\n')",30
