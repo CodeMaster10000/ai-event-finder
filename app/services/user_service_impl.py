@@ -6,7 +6,6 @@ from app.util.user_util import return_not_found_by_name_message, return_not_foun
     return_not_found_by_id_message
 from app.util.validation_util import validate_user
 from app.util.transaction_util import transactional, retry_conflicts
-from app.extensions import db
 from app.error_handler.exceptions import (
     DuplicateEmailException,
     UserSaveException,
