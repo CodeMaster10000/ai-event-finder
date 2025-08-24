@@ -65,6 +65,7 @@ class ModelServiceImpl(ModelService):
         print("I got the embedding vector.")
         # 2) retrieve most fit events
         events = self.event_repository.search_by_embedding(query_vector=embed_vector, k=Config.DEFAULT_K_EVENTS, session=db.session)
+        # 2) retrieve the most relevant events
 
         event_count_k = await self.extract_requested_event_count(user_prompt)
 
