@@ -104,6 +104,83 @@ class CreateUserSchema(Schema):
         }
     )
 
+class UpdateUserSchema(Schema):
+    """
+    Schema for incoming user creation payload.
+    Validates and deserializes client-provided data.
+    Pre-processes string fields: trims whitespace and lowercases email.
+    Enforces string length, email format, and password complexity requirements.
+    """
+    class Meta:
+        # Drop any unknown fields instead of raising errors
+        unknown = EXCLUDE
+
+    @pre_load
+    def strip_strings(self, data, **kwargs):
+        """
+        Trim leading/trailing whitespace on 'name' and 'surname'.
+        """
+        for key in ("name", "surname"):
+            val = data.get(key)
+            if isinstance(val, str):
+                data[key] = val.strip()
+        return data
+
+
+    """
+    Name field:
+      - Required
+      - Must be between 1 and 50 characters after trimming
+    """
+    name = fields.Str(
+        required=False,
+        validate=validate.Length(min=1, max=NAME_MAX_LENGTH),
+        error_messages={
+            "required": "Name is required.",
+            "invalid": f"Name must be a string between 1 and {NAME_MAX_LENGTH} characters."
+        }
+    )
+
+    """
+    Surname field:
+      - Required
+      - Must be between 1 and 50 characters after trimming
+    """
+    surname = fields.Str(
+        required=False,
+        validate=validate.Length(min=1, max=SURNAME_MAX_LENGTH),
+        error_messages={
+            "required": "Surname is required.",
+            "invalid": f"Surname must be a string between 1 and {SURNAME_MAX_LENGTH} characters."
+        }
+    )
+
+    """
+    Password field:
+      - Required
+      - Load-only: never serialized back to client
+      - Must be 8–80 characters
+      - Must contain at least one uppercase letter and one number
+    """
+    password = fields.Str(
+        required=False,
+        load_only=True,
+        validate=[
+            validate.Length(
+                min=PASSWORD_MIN_LENGTH,
+                max=PASSWORD_MAX_LENGTH,
+                error="Password must be at least 8 characters long."
+            ),
+            validate.Regexp(
+                r'^(?=.*[A-Z])(?=.*\d).+$',
+                error="Password must contain at least one uppercase letter and one number."
+            )
+        ],
+        error_messages={
+            "required": "Password is required."
+        }
+    )
+
 class UserSchema(Schema):
     """
     Schema for outgoing user data.

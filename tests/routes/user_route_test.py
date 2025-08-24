@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from marshmallow import ValidationError
 
+from werkzeug.exceptions import HTTPException
 from app.error_handler.exceptions import UserNotFoundException
 from app.models.user import User
 from app.routes.user_route import (
@@ -181,6 +182,48 @@ def test_get_by_email(app, user_service_mock, email, found, auth_header):
                 resource.get(email=email, user_service=user_service_mock)
 
             user_service_mock.get_by_email.assert_called_once_with(email)
+
+def test_put_user_partial_update_success(app, user_service_mock, auth_header):
+    email = "alice@example.com"
+    payload = {"surname": "Wolf"}  # partial update allowed by partial=True
+    updated = User(id=3, name="Alice", surname="Wolf", email=email, password="X")
+
+    user_service_mock.update.return_value = updated
+
+    with app.test_request_context(json=payload, headers=auth_header):
+        resource = UserByEmailResource()
+        response, status = resource.put(email=email, user_service=user_service_mock)
+
+    assert status == 200
+    assert response == user_schema.dump(updated)
+    user_service_mock.update.assert_called_once_with(email, payload)
+
+
+def test_put_user_no_fields_bad_request(app, user_service_mock, auth_header):
+    email = "alice@example.com"
+
+    # No JSON body -> route should abort(400, "No valid update fields provided")
+    with app.test_request_context(headers=auth_header):
+        resource = UserByEmailResource()
+        with pytest.raises(HTTPException) as exc:
+            resource.put(email=email, user_service=user_service_mock)
+
+    assert exc.value.code == 400
+    user_service_mock.update.assert_not_called()
+
+
+def test_put_user_not_found(app, user_service_mock, auth_header):
+    email = "missing@example.com"
+    payload = {"surname": "Wolf"}
+
+    user_service_mock.update.side_effect = UserNotFoundException(f"User {email} not found")
+
+    with app.test_request_context(json=payload, headers=auth_header):
+        resource = UserByEmailResource()
+        with pytest.raises(UserNotFoundException):
+            resource.put(email=email, user_service=user_service_mock)
+
+    user_service_mock.update.assert_called_once_with(email, payload)
 
 @pytest.mark.parametrize("name, found", [('Alice', True), ('Bob', False)])
 def test_get_by_name(app, user_service_mock, name, found, auth_header):
