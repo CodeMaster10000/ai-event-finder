@@ -1,13 +1,951 @@
 {
 	"info": {
-		"_postman_id": "0bb97f31-5e00-4df9-86f3-5540e59463ad",
+		"_postman_id": "b3e97a29-799a-416c-a6a0-4353221876a0",
 		"name": "Event Finder API",
 		"description": "REST API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "47227093",
-		"_collection_link": "https://georgi-kamchevski-5f77f3a7-467475.postman.co/workspace/Georgi-Kamchevski's-Workspace~d1e506a5-4814-47f9-83aa-953f97d6933d/collection/47227093-0bb97f31-5e00-4df9-86f3-5540e59463ad?action=share&source=collection_link&creator=47227093"
+		"_collection_link": "https://georgi-kamchevski-5f77f3a7-467475.postman.co/workspace/d1e506a5-4814-47f9-83aa-953f97d6933d/collection/47227093-b3e97a29-799a-416c-a6a0-4353221876a0?action=share&source=collection_link&creator=47227093"
 	},
 	"item": [
+		{
+			"name": "app",
+			"item": [
+				{
+					"name": "prompt",
+					"item": [
+						{
+							"name": "Accept a user prompt via query-string and return the model’s response",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/app/prompt?prompt=string",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"app",
+										"prompt"
+									],
+									"query": [
+										{
+											"key": "prompt",
+											"value": "string",
+											"description": "(Required) The user's chat prompt"
+										}
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Success",
+									"originalRequest": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/prompt?prompt=string",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												"prompt"
+											],
+											"query": [
+												{
+													"key": "prompt",
+													"value": "string",
+													"description": "(Required) The user's chat prompt"
+												}
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "{event_title}",
+					"item": [
+						{
+							"name": "participants",
+							"item": [
+								{
+									"name": "{user_email}",
+									"item": [
+										{
+											"name": "Remove a participant (by email in URL) from a specific event",
+											"request": {
+												"method": "DELETE",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/app/:event_title/participants/:user_email",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"app",
+														":event_title",
+														"participants",
+														":user_email"
+													],
+													"variable": [
+														{
+															"key": "event_title",
+															"value": "string",
+															"description": "(Required) "
+														},
+														{
+															"key": "user_email",
+															"value": "string",
+															"description": "(Required) "
+														}
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "DELETE",
+														"header": [],
+														"url": {
+															"raw": "{{baseUrl}}/app/:event_title/participants/:user_email",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"app",
+																":event_title",
+																"participants",
+																":user_email"
+															],
+															"variable": [
+																{
+																	"key": "event_title"
+																},
+																{
+																	"key": "user_email"
+																}
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										},
+										{
+											"name": "Add a participant (by email in URL) to a specific event",
+											"request": {
+												"method": "POST",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/app/:event_title/participants/:user_email",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"app",
+														":event_title",
+														"participants",
+														":user_email"
+													],
+													"variable": [
+														{
+															"key": "event_title",
+															"value": "string",
+															"description": "(Required) "
+														},
+														{
+															"key": "user_email",
+															"value": "string",
+															"description": "(Required) "
+														}
+													]
+												}
+											},
+											"response": [
+												{
+													"name": "Success",
+													"originalRequest": {
+														"method": "POST",
+														"header": [],
+														"url": {
+															"raw": "{{baseUrl}}/app/:event_title/participants/:user_email",
+															"host": [
+																"{{baseUrl}}"
+															],
+															"path": [
+																"app",
+																":event_title",
+																"participants",
+																":user_email"
+															],
+															"variable": [
+																{
+																	"key": "event_title"
+																},
+																{
+																	"key": "user_email"
+																}
+															]
+														}
+													},
+													"status": "OK",
+													"code": 200,
+													"_postman_previewlanguage": "text",
+													"header": [],
+													"cookie": [],
+													"body": ""
+												}
+											]
+										}
+									]
+								},
+								{
+									"name": "List all participants in an event",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/app/:event_title/participants",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"app",
+												":event_title",
+												"participants"
+											],
+											"variable": [
+												{
+													"key": "event_title",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/app/:event_title/participants",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"app",
+														":event_title",
+														"participants"
+													],
+													"variable": [
+														{
+															"key": "event_title"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "login",
+					"item": [
+						{
+							"name": "post login",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/auth/login",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"auth",
+										"login"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Success",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}",
+											"options": {
+												"raw": {
+													"headerFamily": "json",
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/auth/login",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"auth",
+												"login"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "events",
+			"item": [
+				{
+					"name": "category",
+					"item": [
+						{
+							"name": "{category}",
+							"item": [
+								{
+									"name": "Get events by category",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/events/category/:category",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"category",
+												":category"
+											],
+											"variable": [
+												{
+													"key": "category",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/events/category/:category",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"category",
+														":category"
+													],
+													"variable": [
+														{
+															"key": "category"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "date",
+					"item": [
+						{
+							"name": "{date_str}",
+							"item": [
+								{
+									"name": "Get events by date (YYYY-MM-DD)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/events/date/:date_str",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"date",
+												":date_str"
+											],
+											"variable": [
+												{
+													"key": "date_str",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/events/date/:date_str",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"date",
+														":date_str"
+													],
+													"variable": [
+														{
+															"key": "date_str"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "location",
+					"item": [
+						{
+							"name": "{location}",
+							"item": [
+								{
+									"name": "Get events by location",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/events/location/:location",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"location",
+												":location"
+											],
+											"variable": [
+												{
+													"key": "location",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/events/location/:location",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"location",
+														":location"
+													],
+													"variable": [
+														{
+															"key": "location"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "organizer",
+					"item": [
+						{
+							"name": "{email}",
+							"item": [
+								{
+									"name": "Get events by organizer email",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/events/organizer/:email",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"organizer",
+												":email"
+											],
+											"variable": [
+												{
+													"key": "email",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/events/organizer/:email",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"organizer",
+														":email"
+													],
+													"variable": [
+														{
+															"key": "email"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "title",
+					"item": [
+						{
+							"name": "{title}",
+							"item": [
+								{
+									"name": "Get an event by title",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/events/title/:title",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"title",
+												":title"
+											],
+											"variable": [
+												{
+													"key": "title",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "GET",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/events/title/:title",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"title",
+														":title"
+													],
+													"variable": [
+														{
+															"key": "title"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								},
+								{
+									"name": "put event by title resource",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"description\": \"string\",\n  \"datetime\": \"1972-02-09T21:05:38.339Z\",\n  \"location\": \"string\",\n  \"category\": \"string\"\n}",
+											"options": {
+												"raw": {
+													"headerFamily": "json",
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/events/title/:title",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"title",
+												":title"
+											],
+											"variable": [
+												{
+													"key": "title",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"description\": \"string\",\n  \"datetime\": \"1972-02-09T21:05:38.339Z\",\n  \"location\": \"string\",\n  \"category\": \"string\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/events/title/:title",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"title",
+														":title"
+													],
+													"variable": [
+														{
+															"key": "title"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								},
+								{
+									"name": "Delete an event by title",
+									"request": {
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{baseUrl}}/events/title/:title",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"events",
+												"title",
+												":title"
+											],
+											"variable": [
+												{
+													"key": "title",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "DELETE",
+												"header": [],
+												"url": {
+													"raw": "{{baseUrl}}/events/title/:title",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"events",
+														"title",
+														":title"
+													],
+													"variable": [
+														{
+															"key": "title"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Get all events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/events",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"events"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Create a new event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"category\": \"string\",\n  \"datetime\": \"string\",\n  \"description\": \"string\",\n  \"location\": \"string\",\n  \"organizer_email\": \"string\",\n  \"title\": \"string\"\n}",
+							"options": {
+								"raw": {
+									"headerFamily": "json",
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/events",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"events"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"category\": \"string\",\n  \"datetime\": \"string\",\n  \"description\": \"string\",\n  \"location\": \"string\",\n  \"organizer_email\": \"string\",\n  \"title\": \"string\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/events",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"events"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			]
+		},
 		{
 			"name": "users",
 			"item": [
@@ -72,6 +1010,92 @@
 											"body": ""
 										}
 									]
+								},
+								{
+									"name": "Update a user",
+									"request": {
+										"method": "PUT",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"name\": \"string\",\n  \"password\": \"string\",\n  \"surname\": \"string\"\n}",
+											"options": {
+												"raw": {
+													"headerFamily": "json",
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/users/email/:email",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"users",
+												"email",
+												":email"
+											],
+											"variable": [
+												{
+													"key": "email",
+													"value": "string",
+													"description": "(Required) "
+												}
+											]
+										}
+									},
+									"response": [
+										{
+											"name": "Success",
+											"originalRequest": {
+												"method": "PUT",
+												"header": [
+													{
+														"key": "Content-Type",
+														"value": "application/json"
+													}
+												],
+												"body": {
+													"mode": "raw",
+													"raw": "{\n  \"name\": \"string\",\n  \"password\": \"string\",\n  \"surname\": \"string\"\n}",
+													"options": {
+														"raw": {
+															"headerFamily": "json",
+															"language": "json"
+														}
+													}
+												},
+												"url": {
+													"raw": "{{baseUrl}}/users/email/:email",
+													"host": [
+														"{{baseUrl}}"
+													],
+													"path": [
+														"users",
+														"email",
+														":email"
+													],
+													"variable": [
+														{
+															"key": "email"
+														}
+													]
+												}
+											},
+											"status": "OK",
+											"code": 200,
+											"_postman_previewlanguage": "text",
+											"header": [],
+											"cookie": [],
+											"body": ""
+										}
+									]
 								}
 							]
 						}
@@ -105,7 +1129,7 @@
 													"variable": [
 														{
 															"key": "user_id",
-															"value": "2383",
+															"value": "9569",
 															"description": "(Required) "
 														}
 													]
@@ -242,7 +1266,7 @@
 											"variable": [
 												{
 													"key": "user_id",
-													"value": "2383",
+													"value": "9569",
 													"description": "(Required) "
 												}
 											]
@@ -298,7 +1322,7 @@
 											"variable": [
 												{
 													"key": "user_id",
-													"value": "2383",
+													"value": "9569",
 													"description": "(Required) "
 												}
 											]
@@ -447,7 +1471,7 @@
 					]
 				},
 				{
-					"name": "Create or update a user",
+					"name": "Create a user",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -517,28 +1541,6 @@
 					]
 				}
 			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"packages": {},
-				"exec": [
-					""
-				]
-			}
 		}
 	],
 	"variable": [
