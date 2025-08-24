@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from flask import Flask
 from marshmallow import ValidationError
 
 from app.error_handler.exceptions import UserNotFoundException
@@ -19,12 +20,14 @@ from app.services.user_service import UserService
 from app.extensions import jwt
 from app import create_app
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def app():
-    app = create_app({
-        "TESTING": True,
-        "JWT_SECRET_KEY": "test-secret-key",
-    })
+    """Tiny Flask app: no DB, no migrations — perfect for unit tests."""
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        JWT_SECRET_KEY="test-secret-key",
+    )
     jwt.init_app(app)
     with app.app_context():
         yield app
@@ -36,7 +39,6 @@ def auth_header(app):
 
 @pytest.fixture
 def user_service_mock():
-    """A mock of the UserService."""
     return MagicMock(spec=UserService)
 
 def test_get_all_users_empty(app, user_service_mock, auth_header):

@@ -17,7 +17,6 @@ from app.configuration.config import Config
 from app.util.format_event_util import format_event
 from app.util.model_util import COUNT_EXTRACT_SYS_PROMPT
 
-MAX_HISTORY_IN_CONTEXT = 5  # include up to last 5 prior messages in CONTEXT
 
 
 class ModelServiceImpl(ModelService):
@@ -57,7 +56,7 @@ class ModelServiceImpl(ModelService):
 
         # 2) retrieve most fit events
         k = await self.extract_requested_event_count(user_prompt)
-        events = self.event_repository.search_by_embedding(embed_vector, k)
+        events = self.event_repository.search_by_embedding(embed_vector, k, 10)
         rag_docs = "\n".join([format_event(e) for e in events])
 
         # 3) build recent history snippet (last ≤5)
@@ -65,7 +64,7 @@ class ModelServiceImpl(ModelService):
         count = 0
         if session_key and self.history_repo:
             prior: List[Message] = self.history_repo.get(session_key)
-            recent = prior[-MAX_HISTORY_IN_CONTEXT:] if prior else []
+            recent = prior[-Config.MAX_HISTORY_IN_CONTEXT:] if prior else []
             count = len(recent)
             if recent:
                 lines = [
