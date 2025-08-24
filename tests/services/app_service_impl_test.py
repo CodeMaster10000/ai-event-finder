@@ -6,7 +6,6 @@ import pytest
 from unittest.mock import MagicMock
 from sqlalchemy.orm import Session
 
-from app.services.app_service_impl import AppServiceImpl
 from app.error_handler.exceptions import (
     UserAlreadyInEventException,
     UserNotInEventException,

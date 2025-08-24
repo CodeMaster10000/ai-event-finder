@@ -72,7 +72,6 @@ class UserByIdResource(Resource):
                user_id: int,
                user_service: UserService = Provide[Container.user_service]):
         """Delete a user by ID"""
-        user = user_service.get_by_id(user_id)
         user_service.delete_by_id(user_id)
         return '', 204
 

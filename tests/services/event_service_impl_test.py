@@ -17,13 +17,10 @@ from app.models.user import User
 from app.services.event_service_impl import EventServiceImpl
 from app.error_handler.exceptions import (
     EventNotFoundException,
-    EventAlreadyExistsException,
-    EventSaveException,
     EventDeleteException,
     UserNotFoundException,
 )
 from app.extensions import db
-from app.util.format_event_util import format_event
 
 
 # -------------------------------
