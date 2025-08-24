@@ -27,7 +27,10 @@ class UserRepositoryImpl(UserRepository):
 
     def delete_by_id(self, user_id: int, session:Session) -> None:
         user = session.get(User, user_id)
+        print(f"[repository] deleting user {user_id}, found={bool(user)}")
         session.delete(user)
+        session.flush()
+        print(f"[repository] flushed delete for user {user_id}")
 
     def exists_by_id(self, user_id: int, session:Session) -> bool:
         user = session.query(User).get(user_id)

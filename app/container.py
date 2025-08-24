@@ -1,7 +1,7 @@
 import os
 
 from dependency_injector import containers, providers
-from openai import OpenAI
+from openai import AsyncOpenAI
 from app.configuration.config import Config
 from app.repositories.chat_history_repository_impl import MemoryChatHistoryRepository
 from app.repositories.event_repository_impl import EventRepositoryImpl
@@ -29,14 +29,14 @@ class Container(containers.DeclarativeContainer):
 
     if provider == "cloud":
         openai_client = providers.Singleton(
-            OpenAI,
+            AsyncOpenAI,
             api_key=Config.OPENAI_API_KEY)
         chat_model = providers.Object(getattr(Config, "OPENAI_MODEL", "gpt-4o-mini"))
         embedding_model = providers.Object(getattr(Config, "OPENAI_EMBEDDING_MODEL", "text-embedding-3-large"))
 
     else:
         openai_client = providers.Singleton(
-            OpenAI,
+            AsyncOpenAI,
             api_key=Config.DMR_API_KEY,
             base_url=Config.DMR_BASE_URL,
         )
