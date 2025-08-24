@@ -3,9 +3,8 @@ from flask_restx import Namespace, Resource, fields
 from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 from app.container import Container
-from app.models.event import Event
 from app.services.event_service import EventService
-from app.schemas.event_schema import CreateEventSchema, EventSchema
+from app.schemas.event_schema import CreateEventSchema, EventSchema, UpdateEventSchema
 from app.util.logging_util import log_calls
 from datetime import datetime
 from flask_jwt_extended import jwt_required
@@ -15,6 +14,7 @@ event_ns = Namespace("events", description="Event based operations")
 
 # Instantiate Marshmallow schemas for input validation and serialization
 create_event_schema = CreateEventSchema()  # Validates incoming POST data
+update_event_schema = UpdateEventSchema()
 event_schema = EventSchema()               # Serializes a single Event object
 events_schema = EventSchema(many=True)     # Serializes a list of Event objects
 
@@ -80,45 +80,33 @@ class EventByTitleResource(Resource):
         event_service.delete_by_title(title)
         return '', 204  # No content on successful delete
 
+    event_update_input = event_ns.model('event_update_input', {
+        'description': fields.String(required=False),
+        'datetime': fields.DateTime(required=False),
+        'location': fields.String(required=False),
+        'category': fields.String(required=False),
+    })
+    #noinspection PyUnreachableCode
+    @event_ns.expect(event_update_input)
     @inject
     @jwt_required()
-    async def put(
-            self,
-            title: str,
-            event_service: EventService = Provide[Container.event_service],
-    ):
-        """Update an event by title"""
-        data = request.get_json() or {}
+    async def put(self,
+                  title: str,
+                  event_service: EventService = Provide[Container.event_service]):
+        # 1) Parse & validate incoming JSON
+        body = request.get_json() or {}
+        patch = update_event_schema.load(body, partial=True)
 
-        # 1) Load the managed instance
-        existing = event_service.get_by_title(title)
-        if not existing:
-            abort(404, description=f"Event with title {title} not found")
+        if not patch:
+            abort(400, description="No valid update fields provided")
 
-        # 2) Apply changes directly on the managed entity
-        new_dt = data.get("datetime")
-        if new_dt:
-            new_dt = new_dt.replace(" ", "T")
-            from datetime import datetime
-            try:
-                existing.datetime = datetime.fromisoformat(new_dt)
-            except ValueError:
-                abort(400, description="Invalid datetime format")
+        # 2) Delegate directly to service: update by unique title
 
-        if "title" in data:
-            existing.title = data["title"]
-        if "description" in data:
-            existing.description = data["description"]
-        if "location" in data:
-            existing.location = data["location"]
-        if "category" in data:
-            existing.category = data["category"]
+        updated_event = await event_service.update(title,patch)
 
-        # 3) Delegate to service.update (it inspects changes & persists)
-        updated = await event_service.update(existing)
 
-        # 4) Return serialized event
-        return event_schema.dump(updated), 200
+        # 3) Return updated event
+        return event_schema.dump(updated_event), 200
 
 
 @log_calls("app.routes")

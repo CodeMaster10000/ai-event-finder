@@ -19,25 +19,27 @@ class UserServiceImpl(UserService):
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
 
-    def get_by_id(self, user_id: int) -> User:
-        user = self.user_repository.get_by_id(user_id, db.session)
+    @transactional
+    def get_by_id(self, user_id: int, session=None) -> User:
+        user = self.user_repository.get_by_id(user_id, session)
         validate_user(user, return_not_found_by_id_message(user_id))
         return user
 
-    def get_by_email(self, email: str) -> User:
-        user = self.user_repository.get_by_email(email, db.session)
-
+    @transactional
+    def get_by_email(self, email: str, session=None) -> User:
+        user = self.user_repository.get_by_email(email, session)
         validate_user(user, return_not_found_by_email_message(email))
         return user
 
-
-    def get_by_name(self, name: str) -> User:
-        user = self.user_repository.get_by_name(name, db.session)
+    @transactional
+    def get_by_name(self, name: str, session=None) -> User:
+        user = self.user_repository.get_by_name(name, session)
         validate_user(user, return_not_found_by_name_message(name))
         return user
 
-    def get_all(self) -> List[User]:
-        return self.user_repository.get_all(db.session)
+    @transactional
+    def get_all(self, session=None) -> List[User]:
+        return self.user_repository.get_all(session)
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
@@ -74,12 +76,13 @@ class UserServiceImpl(UserService):
         except Exception as e:
             raise UserDeleteException(user_id=user_id, original_exception=e)
 
-    def exists_by_id(self, user_id: int) -> bool:
-        user = self.user_repository.get_by_id(user_id, db.session)
+    @transactional
+    def exists_by_id(self, user_id: int, session=None) -> bool:
+        user = self.user_repository.get_by_id(user_id, session)
         validate_user(user, return_not_found_by_id_message(user_id))
         return True
-
-    def exists_by_name(self, name: str) -> bool:
-        user = self.user_repository.get_by_name(name, db.session)
+    @transactional
+    def exists_by_name(self, name: str,session=None) -> bool:
+        user = self.user_repository.get_by_name(name, session)
         validate_user(user, return_not_found_by_name_message(name))
         return True

@@ -147,3 +147,31 @@ class EventSchema(Schema):
     )
 
 
+class UpdateEventSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
+    @pre_load
+    def strip_strings(self, data, **kwargs):
+        for key in ("description", "location", "category"):
+            val = data.get(key)
+            if isinstance(val, str):
+                data[key] = val.strip()
+        return data
+
+    description = fields.Str(
+        required=False,
+        validate=validate.Length(min=1, max=DESCRIPTION_MAX_LENGTH)
+    )
+    location = fields.Str(
+        required=False,
+        validate=validate.Length(min=1, max=LOCATION_MAX_LENGTH)
+    )
+    category = fields.Str(
+        required=False,
+        validate=validate.Length(min=1, max=CATEGORY_MAX_LENGTH)
+    )
+    datetime = fields.DateTime(
+        required=False,
+        format="%Y-%m-%d %H:%M:%S"
+    )

@@ -5,7 +5,9 @@ from app.error_handler.exceptions import EmbeddingServiceException
 import numpy as np
 from numpy.linalg import norm
 
+from app.util.logging_util import log_calls
 
+@log_calls("app.services")
 class EmbeddingServiceImpl(EmbeddingService):
     """
     Async OpenAI embedding service using text-embedding-3-* models with a unified dimension.
@@ -31,12 +33,20 @@ class EmbeddingServiceImpl(EmbeddingService):
                 dimensions=Config.UNIFIED_VECTOR_DIM,
                 encoding_format="float"
             )
+            #  Print the full response as a dict
+            #print("Embedding raw response (dict):", resp.model_dump())
+
+            #  Or, if you just want the array (may be huge!)
+            print("Embedding vector (first 10 dims):", resp.data[0].embedding[:10])
+
         except Exception as e:
             raise EmbeddingServiceException(
                 "OpenAI embedding request failed.", original_exception=e
             )
 
         try:
+
+
             emb = resp.data[0].embedding
         except Exception as e:
             raise EmbeddingServiceException(
@@ -49,8 +59,12 @@ class EmbeddingServiceImpl(EmbeddingService):
             )
         vec = np.array(emb, dtype=np.float32)
         norm_val = norm(vec)
+        print(norm_val)
         if norm_val == 0:
             raise EmbeddingServiceException("Embedding vector has zero norm, cannot normalize.")
         normalized = vec / norm_val
+
+        norm_val = norm(normalized)
+        print(norm_val)
 
         return normalized.tolist()

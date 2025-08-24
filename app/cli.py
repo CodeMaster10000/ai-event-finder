@@ -7,10 +7,6 @@ from flask.cli import AppGroup
 from sqlalchemy.exc import IntegrityError
 import asyncio
 
-from app.extensions import db
-from app.models.user import User
-from app.models.event import Event
-from app.services.embedding_service.embedding_service_impl import EmbeddingServiceImpl
 from app.constants import (
     DEFAULT_PASSWORD,
     DESCRIPTION_MAX_LENGTH, CATEGORY_MAX_LENGTH, TITLE_MAX_LENGTH, LOCATION_MAX_LENGTH
@@ -26,6 +22,9 @@ from app.error_handler.exceptions import (
     EmbeddingServiceException,
     InvalidDateFormatException,
 )
+from app.extensions import db
+from app.models.event import Event
+from app.models.user import User
 
 seed_cli = AppGroup("seed")
 
@@ -98,7 +97,7 @@ def seed_events():
         svc = get_event_service()
 
         for row_index, csv_row in enumerate(csv_rows, start=1):
-            title = (csv_row.get("name" or "title") or "").strip()
+            title = (csv_row.get("name" or "title") or "").strip().replace("/","-")
             description = (csv_row.get("description") or "").strip()
             location = (csv_row.get("location") or "").strip()
             category = (csv_row.get("category") or "").strip()
