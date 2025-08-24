@@ -78,7 +78,9 @@ class ModelServiceImpl(ModelService):
         if rag_docs.strip():
             parts.append(f"DOCUMENTS:\n{rag_docs}")
         if history_block:
-            parts.append(f"RECENT MESSAGES (last {count}):\n{history_block}")
+            parts.append(f"RECENT MESSAGES (last {count}):\n{history_block[count:]}")
+            #print(f"RECENT MESSAGES (last {count}):\n{history_block}")
+            print(history_block[count:])
         combined_context = "\n\n".join(parts) if parts else "No context available."
 
         # 4) assemble messages and call OpenAI
