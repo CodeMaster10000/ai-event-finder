@@ -5,6 +5,12 @@ from dotenv import load_dotenv, find_dotenv
 env_path = find_dotenv()
 load_dotenv(dotenv_path=env_path)
 
+def _get_bool(name: str, default: bool = False) -> bool:
+    val = os.getenv(name)
+    if val is None:
+        return default
+    return str(val).strip().lower() in ("1", "true", "yes", "on")
+
 # Loads PostgresSQL connection URI and other settings from environment variables, defined in a .env file.
 class Config:
     PROVIDER = os.getenv("PROVIDER", "local").lower()
@@ -52,11 +58,18 @@ class Config:
     OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large")
     OPENAI_MODEL = str(os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
 
+    # --- DB URI with TEST_MODE respected (unset => false) ---
+    if _get_bool("TEST_MODE", False):
+        SQLALCHEMY_DATABASE_URI = (
+            f"postgresql://{os.getenv('TEST_DB_USER')}:{os.getenv('TEST_DB_PASSWORD')}"
+            f"@{os.getenv('TEST_DB_HOST')}:{os.getenv('TEST_DB_PORT')}/{os.getenv('TEST_DB_NAME')}"
+        )
+    else:
+        SQLALCHEMY_DATABASE_URI = (
+            f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+            f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        )
 
-    SQLALCHEMY_DATABASE_URI = (
-        f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", 50))

@@ -15,7 +15,7 @@ def _get_bool(name: str, default: bool = False) -> bool:
         return default
     return str(val).strip().lower() in ("1", "true", "yes", "on")
 
-HOST = os.getenv("LOCUST_HOST", "http://localhost:5000")
+HOST = os.getenv("LOCUST_HOST", "http://web-test-1:5001")
 
 AUTH_LOGIN_PATH = os.getenv("AUTH_LOGIN_PATH", "/auth/login")
 AUTH_TOKEN_FIELD = os.getenv("AUTH_TOKEN_FIELD", "access_token")
