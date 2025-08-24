@@ -9,7 +9,9 @@ services:
 
     buildCommand: |
       pip install -r requirements.txt
-      node -v
+
+    preDeployCommand: |
+      flask db upgrade
 
     startCommand: uvicorn run:app --host 0.0.0.0 --port ${APP_PORT} --reload
 
