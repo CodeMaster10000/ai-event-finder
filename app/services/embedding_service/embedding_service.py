@@ -13,7 +13,7 @@ class EmbeddingService(ABC):
     """
 
     @abstractmethod
-    def create_embedding(self, text: str) -> list[float]:
+    async def create_embedding(self, text: str) -> list[float]:
         """
         Generate an embedding vector from input text.
 
