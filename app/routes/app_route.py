@@ -5,7 +5,7 @@ from app.services.app_service import AppService
 from app.services.model.model_service import ModelService
 from app.util.logging_util import log_calls
 from flask_jwt_extended import jwt_required
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 from flask import request, abort
 
 app_ns = Namespace("app", description="Event participation-related operations")

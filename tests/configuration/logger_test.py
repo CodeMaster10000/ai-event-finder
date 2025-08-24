@@ -4,7 +4,7 @@ import logging
 import pytest
 
 # ← adjust these to match your project structure:
-from app.configuration.logging_config import configure_logging, LOGGING
+from app.configuration.logging_config import configure_logging
 from app.util.logging_util import log_calls, get_log_level
 
 
