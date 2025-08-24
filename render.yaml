@@ -1,0 +1,185 @@
+services:
+  - type: web
+    name: ai-event-finder
+    env: python
+    plan: free
+    region: frankfurt
+    autoDeploy: true
+    branch: main
+
+    buildCommand: |
+      pip install -r requirements.txt
+      node -v
+
+    startCommand: uvicorn run:app --host 0.0.0.0 --port ${APP_PORT} --reload
+
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: FLASK_ENV
+        value: "development"
+      - key: FLASK_APP
+        value: "run.py"
+      - key: APP_PORT
+        value: "5000"
+      - key: HOST_APP_PORT
+        value: "5000"
+
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: HOST_DB_PORT
+        sync: false
+      - key: DB_POOL_RECYCLE
+        value: "1800"
+      - key: DB_POOL_PRE_PING
+        value: "true"
+
+      # Use the full URL (Render doesn't expand ${...} in env values)
+      # Replace with your actual Render Postgres URL if different.
+      - key: DATABASE_URL
+        sync: false
+      - key: PROVIDER
+        value: "cloud"
+
+      - key: DMR_CHAT_BASE_URL
+        value: "http://host.docker.internal:12434/engines/llama.cpp/v1"
+      - key: DMR_API_KEY
+        sync: false
+      - key: DMR_LLM_MODEL
+        value: "ai/llama3.1:latest"
+      - key: DMR_EMBEDDING_MODEL
+        value: "ai/mxbai-embed-large"
+
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: "gpt-4o-mini"
+      - key: OPENAI_EMBEDDING_MODEL
+        value: "text-embedding-3-large"
+      - key: UNIFIED_VECTOR_DIM
+        value: "1024"
+
+      - key: OPENAI_TEMPERATURE
+        value: "0.2"
+      - key: OPENAI_P
+        value: "0.7"
+      - key: OPENAI_FREQUENCY_PENALTY
+        value: "0.2"
+      - key: OPENAI_PRESENCE_PENALTY
+        value: "0.0"
+      - key: OPENAI_MAX_TOKENS
+        value: "220"
+
+      - key: OPENAI_EXTRACT_TEMPERATURE
+        value: "0"
+      - key: OPENAI_EXTRACT_P
+        value: "1"
+      - key: OPENAI_EXTRACT_FREQUENCY_PENALTY
+        value: "0"
+      - key: OPENAI_EXTRACT_PRESENCE_PENALTY
+        value: "0"
+      - key: OPENAI_EXTRACT_MAX_TOKENS
+        value: "6"
+
+      - key: AUTH_LOGIN_PATH
+        value: "/auth/login"
+      - key: AUTH_REGISTER_PATH
+        value: "/users"
+      - key: AUTH_TOKEN_FIELD
+        value: "access_token"
+      - key: AUTH_EMAIL
+        value: "loadtest@example.com"
+      - key: AUTH_PASSWORD
+        sync: false
+      - key: DEFAULT_ORGANIZER_EMAIL
+        value: "loadtest@example.com"
+      - key: ENABLE_PROMPT_TASKS
+        value: "false"
+
+      - key: EVENTS_PATH
+        value: "/events"
+      - key: EVENTS_BY_TITLE_PATH
+        value: "/events/title"
+      - key: EVENTS_BY_LOCATION_PATH
+        value: "/events/location"
+      - key: EVENTS_BY_CATEGORY_PATH
+        value: "/events/category"
+      - key: EVENTS_BY_ORGANIZER_PATH
+        value: "/events/organizer"
+      - key: EVENTS_BY_DATE_PATH
+        value: "/events/date"
+      - key: APP_PROMPT_PATH
+        value: "/app/prompt"
+      - key: APP_PARTICIPANTS_BASE
+        value: "/app"
+
+      - key: DEFAULT_K_EVENTS
+        value: "5"
+      - key: MAX_K_EVENTS
+        value: "15"
+
+      - key: DEFAULT_LOCATION
+        value: "Skopje"
+      - key: DEFAULT_CATEGORY
+        value: "party"
+      - key: DEFAULT_DATE
+        value: "2030-01-01"
+
+      - key: LOCUST_HOST
+        value: "http://web:5000"
+      - key: LOCUST_USERS
+        value: "50"
+      - key: LOCUST_SPAWN_RATE
+        value: "10"
+      - key: LOCUST_RUN_TIME
+        value: "5m"
+      - key: LOCUST_HEADLESS_FLAG
+        value: ""
+      - key: LOCUST_CSV_PREFIX
+        value: "locust_report"
+      - key: LOCUST_LOGLEVEL
+        value: "INFO"
+      - key: LOCUST_PORT_MAPPING
+        value: "8089:8089"
+
+      - key: SLO_READ_P95_MS
+        value: "300"
+      - key: SLO_WRITE_P95_MS
+        value: "600"
+      - key: SLO_ERROR_RATE
+        value: "1.0"
+
+      - key: ENABLE_SHAPE
+        value: "false"
+      - key: RAMP_USERS
+        value: "50"
+      - key: SPIKE_USERS
+        value: "200"
+      - key: STAGE_SEC
+        value: "60"
+
+      - key: SEED_EVENTS_CSV
+        value: "data/preprocessed_events.csv"
+      - key: SEED_USERS_COUNT
+        value: "20"
+
+      - key: TEST_DB_USER
+        value: "test_user"
+      - key: TEST_DB_PASSWORD
+        sync: false
+      - key: TEST_DB_HOST
+        value: "localhost"
+      - key: TEST_DB_PORT
+        value: "5432"
+      - key: TEST_DB_NAME
+        value: "test_database"
+      - key: HOST_TEST_DB_PORT
+        value: "5432"

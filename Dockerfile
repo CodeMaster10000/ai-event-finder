@@ -22,5 +22,4 @@ COPY . /app
 EXPOSE 5000
 
 # Run the ASGI app with uvicorn when the container starts
-CMD ["uvicorn", "asgi:app", "--host", "0.0.0.0", "--port", "5000"]
-
+CMD ["uvicorn", "run:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
