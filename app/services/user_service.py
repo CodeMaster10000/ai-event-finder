@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.models.user import User
 
 
@@ -30,7 +30,7 @@ class UserService(ABC):
         pass
 
     @abstractmethod
-    def update(self, user: User) -> User:
+    def update(self, email: str, data: Dict[str, Any]) -> User:
         """Update an existing user's data."""
         pass
 

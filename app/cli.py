@@ -5,7 +5,6 @@ from itertools import cycle
 from flask import current_app
 from flask.cli import AppGroup
 from sqlalchemy.exc import IntegrityError
-import asyncio
 
 from app.constants import (
     DEFAULT_PASSWORD,

@@ -15,6 +15,7 @@ from app.extensions import db
 from app.repositories.event_repository import EventRepository
 from app.services.embedding_service.embedding_service import EmbeddingService
 from app.services.model.model_service import ModelService
+from app.configuration.config import Config
 from app.util.format_event_util import format_event
 from app.util.logging_util import log_calls
 from app.util.model_util import COUNT_EXTRACT_SYS_PROMPT

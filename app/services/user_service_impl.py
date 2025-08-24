@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
@@ -6,7 +6,6 @@ from app.util.user_util import return_not_found_by_name_message, return_not_foun
     return_not_found_by_id_message
 from app.util.validation_util import validate_user
 from app.util.transaction_util import transactional, retry_conflicts
-from app.extensions import db
 from app.error_handler.exceptions import (
     DuplicateEmailException,
     UserSaveException,
@@ -51,19 +50,26 @@ class UserServiceImpl(UserService):
         except Exception as e:
             raise UserSaveException(original_exception=e)
 
+
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
-    def update(self, user: User, session=None) -> User:
-        existing_user = self.user_repository.get_by_id(user.id, session)
-        validate_user(existing_user, return_not_found_by_id_message(user.id))
+    def update(self, email: str, data: Dict[str, Any], session=None) -> User:
 
-        conflict = self.user_repository.get_by_email(user.email, session)
-        if conflict and conflict.id != user.id:
-            raise DuplicateEmailException(email=user.email)
+        user = self.user_repository.get_by_email(email, session)
+        validate_user(user, return_not_found_by_email_message(email))
+
+
+        if "name" in data and data["name"] is not None:
+            user.name = data["name"]
+        if "surname" in data and data["surname"] is not None:
+            user.surname = data["surname"]
+        if "password" in data and data["password"]:
+            user.password = data["password"]
         try:
             return self.user_repository.save(user, session)
         except Exception as e:
             raise UserSaveException(original_exception=e)
+
 
     @retry_conflicts(max_retries=3, backoff_sec=0.1)
     @transactional
