@@ -3,15 +3,16 @@ from unittest.mock import MagicMock
 import pytest
 
 from app import create_app
-from app.routes.app_route import ParticipantResource, ListParticipantsResource
+from app.routes.app_route import ParticipantResource, ListParticipantsResource, PromptResource
 from app.services.app_service import AppService
 from app.services.model.model_service import ModelService
 from app.util.test_jwt_token_util import generate_test_token
+from tests.util.util_test import test_cfg
 
 
 @pytest.fixture
 def app():
-    app = create_app({"TESTING": True})
+    app = create_app(test_cfg)
     yield app
 
 @pytest.fixture
@@ -95,24 +96,24 @@ def test_list_participants_success(app, mock_app_service, auth_header):
 # --------------------------------------------------------------------------------
 # The following test has been commented out until the model service is done
 
-# def test_prompt_resource_forwards_prompt_to_model_service(app, mock_model_service, auth_header):
-#     # 1) Arrange
-#     prompt_text = "Just checking"
-#     # Make sure the container lookup won’t blow up
-#     from app import Container
-#     from dependency_injector import providers
-#     Container.model_service = providers.Object(None)
-#
-#     # 2) Act
-#     with app.test_request_context(
-#         f"/app/prompt?prompt={prompt_text}",
-#         method="GET",
-#         headers=auth_header,
-#     ):
-#         resource = PromptResource()
-#         _, status = resource.get(model_service=mock_model_service)
-#
-#     # 3) Assert
-#     assert status == 200
-#     mock_model_service.query_prompt.assert_called_once_with(prompt_text)
+def test_prompt_resource_forwards_prompt_to_model_service(app, mock_model_service, auth_header):
+     # 1) Arrange
+     prompt_text = "Just checking"
+     # Make sure the container lookup won’t blow up
+     from app import Container
+     from dependency_injector import providers
+     Container.model_service = providers.Object(None)
+
+     # 2) Act
+     with app.test_request_context(
+         f"/app/prompt?prompt={prompt_text}",
+         method="GET",
+         headers=auth_header,
+     ):
+         resource = PromptResource()
+         _, status = resource.get(model_service=mock_model_service)
+
+     # 3) Assert
+     assert status == 200
+     mock_model_service.query_prompt.assert_called_once_with(prompt_text)
 # --------------------------------------------------------------------------------

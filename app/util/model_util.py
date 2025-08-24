@@ -25,7 +25,10 @@ DEFAULT_SYS_PROMPT = (
         "     - Organizer: <Name Surname, Email>\n"
         "Safety:\n"
         "- Disambiguate same-title events by date/location.\n"
-        "- Never mention internal implementation details."
+        "- Never mention internal implementation details.\n"
+        "- Always return markdown. \n"
+        "- Make the event title bold and heading. \n"
+        "- Classifier words like location and category are bold. \n"
     )
 
 COUNT_EXTRACT_SYS_PROMPT = (

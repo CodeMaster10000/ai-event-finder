@@ -9,7 +9,7 @@ from app.util.transaction_util import transactional, retry_conflicts
 from app.extensions import db
 from app.services.embedding_service.embedding_service import EmbeddingService
 from app.util.format_event_util import format_event
-from sqlalchemy import inspect
+
 from app.error_handler.exceptions import (
     EventNotFoundException,
     EventSaveException,
