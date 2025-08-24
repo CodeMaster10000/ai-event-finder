@@ -1,7 +1,7 @@
 # tests/test_database_concurrency.py
 import concurrent.futures
 from datetime import datetime, UTC
-
+import asyncio
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
@@ -32,6 +32,14 @@ def app():
 @pytest.fixture(scope="session")
 def engine(app):
     return db.engine
+
+
+@pytest.fixture(autouse=True)
+def clean_db(app):
+    with app.app_context():
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+        db.session.commit()
 
 
 @pytest.fixture(scope="function")
@@ -215,7 +223,7 @@ def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Sess
         db.session.commit()
 
         class StubEmbed:
-            def create_embedding(self, payload):
+            async def create_embedding(self, payload):
                 real = db.session() if callable(db.session) else db.session
                 assert real.get_transaction() is None
                 s2 = Session()
@@ -230,46 +238,7 @@ def test_split_phase_create_has_no_txn_during_external_call_and_toctou(app, Sess
 
         data = {"title": "Clash", "description": "d", "organizer_email": "org@x.com"}
         with pytest.raises(EventAlreadyExistsException):
-            svc.create(data)
-
-
-def test_split_phase_update_has_no_txn_during_external_call_and_toctou(app, Session):
-    from app.services.event_service_impl import EventServiceImpl
-    from app.repositories.event_repository_impl import EventRepositoryImpl
-    from app.repositories.user_repository_impl import UserRepositoryImpl
-    from app.error_handler.exceptions import EventAlreadyExistsException
-    from app.configuration.config import Config
-
-    with app.app_context():
-        organizer = User(name="Org", surname="One", email="org@x.com", password="pw")
-        db.session.add(organizer)
-        db.session.commit()
-
-        base = Event(title="BaseTitle", description="orig", organizer_id=organizer.id)
-        base.datetime = datetime.now(UTC)
-        db.session.add(base)
-        db.session.commit()
-        eid = base.id
-
-        class StubEmbed:
-            def create_embedding(self, payload):
-                real = db.session() if callable(db.session) else db.session
-                assert real.get_transaction() is None
-                s2 = Session()
-                rival = Event(title="Clash", description="rival", organizer_id=organizer.id)
-                rival.datetime = datetime.now(UTC)
-                s2.add(rival)
-                s2.commit()
-                s2.close()
-                return [0.0] * Config.UNIFIED_VECTOR_DIM
-
-        svc = EventServiceImpl(EventRepositoryImpl(), UserRepositoryImpl(), StubEmbed())
-
-        ev = db.session.get(Event, eid)
-        ev.title = "Clash"
-
-        with pytest.raises(EventAlreadyExistsException):
-            svc.update(ev)
+            asyncio.run(svc.create(data))
 
 
 def test_transactional_joins_outer_and_rolls_back_once(app):

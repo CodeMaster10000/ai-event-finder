@@ -3,6 +3,7 @@ from flask_restx import Namespace, Resource, fields
 from flask import request, abort
 from dependency_injector.wiring import inject, Provide
 from app.container import Container
+from app.models.event import Event
 from app.services.event_service import EventService
 from app.schemas.event_schema import CreateEventSchema, EventSchema, UpdateEventSchema
 from app.util.logging_util import log_calls
