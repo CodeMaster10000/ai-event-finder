@@ -10,10 +10,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
 
-    preDeployCommand: |
-      flask db upgrade
-
-    startCommand: uvicorn run:app --host 0.0.0.0 --port ${APP_PORT} --reload
+    startCommand: bash -lc 'flask db upgrade && uvicorn run:app --host 0.0.0.0 --port ${APP_PORT}'
 
     envVars:
       - key: PYTHONUNBUFFERED
