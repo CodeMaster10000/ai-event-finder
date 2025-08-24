@@ -4,7 +4,7 @@ import asyncio
 from app.container import Container
 from app.configuration.config import Config
 
-#pytest.skip("Skipping AI calls", allow_module_level=True)
+pytest.skip("Skipping AI calls", allow_module_level=True)
 # -------- Helpers -------------------------------------------------------------
 
 def _default_k():
