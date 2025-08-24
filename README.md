@@ -153,9 +153,11 @@ SPIKE_USERS=200
 STAGE_SEC=60
 ```
 ```bash
-TEST_DB_NAME=financial_db_test
-TEST_DB_USER=test
-TEST_DB_PASSWORD=test
+TEST_DB_USER=test_user
+TEST_DB_PASSWORD=test_password
+TEST_DB_HOST=localhost
+TEST_DB_PORT=5433
+TEST_DB_NAME=test_database
 HOST_TEST_DB_PORT=5433
 ```
 
