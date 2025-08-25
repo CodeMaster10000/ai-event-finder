@@ -95,7 +95,7 @@ class UserByEmailResource(Resource):
              email: str,
              user_service: UserService = Provide[Container.user_service]):
         """Update a user"""
-        json_data = request.get_json() or {}
+        json_data = request.get_json(silent=True) or {}
         data = update_user_schema.load(json_data, partial=True)
 
         if not data:
