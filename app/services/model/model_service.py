@@ -21,7 +21,7 @@ class ModelService(ABC):
         self.sys_prompt = sys_prompt or DEFAULT_SYS_PROMPT
 
     @abstractmethod
-    async def query_prompt(self, user_prompt: str) -> str:
+    async def query_prompt(self, user_prompt: str, session_key: str) -> str:
         """
         Embed the user prompt asynchronously, retrieve relevant events (RAG),
         build chat messages, call an LLM asynchronously, and return the assistant's response.

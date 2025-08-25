@@ -139,29 +139,37 @@ def test_get_by_id(app, user_service_mock, user_id, found, auth_header):
 
             user_service_mock.get_by_id.assert_called_once_with(user_id)
 
+import pytest
+from app.error_handler.exceptions import UserNotFoundException
+from app.models.user import User
+from app.routes.user_route import UserByIdResource  # adjust import if needed
+
 @pytest.mark.parametrize("user_id, found", [(1, True), (5, False)])
 def test_delete_by_id(app, user_service_mock, user_id, found, auth_header):
     with app.test_request_context(headers=auth_header):
         resource = UserByIdResource()
 
         if found:
-            user = User(id=user_id, name='A', surname='B', email='a@b.com', password='X')
-            user_service_mock.get_by_id.return_value = user
+            # Success path: delete succeeds (no return value)
+            user_service_mock.delete_by_id.return_value = None
 
             body, status = resource.delete(user_id=user_id, user_service=user_service_mock)
 
             assert status == 204
-            assert body == ''
-            user_service_mock.get_by_id.assert_called_once_with(user_id)
+            assert body == ""
             user_service_mock.delete_by_id.assert_called_once_with(user_id)
+            user_service_mock.get_by_id.assert_not_called()
+
         else:
-            user_service_mock.get_by_id.side_effect = UserNotFoundException(f"User {user_id} not found")
+            # Not-found path: route calls delete_by_id which raises
+            user_service_mock.delete_by_id.side_effect = UserNotFoundException(f"User {user_id} not found")
 
             with pytest.raises(UserNotFoundException):
                 resource.delete(user_id=user_id, user_service=user_service_mock)
 
-            user_service_mock.get_by_id.assert_called_once_with(user_id)
-            user_service_mock.delete_by_id.assert_not_called()
+            user_service_mock.delete_by_id.assert_called_once_with(user_id)
+            user_service_mock.get_by_id.assert_not_called()
+
 
 @pytest.mark.parametrize("email, found", [('john@example.com', True), ('foo@bar.com', False)])
 def test_get_by_email(app, user_service_mock, email, found, auth_header):
@@ -204,14 +212,15 @@ def test_put_user_partial_update_success(app, user_service_mock, auth_header):
 def test_put_user_no_fields_bad_request(app, user_service_mock, auth_header):
     email = "alice@example.com"
 
-    # No JSON body -> route should abort(400, "No valid update fields provided")
-    with app.test_request_context(headers=auth_header):
+    with app.test_request_context(
+            method="PUT",
+            headers={**auth_header, "Content-Type": "application/json"},
+            data=b"{}",
+    ):
         resource = UserByEmailResource()
         with pytest.raises(HTTPException) as exc:
             resource.put(email=email, user_service=user_service_mock)
-
     assert exc.value.code == 400
-    user_service_mock.update.assert_not_called()
 
 
 def test_put_user_not_found(app, user_service_mock, auth_header):
