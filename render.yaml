@@ -11,7 +11,7 @@ services:
       pip install poetry
       poetry install
 
-    startCommand: uvicorn run:app --host 0.0.0.0 --port 5000
+    startCommand: sh -c "sleep 10 && uvicorn run:app --host 0.0.0.0 --port 5000 --reload --workers 3
 
     envVars:
       - key: PYTHONUNBUFFERED

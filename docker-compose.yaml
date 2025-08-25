@@ -30,14 +30,14 @@ services:
     volumes:
       - test_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test_user -d test_database"]
+      test: ["CMD-SHELL", "pg_isready -U ${TEST_DB_USER} -d ${TEST_DB_NAME}"]
       interval: 5s
       timeout: 3s
       retries: 5
 
   web:
     build: .
-    command: uvicorn run:app --host 0.0.0.0 --port ${APP_PORT} --reload
+    command: sh -c "sleep 10 && uvicorn run:app --host 0.0.0.0 --port 5000 --reload --workers 3"
     env_file:
       - .env
     ports:
@@ -52,30 +52,74 @@ services:
       DB_HOST: db
       DB_PORT: ${DB_PORT}
       DB_NAME: ${DB_NAME}
+      TEST_MODE: ${TEST_MODE}
+      TEST_DB_HOST: test-db
+      TEST_DB_PORT: 5432
+      TEST_DB_USER: ${TEST_DB_USER}
+      TEST_DB_PASSWORD: ${TEST_DB_PASSWORD}
+      TEST_DB_NAME: ${TEST_DB_NAME}
     volumes:
       - .:/app
 
+  web-test:
+    build: .
+    command: sh -c "sleep 10 && uvicorn run:app --host 0.0.0.0 --port 5001 --reload --workers 3"
+    env_file:
+      - .env
+    environment:
+      APP_PORT: 5001
+      TEST_MODE: "True"
+      TEST_DB_HOST: test-db
+      TEST_DB_PORT: 5432
+      TEST_DB_USER: ${TEST_DB_USER}
+      TEST_DB_PASSWORD: ${TEST_DB_PASSWORD}
+      TEST_DB_NAME: ${TEST_DB_NAME}
+    depends_on:
+      test-db:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   locust:
     image: locustio/locust
     env_file:
       - .env
-    command: >
-      -f /mnt/locust/locustfile.py
-      --host ${LOCUST_HOST}
-      --users ${LOCUST_USERS}
-      --spawn-rate ${LOCUST_SPAWN_RATE}
-      --run-time ${LOCUST_RUN_TIME}
-      ${LOCUST_HEADLESS_FLAG}
-      --csv /mnt/locust/reports/${LOCUST_CSV_PREFIX}
-      --loglevel ${LOCUST_LOGLEVEL}
+    environment:
+      LOCUST_HOST: http://web-test:5001
     volumes:
-      - ./perf/locust:/mnt/locust
+      - ./perf/locust/locustfile.py:/mnt/locust/locustfile.py:ro
+      - ./perf/locust/reports:/mnt/locust/reports
+    command:
+      - -f
+      - /mnt/locust/locustfile.py
+      - --host
+      - ${LOCUST_HOST:-http://web-test:5001}
+      - --users
+      - ${LOCUST_USERS:-50}
+      - --spawn-rate
+      - ${LOCUST_SPAWN_RATE:-10}
+      - --run-time
+      - ${LOCUST_RUN_TIME:-5m}
+      - --csv
+      - /mnt/locust/reports/${LOCUST_CSV_PREFIX:-locust_report}
+      - --loglevel
+      - ${LOCUST_LOGLEVEL:-INFO}
     ports:
-      - "${LOCUST_PORT_MAPPING}"
+      - "${LOCUST_PORT_MAPPING:-8089:8089}"
     depends_on:
-      - web
-      - db
+      web-test:
+        condition: service_healthy
+      test-db:
+        condition: service_healthy
+
 
 
 volumes:

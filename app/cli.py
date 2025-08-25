@@ -1,9 +1,7 @@
-import asyncio
 import csv
 import os
 from datetime import datetime
 from itertools import cycle
-
 from flask import current_app
 from flask.cli import AppGroup
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +18,7 @@ from app.error_handler.exceptions import (
     EventSaveException,
     EventDeleteException,
     UserDeleteException,
+    EmbeddingServiceException,
     InvalidDateFormatException,
 )
 from app.extensions import db
