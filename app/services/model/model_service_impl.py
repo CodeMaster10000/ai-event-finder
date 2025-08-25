@@ -56,7 +56,7 @@ class ModelServiceImpl(ModelService):
 
         # 2) retrieve most fit events
         k = await self.extract_requested_event_count(user_prompt)
-        events = self.event_repository.search_by_embedding(embed_vector, k, 10)
+        events = self.event_repository.search_by_embedding(embed_vector, k)
         rag_docs = "\n".join([format_event(e) for e in events])
 
         # 3) build recent history snippet (last ≤5)
@@ -78,9 +78,9 @@ class ModelServiceImpl(ModelService):
         if rag_docs.strip():
             parts.append(f"DOCUMENTS:\n{rag_docs}")
         if history_block:
-            parts.append(f"RECENT MESSAGES (last {count}):\n{history_block[count:]}")
+            parts.append(f"RECENT MESSAGES (last {count}):\n{history_block}")
             #print(f"RECENT MESSAGES (last {count}):\n{history_block}")
-            print(history_block[count:])
+            print(history_block)
         combined_context = "\n\n".join(parts) if parts else "No context available."
 
         # 4) assemble messages and call OpenAI
