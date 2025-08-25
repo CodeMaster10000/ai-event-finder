@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 
 import pytest
 
@@ -115,5 +115,6 @@ def test_prompt_resource_forwards_prompt_to_model_service(app, mock_model_servic
 
      # 3) Assert
      assert status == 200
-     mock_model_service.query_prompt.assert_called_once_with(prompt_text)
+     mock_model_service.query_prompt.assert_called_once_with(prompt_text, session_key=ANY)
+
 # --------------------------------------------------------------------------------
